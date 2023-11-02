@@ -1,0 +1,34 @@
+name: ClimaAnalysis CI
+on:
+  pull_request:
+
+jobs:
+  lib-climaanalysis:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        version:
+          - '1.9'
+          - '~1.10.0-rc1'
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.version }}
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - name: Build package
+        continue-on-error: true
+        run: julia --project=lib/ClimaAnalysis/test -e "using Pkg; Pkg.develop(path=\"lib/ClimaAnalysis\"); Pkg.instantiate()"
+      - name: Run the tests
+        run: julia --project=lib/ClimaAnalysis/test lib/ClimaAnalysis/test/runtests.jl

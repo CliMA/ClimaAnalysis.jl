@@ -1,0 +1,4 @@
+[deps]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+ClimaAnalysis = "29b5916a-a76c-4e73-9657-3c8fd22e65e6"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
