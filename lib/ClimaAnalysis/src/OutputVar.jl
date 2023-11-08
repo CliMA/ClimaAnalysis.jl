@@ -1,4 +1,5 @@
 import NCDatasets
+import OrderedCollections: OrderedDict
 
 struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
 
@@ -6,10 +7,10 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
     attributes::Dict{String, B}
 
     "Dimensions over which the variable is defined"
-    dims::Dict{String, T}
+    dims::OrderedDict{String, T}
 
     "Attributes associated to the dimensions"
-    dim_attributes::Dict{String, C}
+    dim_attributes::OrderedDict{String, C}
 
     "Array that contains all the data"
     var::A
@@ -36,10 +37,10 @@ function read_var(path::String)
         dims = map(nc.dim) do dim
             dim_name = dim[1]
             return dim_name => Array(nc[dim_name])
-        end |> Dict
+        end |> OrderedDict
         var_name = pop!(setdiff(keys(nc), keys(dims)))
         attribs = Dict(nc[var_name].attrib)
-        dim_attribs = Dict(
+        dim_attribs = OrderedDict(
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
         )
         var = Array(nc[var_name])

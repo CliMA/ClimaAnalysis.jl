@@ -56,7 +56,7 @@ end
 
     @test ta_max.attributes["units"] == "K"
 
-    @test Set(keys(ta_max.dims)) == Set(["lat", "lon", "z", "time"])
+    @test collect(keys(ta_max.dims)) == Array(["time", "lon", "lat", "z"])
 
     @test ta_max.dim_attributes["lat"]["units"] == "degrees_north"
 
