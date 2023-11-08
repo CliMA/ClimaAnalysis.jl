@@ -26,26 +26,10 @@ function SimDir(simulation_path::String)
     vars = Dict()
     allfiles = Set{String}()
 
-    # Let's unpack this regular expression to find files names like "orog_inst.nc" or
-    # "ta_3.0h_average.nc" and extract information from there.
-
-    # ^ $: mean match the entire string
-    # (\w+?): the first capturing group, matching any word non greedily
-    # _: matches this literal character
-    # (?>([a-zA-Z0-9\.]*)_)?: an optional group (it doesn't exist for _inst variables)
-    #                         ?> means that we don't want to capture the outside group
-    #                         the inside group is any combinations of letters/numbers,
-    #                         and the literal character ., followed by the _.
-    #                         We capture the combination of characters because that's
-    #                         the reduction
-    # (\w+): Again, any word
-    # \.nc: file extension has to be .nc
-    re = r"^(\w+?)_(?>([a-zA-Z0-9\.]*)_)?(\w*)\.nc$"
-
     foreach(readdir(simulation_path)) do path
-        m = match(re, path)
+        m = Utils.match_nc_filename(path)
         if !isnothing(m)
-            short_name, period, reduction = m.captures
+            short_name, period, reduction = m
 
             full_path = joinpath(simulation_path, path)
 
