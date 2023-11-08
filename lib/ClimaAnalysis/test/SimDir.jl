@@ -58,6 +58,11 @@ end
 
     @test collect(keys(ta_max.dims)) == Array(["time", "lon", "lat", "z"])
 
+    @test ta_max.dim2index ==
+          Dict(["time" => 1, "lon" => 2, "lat" => 3, "z" => 4])
+
+    @test ta_max.index2dim == ["time", "lon", "lat", "z"]
+
     @test ta_max.dim_attributes["lat"]["units"] == "degrees_north"
 
     @test size(ta_max.var) == (3, 180, 80, 10)

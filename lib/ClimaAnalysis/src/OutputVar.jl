@@ -17,7 +17,31 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
 
     "File associated to this variable"
     file_path::String
+
+    "Dictionary that maps dimension name to its array index"
+    dim2index::Dict{String, Int}
+
+    "Array that maps name array index to the dimension name"
+    index2dim::Vector{String}
+
 end
+
+function OutputVar(attribs, dims, dim_attribs, var, path)
+    index2dim = keys(dims) |> collect
+    dim2index =
+        Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
+
+    return OutputVar(
+        attribs,
+        dims,
+        dim_attribs,
+        var,
+        path,
+        dim2index,
+        index2dim,
+    )
+end
+
 
 """
     read_var(path::String)
