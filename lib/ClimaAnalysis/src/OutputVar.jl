@@ -1,12 +1,15 @@
 import NCDatasets
 
-struct OutputVar{T <: AbstractArray, A <: AbstractArray, B}
+struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
 
     "Dimensions over which the variable is defined"
     dims::Dict{String, T}
+
+    "Attributes associated to the dimensions"
+    dim_attributes::Dict{String, C}
 
     "Array that contains all the data"
     var::A
@@ -36,7 +39,10 @@ function read_var(path::String)
         end |> Dict
         var_name = pop!(setdiff(keys(nc), keys(dims)))
         attribs = Dict(nc[var_name].attrib)
+        dim_attribs = Dict(
+            dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
+        )
         var = Array(nc[var_name])
-        return OutputVar(attribs, dims, var, path)
+        return OutputVar(attribs, dims, dim_attribs, var, path)
     end
 end

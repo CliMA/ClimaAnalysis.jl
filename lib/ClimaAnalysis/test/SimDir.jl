@@ -55,6 +55,11 @@ end
     ta_max = get(simdir, short_name = "ta", reduction = "max", period = "4.0h")
 
     @test ta_max.attributes["units"] == "K"
+
+    @test Set(keys(ta_max.dims)) == Set(["lat", "lon", "z", "time"])
+
+    @test ta_max.dim_attributes["lat"]["units"] == "degrees_north"
+
     @test size(ta_max.var) == (3, 180, 80, 10)
 
     @test_throws ErrorException get(simdir, short_name = "bob")
