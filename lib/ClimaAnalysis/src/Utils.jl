@@ -67,4 +67,26 @@ function match_nc_filename(filename::String)
     end
 end
 
+"""
+    squeeze(A :: AbstractArray)
+
+Return an array that has no dimensions with size 1.
+
+Examples
+=========
+
+```jldoctest
+julia> A = [[1 2] [3 4]]
+julia> size(A)
+(1, 4)
+julia> A_squeezed = squeeze(A)
+julia> size(A_squeezed)
+(4, )
+```
+"""
+function squeeze(A::AbstractArray)
+    keepdims = Tuple(i for i in size(A) if i != 1)
+    return reshape(A, keepdims)
+end
+
 end

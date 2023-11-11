@@ -14,3 +14,7 @@ import ClimaAnalysis: Utils
     @test Utils.match_nc_filename("hu_inst.nc") ==
           Tuple(["hu", nothing, "inst"])
 end
+
+@testset "Squeeze" begin
+    @test Utils.squeeze([[1 2] [3 4]]) == [1, 2, 3, 4]
+end

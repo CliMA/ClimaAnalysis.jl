@@ -1,7 +1,9 @@
 import NCDatasets
 import OrderedCollections: OrderedDict
 
-struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
+import Statistics: mean
+
+struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, FP <: Union{String, Nothing}}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
@@ -16,7 +18,7 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
     var::A
 
     "File associated to this variable"
-    file_path::String
+    file_path::FP
 
     "Dictionary that maps dimension name to its array index"
     dim2index::Dict{String, Int}
@@ -33,8 +35,8 @@ function OutputVar(attribs, dims, dim_attribs, var, path)
 
     return OutputVar(
         attribs,
-        dims,
-        dim_attribs,
+        OrderedDict(dims),
+        OrderedDict(dim_attribs),
         var,
         path,
         dim2index,
@@ -42,6 +44,10 @@ function OutputVar(attribs, dims, dim_attribs, var, path)
     )
 end
 
+
+function OutputVar(dims, var)
+    return OutputVar(Dict{String, Any}(), dims, Dict{String, Any}(), var, nothing)
+end
 
 """
     read_var(path::String)
@@ -71,3 +77,61 @@ function read_var(path::String)
         return OutputVar(attribs, dims, dim_attribs, var, path)
     end
 end
+
+"""
+    _reduce_over(reduction::F, dim::String, var::OutputVar)
+
+Apply the given reduction over the given dimension.
+
+`reduction` has to support the `dims` key.
+
+The return type is an `OutputVar` with the same attributes, the new data, and the dimension
+dropped.
+
+Example
+=========
+
+Average over latitudes
+
+```jldoctest
+julia> import Statistics: mean
+julia> long = 0.:180. |> collect
+julia> lat = 0.:90. |> collect
+julia> data = reshape(1.:91*181., (181, 91))
+julia> dims = Dict(["lat" => lat, "long" => long])
+julia> var = OutputVar(dims, data)
+
+julia> reduce_over(mean, "lat", var)
+```
+"""
+function _reduce_over(reduction::F, dim::String, var::OutputVar) where {F <: Function}
+    dim_index = var.dim2index[dim]
+    data = reduction(var.var, dims = dim_index) |> Utils.squeeze
+
+    dims = copy(var.dims)
+    dim_attributes = copy(var.dim_attributes)
+    pop!(dims, dim)
+    haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
+    return OutputVar(var.attributes, dims, dim_attributes, data, var.file_path)
+end
+
+"""
+    average_lat(var::OutputVar)
+
+Return a new OutputVar where the values on the latitudes are averaged arithmetically.
+"""
+average_lat(var) = _reduce_over(mean, "lat", var)
+
+"""
+    average_lon(var::OutputVar)
+
+Return a new OutputVar where the values on the longitudes are averaged arithmetically.
+"""
+average_lon(var) = _reduce_over(mean, "lon", var)
+
+"""
+    average_time(var::OutputVar)
+
+Return a new OutputVar where the values are averaged arithmetically in time.
+"""
+average_time(var) = _reduce_over(mean, "time", var)
