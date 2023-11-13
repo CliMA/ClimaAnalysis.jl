@@ -102,6 +102,21 @@ function available_periods(
     return keys(simdir.vars[short_name][reduction]) |> Set
 end
 
+function Base.summary(io::IO, simdir::SimDir)
+    print(io, "Output directory: $(simdir.simulation_path)\n")
+    print(io, "Variables:")
+    for short_name in available_vars(simdir)
+        print(io, "\n- $short_name")
+        for reduction in available_reductions(simdir; short_name)
+            print(io, "\n    $reduction")
+            if reduction != "inst"
+                periods = available_periods(simdir; short_name, reduction)
+                print(io, " (", join(periods, ", "), ")")
+            end
+        end
+    end
+end
+
 """
     get(simdir::SimDir;
         short_name,
