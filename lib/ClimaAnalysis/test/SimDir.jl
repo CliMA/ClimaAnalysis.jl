@@ -65,7 +65,7 @@ end
 
     @test ta_max.dim_attributes["lat"]["units"] == "degrees_north"
 
-    @test size(ta_max.var) == (3, 180, 80, 10)
+    @test size(ta_max.data) == (3, 180, 80, 10)
 
     @test_throws ErrorException get(simdir, short_name = "bob")
 

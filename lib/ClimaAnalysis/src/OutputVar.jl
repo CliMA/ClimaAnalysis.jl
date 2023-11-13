@@ -3,7 +3,13 @@ import OrderedCollections: OrderedDict
 
 import Statistics: mean
 
-struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, FP <: Union{String, Nothing}}
+struct OutputVar{
+    T <: AbstractArray,
+    A <: AbstractArray,
+    B,
+    C,
+    FP <: Union{String, Nothing},
+}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
@@ -15,7 +21,7 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, FP <: Union{Strin
     dim_attributes::OrderedDict{String, C}
 
     "Array that contains all the data"
-    var::A
+    data::A
 
     "File associated to this variable"
     file_path::FP
@@ -28,7 +34,7 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, FP <: Union{Strin
 
 end
 
-function OutputVar(attribs, dims, dim_attribs, var, path)
+function OutputVar(attribs, dims, dim_attribs, data, path)
     index2dim = keys(dims) |> collect
     dim2index =
         Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
@@ -37,7 +43,7 @@ function OutputVar(attribs, dims, dim_attribs, var, path)
         attribs,
         OrderedDict(dims),
         OrderedDict(dim_attribs),
-        var,
+        data,
         path,
         dim2index,
         index2dim,
@@ -45,8 +51,14 @@ function OutputVar(attribs, dims, dim_attribs, var, path)
 end
 
 
-function OutputVar(dims, var)
-    return OutputVar(Dict{String, Any}(), dims, Dict{String, Any}(), var, nothing)
+function OutputVar(dims, data)
+    return OutputVar(
+        Dict{String, Any}(),
+        dims,
+        Dict{String, Any}(),
+        data,
+        nothing,
+    )
 end
 
 """
@@ -73,8 +85,8 @@ function read_var(path::String)
         dim_attribs = OrderedDict(
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
         )
-        var = Array(nc[var_name])
-        return OutputVar(attribs, dims, dim_attribs, var, path)
+        data = Array(nc[var_name])
+        return OutputVar(attribs, dims, dim_attribs, data, path)
     end
 end
 
@@ -104,9 +116,13 @@ julia> var = OutputVar(dims, data)
 julia> reduce_over(mean, "lat", var)
 ```
 """
-function _reduce_over(reduction::F, dim::String, var::OutputVar) where {F <: Function}
+function _reduce_over(
+    reduction::F,
+    dim::String,
+    var::OutputVar,
+) where {F <: Function}
     dim_index = var.dim2index[dim]
-    data = reduction(var.var, dims = dim_index) |> Utils.squeeze
+    data = reduction(var.data, dims = dim_index) |> Utils.squeeze
 
     dims = copy(var.dims)
     dim_attributes = copy(var.dim_attributes)
