@@ -135,6 +135,13 @@ function get(
     period::Union{String, Nothing} = nothing,
 )
 
+    # When the reduction is "inst", we enforce the period to be "nothing"
+    if reduction == "inst"
+        isnothing(period) ||
+            @debug "$short_name, found period $period for inst reduction"
+        period = nothing
+    end
+
     if !(period in available_periods(simdir; short_name, reduction))
         error(
             "Period $period not available for $short_name and reduction $reduction. " *

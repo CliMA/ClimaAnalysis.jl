@@ -75,4 +75,8 @@ end
         reduction = "max",
         period = "10.0h",
     )
+
+    # Check if reduction = inst and passing a period
+    orog = get(simdir, short_name = "orog", reduction = "inst", period = "4.0h")
+    @test orog == get(simdir, short_name = "orog", reduction = "inst")
 end
