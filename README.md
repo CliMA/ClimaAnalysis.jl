@@ -88,11 +88,22 @@ ts_max_lat_averaged = ClimaAnalysis.average_lat(ts_max)
 Now,
 ``` julia-repl
 ts_max_lat_averaged.dims =
-OrderedCollections.OrderedDict{String, Vector{Float32}} with 4 entries:
+OrderedCollections.OrderedDict{String, Vector{Float32}} with 3 entries:
   "time" => [10800.0, 21600.0, 32400.0, 43200.0]
   "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
   "z"    => [0.0, 5000.0, 10000.0, 15000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, …
 ```
+We can also take a time/altitude slice, for example, the plane with altitude closest to 8000 meters.
+``` julia-repl
+ts_max_lat_averaged_sliced = ClimaAnalysis.slice_z(ts_max_lat_averaged_sliced, 8_000)
+```
+Now,
+``` julia-repl
+ts_max_lat_averaged_sliced.dims =
+OrderedCollections.OrderedDict{String, Vector{Float32}} with 2 entries:
+  "time" => [10800.0, 21600.0, 32400.0, 43200.0]
+  "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
+  ```
 
 We can directly visualize these quantities.
 
@@ -143,3 +154,4 @@ CairoMakie.save("ta_max.png", fig)
 - Read, organize, and process NetCDF files
 - Visualize contour plots with `CairoMakie`
 - Apply averages and other reductions to the output variables.
+- Slice variables along a given value (e.g., take the slice with altitude of 500 meters)

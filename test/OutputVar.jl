@@ -41,3 +41,32 @@ import OrderedCollections: OrderedDict
     @test lat_lon_time_avg.data[] == mean(data)
 
 end
+
+@testset "Slicing" begin
+    z = 0.0:20.0 |> collect
+    time = 0.0:10.0 |> collect
+
+    data = reshape(1.0:(11 * 21), (11, 21))
+
+    dims = OrderedDict(["time" => time, "z" => z])
+    dim_attributes = OrderedDict(["time" => Dict(), "z" => Dict("b" => 2)])
+    attribs = Dict{String, Any}()
+    path = "a/b/c"
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
+
+    z_sliced = ClimaAnalysis.slice_z(var, 1.0)
+    # 1.0 is the second index
+    z_expected_data = data[:, 2]
+    @test z_sliced.dims == OrderedDict(["time" => time])
+    @test z_sliced.dim_attributes == OrderedDict(["time" => Dict()])
+    @test z_sliced.file_path == path
+    @test z_sliced.data == z_expected_data
+
+    t_sliced = ClimaAnalysis.slice_time(var, 20.0)
+    # 20 is the last index
+    t_expected_data = data[end, :]
+    @test t_sliced.dims == OrderedDict(["z" => z])
+    @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
+    @test t_sliced.file_path == path
+    @test t_sliced.data == t_expected_data
+end

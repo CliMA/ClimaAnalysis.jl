@@ -95,7 +95,7 @@ end
 
 Apply the given reduction over the given dimension.
 
-`reduction` has to support the `dims` key.
+`reduction` has to support the `dims` key. Additional arguments are passed to `reduction`.
 
 The return type is an `OutputVar` with the same attributes, the new data, and the dimension
 dropped.
@@ -120,10 +120,13 @@ function _reduce_over(
     reduction::F,
     dim::String,
     var::OutputVar,
+    args...;
+    kwargs...,
 ) where {F <: Function}
     dim_index = var.dim2index[dim]
     data = reduction(var.data, dims = dim_index) |> Utils.squeeze
 
+    # If we reduce over a dimension, we have to remove it
     dims = copy(var.dims)
     dim_attributes = copy(var.dim_attributes)
     pop!(dims, dim)
@@ -151,3 +154,29 @@ average_lon(var) = _reduce_over(mean, "lon", var)
 Return a new OutputVar where the values are averaged arithmetically in time.
 """
 average_time(var) = _reduce_over(mean, "time", var)
+
+"""
+    slice_general(var::OutputVar, val, dim_name)
+
+Return a new OutputVar by selecting the available index closest to the given `val` for the
+given dimension
+"""
+function slice_general(var, val, dim_name)
+    nearest_index = Utils.find_nearest_index(var.dims[dim_name], val)
+    _slice_over(data; dims) = selectdim(data, dims, nearest_index)
+    _reduce_over(_slice_over, dim_name, var)
+end
+
+"""
+    slice_time(var::OutputVar, time)
+
+Return a new OutputVar by selecting the available snapshot closest to the given `time`.
+"""
+slice_time(var, time) = slice_general(var, time, "time")
+
+"""
+    slice_z(var::OutputVar, z)
+
+Return a new OutputVar by selecting the available date closest to the given `z`.
+"""
+slice_z(var, z) = slice_general(var, z, "z")
