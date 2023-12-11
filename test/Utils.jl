@@ -18,3 +18,9 @@ end
 @testset "Squeeze" begin
     @test Utils.squeeze([[1 2] [3 4]]) == [1, 2, 3, 4]
 end
+
+@testset "find_nearest_index" begin
+    @test Utils.find_nearest_index([10, 20, 30], 0) == 1
+    @test Utils.find_nearest_index([10, 20, 30], 100) == 3
+    @test Utils.find_nearest_index([10, 20, 30], 20) == 2
+end
