@@ -68,9 +68,11 @@ function match_nc_filename(filename::String)
 end
 
 """
-    squeeze(A :: AbstractArray)
+    squeeze(A :: AbstractArray; dims)
 
 Return an array that has no dimensions with size 1.
+
+When an iterable `dims` is passed, only try to squeeze the given `dim`ensions.
 
 Examples
 =========
@@ -82,14 +84,28 @@ julia> size(A)
 julia> A_squeezed = squeeze(A)
 julia> size(A_squeezed)
 (4, )
+julia> A_not_squeezed = squeeze(A; dims = (2, ))
+julia> size(A_not_squeezed)
+(1, 4)
 ```
 """
-function squeeze(A::AbstractArray)
-    keepdims = Tuple(i for i in size(A) if i != 1)
+function squeeze(A::AbstractArray; dims = nothing)
+    isnothing(dims) && (dims = Tuple(1:length(size(A))))
+
+    # TODO: (Refactor)
+    #
+    # Find a cleaner way to identify `keepdims`
+
+    dims_to_drop = Tuple(
+        dim for (dim, len) in enumerate(size(A)) if dim in dims && len == 1
+    )
+    keepdims = Tuple(
+        len for (dim, len) in enumerate(size(A)) if !(dim in dims_to_drop)
+    )
+    # We use reshape because of
+    # https://stackoverflow.com/questions/52505760/dropping-singleton-dimensions-in-julia
     return reshape(A, keepdims)
 end
-
-
 
 """
     nearest_index(A::AbstractArray, val)

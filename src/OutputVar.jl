@@ -124,7 +124,12 @@ function _reduce_over(
     kwargs...,
 ) where {F <: Function}
     dim_index = var.dim2index[dim]
-    data = reduction(var.data, dims = dim_index) |> Utils.squeeze
+
+    # squeeze removes the unnecessary singleton dimension
+    data = Utils.squeeze(
+        reduction(var.data, dims = dim_index),
+        dims = (dim_index,),
+    )
 
     # If we reduce over a dimension, we have to remove it
     dims = copy(var.dims)
