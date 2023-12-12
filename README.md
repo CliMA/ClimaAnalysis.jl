@@ -113,41 +113,23 @@ If `CairoMakie` is available, `ClimaAnalysis` can be used for plotting.
 Importing `CairoMakie` and `ClimaAnalysis` in the same session automatically
 loads the necessary `ClimaAnalysis` plotting modules.
 
-If we want to make a contour plot for `ts_max`:
+If we want to make a contour plot for `ta_max` at time of 100 s at altitude `z` of 30000 meters:
 
 ``` julia
 import CairoMakie
 import ClimaAnalysis: Visualize
 
-time = ta_max.dims["time"][end]
-lon = ta_max.dims["lon"]
-lat = ta_max.dims["lat"]
-ZINDEX = 3
-z = ta_max.dims[z][ZINDEX]
-
-lat_units = ta_max.dim_attributes["lat"]["units"]
-lon_units = ta_max.dim_attributes["lon"]["units"]
-z_units = ta_max.dim_attributes["z"]["units"]
-units = ta_max.attributes["units"]
-long_name = ta_max.attributes["long_name"]
-
 fig = CairoMakie.Figure(resolution = (400, 600))
-title = "$long_name z = $z $z_units, t = $time $t_units"
+
 viz.contour_plot!(
-  fig;
-  X = lon,
-  Y = lat,
-  Z = Z,
-  title,
-  xlabel = "lon [lon_units]",
-  ylabel = "lat [lat_units]",
-  colorbar_label = "ta_max [$units]",
-  p_loc = (1, 1),
+  fig,
+  ta_max,
+  time = 100.0,
+  z = 30_000.0
 )
 
 CairoMakie.save("ta_max.png", fig)
 ```
-
 
 ## Features
 
