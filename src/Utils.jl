@@ -92,7 +92,7 @@ end
 
 
 """
-    find_nearest_index(A::AbstractArray, val)
+    nearest_index(A::AbstractArray, val)
 
 Return the index in `A` closest to the given `val`.
 
@@ -101,13 +101,13 @@ Examples
 
 ```jldoctest
 julia> A = [-1, 0, 1, 2, 3, 4, 5]
-julia> find_nearest_index(A, 3)
+julia> nearest_index(A, 3)
 5
-julia> find_nearest_index(A, 0.1)
+julia> nearest_index(A, 0.1)
 2
 ```
 """
-function find_nearest_index(A::AbstractArray, val)
+function nearest_index(A::AbstractArray, val)
     return findmin(A -> abs(A - val), A)[2]
 end
 

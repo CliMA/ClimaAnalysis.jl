@@ -162,7 +162,7 @@ Return a new OutputVar by selecting the available index closest to the given `va
 given dimension
 """
 function slice_general(var, val, dim_name)
-    nearest_index = Utils.find_nearest_index(var.dims[dim_name], val)
+    nearest_index = Utils.nearest_index(var.dims[dim_name], val)
     _slice_over(data; dims) = selectdim(data, dims, nearest_index)
     _reduce_over(_slice_over, dim_name, var)
 end
