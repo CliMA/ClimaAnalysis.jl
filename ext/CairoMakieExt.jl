@@ -8,7 +8,6 @@ import ClimaAnalysis: Visualize
     contour_plot2D!(
                     fig::CairoMakie.Figure,
                     var::ClimaAnalysis.OutputVar;
-                    title::AbstractString = var.attributes["long_name"],
                     p_loc = (1,1)
                     )
 
@@ -24,7 +23,6 @@ This function assumes that the following attributes are available:
 function Visualize.contour_plot2D!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
-    title::AbstractString = var.attributes["long_name"],
     p_loc = (1, 1),
 )
     length(var.dims) == 2 || error("Can only plot 2D variables")
@@ -39,6 +37,7 @@ function Visualize.contour_plot2D!(
     dim1_units = var.dim_attributes[dim1_name]["units"]
     dim2_units = var.dim_attributes[dim2_name]["units"]
 
+    title = var.attributes["long_name"]
     xlabel = "$dim1_name [$dim1_units]"
     ylabel = "$dim2_name [$dim2_units]"
 
@@ -88,8 +87,6 @@ function Visualize.sliced_contour_plot!(
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
 )
-    title = var.attributes["long_name"]
-
     isnothing(cut) && (cut = Dict())
 
     var_sliced = var
@@ -98,7 +95,7 @@ function Visualize.sliced_contour_plot!(
         var_sliced = ClimaAnalysis.slice_general(var_sliced, val, dim_name)
     end
 
-    Visualize.contour_plot2D!(fig, var_sliced; title, p_loc)
+    Visualize.contour_plot2D!(fig, var_sliced; p_loc)
 end
 
 """
