@@ -225,3 +225,31 @@ slice_time(var, time) = slice_general(var, time, "time")
 Return a new OutputVar by selecting the available date closest to the given `z`.
 """
 slice_z(var, z) = slice_general(var, z, "z")
+
+"""
+    slice_x(var::OutputVar, x)
+
+Return a new OutputVar by selecting the available date closest to the given `x`.
+"""
+slice_x(var, x) = slice_general(var, x, "x")
+
+"""
+    slice_y(var::OutputVar, y)
+
+Return a new OutputVar by selecting the available date closest to the given `y`.
+"""
+slice_y(var, y) = slice_general(var, y, "y")
+
+"""
+    slice_lon(var::OutputVar, lon)
+
+Return a new OutputVar by selecting the available date closest to the given `lon`.
+"""
+slice_lon(var, lon) = slice_general(var, lon, "lon")
+
+"""
+    slice_lat(var::OutputVar, lat)
+
+Return a new OutputVar by selecting the available date closest to the given `lat`.
+"""
+slice_lat(var, lat) = slice_general(var, lat, "lon")
