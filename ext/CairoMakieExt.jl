@@ -95,11 +95,6 @@ function Visualize.sliced_contour_plot!(
     var_sliced = var
 
     for (dim_name, val) in cut
-        dim_units = var.dim_attributes[dim_name]["units"]
-        dim_array = var.dims[dim_name]
-        cut_index = ClimaAnalysis.Utils.nearest_index(dim_array, val)
-        cut_point = dim_array[cut_index]
-        title *= " $dim_name = $cut_point $dim_units"
         var_sliced = ClimaAnalysis.slice_general(var_sliced, val, dim_name)
     end
 

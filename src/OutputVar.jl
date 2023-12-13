@@ -136,7 +136,13 @@ function _reduce_over(
     dim_attributes = copy(var.dim_attributes)
     pop!(dims, dim)
     haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
-    return OutputVar(var.attributes, dims, dim_attributes, data, var.file_path)
+    return OutputVar(
+        copy(var.attributes),
+        dims,
+        dim_attributes,
+        data,
+        var.file_path,
+    )
 end
 
 """
@@ -144,21 +150,44 @@ end
 
 Return a new OutputVar where the values on the latitudes are averaged arithmetically.
 """
-average_lat(var) = _reduce_over(mean, "lat", var)
+function average_lat(var)
+    reduced_var = _reduce_over(mean, "lat", var)
+
+    if haskey(var.attributes, "long_name")
+        reduced_var.attributes["long_name"] *= " averaged over latitudes"
+    end
+    return reduced_var
+end
 
 """
     average_lon(var::OutputVar)
 
 Return a new OutputVar where the values on the longitudes are averaged arithmetically.
 """
-average_lon(var) = _reduce_over(mean, "lon", var)
+function average_lon(var)
+    reduced_var = _reduce_over(mean, "lon", var)
+
+    if haskey(var.attributes, "long_name")
+        reduced_var.attributes["long_name"] *= " averaged over longitudes"
+    end
+
+    return reduced_var
+end
 
 """
     average_time(var::OutputVar)
 
 Return a new OutputVar where the values are averaged arithmetically in time.
 """
-average_time(var) = _reduce_over(mean, "time", var)
+function average_time(var)
+    reduced_var = _reduce_over(mean, "time", var)
+
+    if haskey(var.attributes, "long_name")
+        reduced_var.attributes["long_name"] *= " averaged over time"
+    end
+
+    return reduced_var
+end
 
 """
     slice_general(var::OutputVar, val, dim_name)
@@ -169,7 +198,18 @@ given dimension
 function slice_general(var, val, dim_name)
     nearest_index = Utils.nearest_index(var.dims[dim_name], val)
     _slice_over(data; dims) = selectdim(data, dims, nearest_index)
-    _reduce_over(_slice_over, dim_name, var)
+    reduced_var = _reduce_over(_slice_over, dim_name, var)
+
+    # Let's try adding this operation to the long_name, if possible (ie, if the correct
+    # attributes are available)
+    try
+        dim_array = var.dims[dim_name]
+        dim_units = var.dim_attributes[dim_name]["units"]
+        cut_point = dim_array[nearest_index]
+        reduced_var.attributes["long_name"] *= " $dim_name = $cut_point $dim_units"
+    catch
+    end
+    return reduced_var
 end
 
 """

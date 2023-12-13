@@ -17,7 +17,7 @@ import OrderedCollections: OrderedDict
         "lon" => Dict("b" => 2),
         "lat" => Dict("a" => 1),
     ])
-    attribs = Dict{String, Any}()
+    attribs = Dict("long_name" => "hi")
     path = "a/b/c"
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
 
@@ -40,6 +40,8 @@ import OrderedCollections: OrderedDict
 
     @test lat_lon_time_avg.data[] == mean(data)
 
+    @test lat_lon_time_avg.attributes["long_name"] ==
+          "hi averaged over latitudes averaged over longitudes averaged over time"
 end
 
 @testset "Slicing" begin
@@ -49,8 +51,9 @@ end
     data = reshape(1.0:(11 * 21), (11, 21))
 
     dims = OrderedDict(["time" => time, "z" => z])
-    dim_attributes = OrderedDict(["time" => Dict(), "z" => Dict("b" => 2)])
-    attribs = Dict{String, Any}()
+    dim_attributes =
+        OrderedDict(["time" => Dict("units" => "s"), "z" => Dict("b" => 2)])
+    attribs = Dict("long_name" => "hi")
     path = "a/b/c"
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
 
@@ -58,7 +61,8 @@ end
     # 1.0 is the second index
     z_expected_data = data[:, 2]
     @test z_sliced.dims == OrderedDict(["time" => time])
-    @test z_sliced.dim_attributes == OrderedDict(["time" => Dict()])
+    @test z_sliced.dim_attributes ==
+          OrderedDict(["time" => Dict("units" => "s")])
     @test z_sliced.file_path == path
     @test z_sliced.data == z_expected_data
 
@@ -69,4 +73,6 @@ end
     @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
     @test t_sliced.file_path == path
     @test t_sliced.data == t_expected_data
+
+    @test t_sliced.attributes["long_name"] == "hi time = 10.0 s"
 end
