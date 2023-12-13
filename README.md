@@ -121,7 +121,7 @@ import ClimaAnalysis: Visualize
 
 fig = CairoMakie.Figure(resolution = (400, 600))
 
-viz.contour_plot!(
+viz.plot!(
   fig,
   ta_max,
   time = 100.0,
@@ -130,6 +130,9 @@ viz.contour_plot!(
 
 CairoMakie.save("ta_max.png", fig)
 ```
+
+If we want to have a line plot, we can simply add another argument (e.g., `lat =
+30`), to slice through that value.
 
 ## Features
 
