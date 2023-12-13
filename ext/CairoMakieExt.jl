@@ -8,7 +8,9 @@ import ClimaAnalysis: Visualize
     contour_plot2D!(
                     fig::CairoMakie.Figure,
                     var::ClimaAnalysis.OutputVar;
-                    p_loc = (1,1)
+                    p_loc = (1,1),
+                    plot_kwargs,
+                    cb_kwargs,
                     )
 
 Plot a contour plot of the given 2D `var`iable in the given `fig`ure and location.
@@ -19,11 +21,21 @@ This function assumes that the following attributes are available:
 - long_name
 - short_name
 - units (also for the dimensions)
+
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs` and `cb_kwargs` are splatted in the constructors of the main plotting function
+and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
+additional options.
+
 """
 function Visualize.contour_plot2D!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
 )
     length(var.dims) == 2 || error("Can only plot 2D variables")
 
@@ -47,10 +59,15 @@ function Visualize.contour_plot2D!(
     Z = var.data
     custom_levels =
         minimum(Z) ≈ maximum(Z) ? (minimum(Z):0.1:(minimum(Z) + 0.2)) : 25
-    plot = CairoMakie.contourf!(dim1, dim2, Z)
+    plot = CairoMakie.contourf!(dim1, dim2, Z; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
-    CairoMakie.Colorbar(fig[p_loc_cb...], plot, label = colorbar_label)
+    CairoMakie.Colorbar(
+        fig[p_loc_cb...],
+        plot,
+        label = colorbar_label;
+        cb_kwargs...,
+    )
 end
 
 """
@@ -58,7 +75,15 @@ Private function to define `sliced_` functions.
 
 It slices a given variable and applies `func` to it.
 """
-function _sliced_plot_generic(func, fig, var, cut; p_loc)
+function _sliced_plot_generic(
+    func,
+    fig,
+    var,
+    cut;
+    p_loc,
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
+)
     isnothing(cut) && (cut = Dict())
 
     var_sliced = var
@@ -67,7 +92,7 @@ function _sliced_plot_generic(func, fig, var, cut; p_loc)
         var_sliced = ClimaAnalysis.slice_general(var_sliced, val, dim_name)
     end
 
-    func(fig, var_sliced; p_loc)
+    func(fig, var_sliced; p_loc, plot_kwargs, cb_kwargs)
 end
 
 """
@@ -75,10 +100,18 @@ Private function to define `plot!` functions.
 
 It composes a `cut` from given `kwargs`. Used with `sliced` functions.
 """
-function _plot_generic_kwargs(func, fig, var; p_loc, kwargs...)
+function _plot_generic_kwargs(
+    func,
+    fig,
+    var;
+    p_loc,
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
+    kwargs...,
+)
     cut = Dict("$k" => v for (k, v) in kwargs)
     length(cut) == 0 && (cut = nothing)
-    return func(fig, var, cut; p_loc)
+    return func(fig, var, cut; p_loc, plot_kwargs, cb_kwargs)
 end
 
 """
@@ -86,7 +119,9 @@ end
                         fig::CairoMakie.Figure,
                         var::ClimaAnalysis.OutputVar,
                         cut::Union{Nothing, AbstractDict{String, <: Real}};
-                        p_loc = (1,1)
+                        p_loc = (1,1),
+                        plot_kwargs,
+                        cb_kwargs,
                         )
 
 Take a `var`iable, slice as directed, and plot a 2D contour plot in the given `fig`ure and
@@ -108,14 +143,31 @@ This function assumes that the following attributes are available:
 - long_name
 - short_name
 - units (also for the dimensions)
+
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs` and `cb_kwargs` are splatted in the constructors of the main plotting function
+and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
+additional options.
 """
 function Visualize.sliced_contour_plot!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
 )
-    return _sliced_plot_generic(Visualize.contour_plot2D!, fig, var, cut; p_loc)
+    return _sliced_plot_generic(
+        Visualize.contour_plot2D!,
+        fig,
+        var,
+        cut;
+        p_loc,
+        plot_kwargs,
+        cb_kwargs,
+    )
 end
 
 """
@@ -123,6 +175,8 @@ end
                 fig::CairoMakie.Figure,
                 var::ClimaAnalysis.OutputVar;
                 p_loc = (1,1),
+                plot_kwargs,
+                cb_kwargs,
                 kwargs...
                 )
 
@@ -134,11 +188,19 @@ Example
 `contour_plot!(fig, var, time = 100, lat = 70)` plots a contour plot by slicing `var` along
 the time nearest to 100 and latitude nearest 70.
 
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs` and `cb_kwargs` are splatted in the constructors of the main plotting function
+and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
+additional options.
 """
 function Visualize.contour_plot!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
     kwargs...,
 )
     _plot_generic_kwargs(
@@ -146,16 +208,20 @@ function Visualize.contour_plot!(
         fig,
         var;
         p_loc,
+        plot_kwargs,
+        cb_kwargs,
         kwargs...,
     )
 end
 
 """
-    contour_plot2D!(
-                    fig::CairoMakie.Figure,
-                    var::ClimaAnalysis.OutputVar;
-                    p_loc = (1,1)
-                    )
+    line_plot1D!(
+                 fig::CairoMakie.Figure,
+                 var::ClimaAnalysis.OutputVar;
+                 p_loc = (1,1),
+                 plot_kwargs,
+                 cb_kwargs
+                 )
 
 Plot a contour plot of the given 2D `var`iable in the given `fig`ure and location.
 
@@ -165,11 +231,20 @@ This function assumes that the following attributes are available:
 - long_name
 - short_name
 - units (also for the dimensions)
+
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs`is splatted in the constructors of the main plotting function. Populate it with
+a Dictionary of `Symbol`s => values to pass additional options. `cb_kwargs` is ignored.
+
 """
 function Visualize.line_plot1D!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
 )
     length(var.dims) == 1 || error("Can only plot 1D variables")
 
@@ -186,7 +261,7 @@ function Visualize.line_plot1D!(
     ylabel = "$short_name [$units]"
 
     CairoMakie.Axis(fig[p_loc...]; title, xlabel, ylabel)
-    CairoMakie.lines!(dim, var.data; title)
+    CairoMakie.lines!(dim, var.data; title, plot_kwargs...)
 end
 
 """
@@ -194,7 +269,8 @@ end
                         fig::CairoMakie.Figure,
                         var::ClimaAnalysis.OutputVar,
                         cut::Union{Nothing, AbstractDict{String, <: Real}};
-                        p_loc = (1,1)
+                        p_loc = (1,1),
+                        plot_kwargs
                         )
 
 Take a `var`iable, slice as directed, and plot a 1D line plot in the given `fig`ure and
@@ -216,14 +292,31 @@ This function assumes that the following attributes are available:
 - long_name
 - short_name
 - units (also for the dimensions)
+
+
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs`is splatted in the constructors of the main plotting function. Populate it with
+a Dictionary of `Symbol`s => values to pass additional options. `cb_kwargs` is ignored.
 """
 function Visualize.sliced_line_plot!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
 )
-    return _sliced_plot_generic(Visualize.line_plot1D!, fig, var, cut; p_loc)
+    return _sliced_plot_generic(
+        Visualize.line_plot1D!,
+        fig,
+        var,
+        cut;
+        p_loc,
+        plot_kwargs,
+        cb_kwargs,
+    )
 end
 
 """
@@ -231,6 +324,8 @@ end
                 fig::CairoMakie.Figure,
                 var::ClimaAnalysis.OutputVar;
                 p_loc = (1,1),
+                plot_kwargs,
+                cb_kwargs,
                 kwargs...
                 )
 
@@ -242,11 +337,18 @@ Example
 `line_plot!(fig, var, time = 100, lat = 70)` plots a line plot by slicing `var` along
 the time nearest to 100 and latitude nearest 70.
 
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs`is splatted in the constructors of the main plotting function. Populate it with
+a Dictionary of `Symbol`s => values to pass additional options. `cb_kwargs` is ignored.
 """
 function Visualize.line_plot!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
     kwargs...,
 )
     _plot_generic_kwargs(
@@ -254,17 +356,20 @@ function Visualize.line_plot!(
         fig,
         var;
         p_loc,
+        plot_kwargs,
+        cb_kwargs,
         kwargs...,
     )
 end
 
 """
     sliced_plot!(
-                        fig::CairoMakie.Figure,
-                        var::ClimaAnalysis.OutputVar,
-                        cut::Union{Nothing, AbstractDict{String, <: Real}};
-                        p_loc = (1,1)
-                        )
+                 fig::CairoMakie.Figure,
+                 var::ClimaAnalysis.OutputVar,
+                 cut::Union{Nothing, AbstractDict{String, <: Real}};
+                 p_loc = (1,1),
+                 plot_kwargs,
+                )
 
 Take a `var`iable, slice as directed, and plot a 1D line plot or 2D contour plot in the given `fig`ure and
 location.
@@ -285,12 +390,20 @@ This function assumes that the following attributes are available:
 - long_name
 - short_name
 - units (also for the dimensions)
+
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs`is splatted in the constructors of the main plotting function. Populate it with
+a Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.sliced_plot!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
 )
     initial_dim = length(var.dims)
     removed_dims = isnothing(cut) ? 0 : length(cut)
@@ -304,7 +417,15 @@ function Visualize.sliced_plot!(
         error("Sliced variable has $dim_num dimensions (needed 1 or 2)")
     end
 
-    return _sliced_plot_generic(fun, fig, var, cut; p_loc)
+    return _sliced_plot_generic(
+        fun,
+        fig,
+        var,
+        cut;
+        p_loc,
+        plot_kwargs,
+        cb_kwargs,
+    )
 end
 
 
@@ -313,6 +434,8 @@ end
           fig::CairoMakie.Figure,
           var::ClimaAnalysis.OutputVar;
           p_loc = (1,1),
+          plot_kwargs,
+          cb_kwargs,
           kwargs...
           )
 
@@ -324,14 +447,30 @@ Example
 `line_plot!(fig, var, time = 100, lat = 70)` plots a line plot or a contour plot by slicing
 `var` along the time nearest to 100 and latitude nearest 70.
 
+Additional arguments to the plotting functions
+================================================
+
+`plot_kwargs` and `cb_kwargs` are splatted in the constructors of the main plotting function
+and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
+additional options.
 """
 function Visualize.plot!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
+    plot_kwargs = Dict(),
+    cb_kwargs = Dict(),
     kwargs...,
 )
-    _plot_generic_kwargs(Visualize.sliced_plot!, fig, var; p_loc, kwargs...)
+    _plot_generic_kwargs(
+        Visualize.sliced_plot!,
+        fig,
+        var;
+        p_loc,
+        plot_kwargs,
+        cb_kwargs,
+        kwargs...,
+    )
 end
 
 end

@@ -127,4 +127,22 @@ function nearest_index(A::AbstractArray, val)
     return findmin(A -> abs(A - val), A)[2]
 end
 
+"""
+    kwargs(; kwargs...)
+
+Convert keyword arguments in a dictionary that maps `Symbol`s to values.
+
+Useful to pass keyword arguments to different constructors in a function.
+
+Examples
+=========
+
+```jldoctest
+julia> kwargs(a = 1)
+pairs(::NamedTuple) with 1 entry:
+  :a => 1
+```
+"""
+kwargs(; kwargs...) = kwargs
+
 end

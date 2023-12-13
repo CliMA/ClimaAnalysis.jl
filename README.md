@@ -134,6 +134,35 @@ CairoMakie.save("ta_max.png", fig)
 If we want to have a line plot, we can simply add another argument (e.g., `lat =
 30`), to slice through that value.
 
+If you want to customize some of the properties, you can pass the `plot_kwargs`
+and `cb_kwargs` fields to the `plot!` function. For instance, to choose the
+colormap for the colorbar to viridis
+
+colormap = :viridis
+
+``` julia
+viz.plot!(
+  fig,
+  ta_max,
+  time = 100.0,
+  z = 30_000.0,
+  cb_kwargs = [:colormap => :viridis]
+)
+```
+Note the `Symbol` in colormap!. `cb_kwargs` has to be a mapping of `Symbol`s and values.  `ClimaAnalysis` has a convenience function `kwargs` to more easily pass down the
+keyword arguments avoiding this step. With that, the above example becomes
+``` julia
+import ClimaAnalysis: Utils
+viz.plot!(
+  fig,
+  ta_max,
+  time = 100.0,
+  z = 30_000.0,
+  plot_kwargs = Utils.kwargs(colormap = :inferno)
+)
+```
+With `Utils.kwargs`, you can just pass the arguments as you would pass them to the constructor.
+
 ## Features
 
 - Read, organize, and process NetCDF files
