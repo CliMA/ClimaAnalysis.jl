@@ -15,8 +15,23 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 CairoMakieExt = "CairoMakie"
 
 [compat]
+Aqua = "0.8"
 CairoMakie = "0.9, 0.10, 0.11"
 NCDatasets = "0.12, 0.13"
 OrderedCollections = "1"
+SafeTestsets = "0.1"
 Statistics = "1"
+Test = "1"
 julia = "1.9"
+
+[extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Aqua",
+        "CairoMakie",
+        "SafeTestsets",
+        "Test"]
