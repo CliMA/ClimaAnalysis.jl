@@ -4,6 +4,7 @@
 <p align="center">
   <strong>Analyzing and visualizing ClimaAtmos simulations</strong>
 </p>
+[![Test](https://github.com/Sbozzolo/ClimaAnalysis.jl/actions/workflows/ClimaAnalysis.yml/badge.svg)](https://github.com/Sbozzolo/ClimaAnalysis.jl/actions/workflows/ClimaAnalysis.yml)
 
 `ClimaAnalysis.jl` is a Julia library to post-process and visualize `ClimaAtmos`
 simulations.

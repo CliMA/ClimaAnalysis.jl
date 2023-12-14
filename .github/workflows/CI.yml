@@ -1,10 +1,14 @@
-name: ClimaAnalysis CI
+name: CI
 on:
   pull_request:
+  push:
+    branches:
+      - main
+    tags: '*'
 
 jobs:
-  lib-climaanalysis:
-    runs-on: ubuntu-20.04
+  climaanalysis:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         version:
@@ -13,11 +17,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
         with:
@@ -27,8 +31,9 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: Build package
-        continue-on-error: true
-        run: julia --project=lib/ClimaAnalysis/test -e "using Pkg; Pkg.develop(path=\"lib/ClimaAnalysis\"); Pkg.instantiate()"
-      - name: Run the tests
-        run: julia --project=lib/ClimaAnalysis/test lib/ClimaAnalysis/test/runtests.jl
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: julia-actions/julia-runtest@latest
+      - uses: julia-actions/julia-processcoverage@latest
+      - uses: codecov/codecov-action@v3
+        with:
+          files: lcov.info
