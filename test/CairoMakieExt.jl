@@ -30,10 +30,7 @@ using OrderedCollections
         ClimaAnalysis.OutputVar(attribs, dims3D, dim_attributes3D, data3D, path)
 
     fig = CairoMakie.Figure()
-    @test_throws ErrorException ClimaAnalysis.Visualize.contour_plot2D!(
-        fig,
-        var3D,
-    )
+    @test_throws ErrorException ClimaAnalysis.Visualize.heatmap2D!(fig, var3D)
 
     data2D = reshape(1.0:(91 * 181), (181, 91))
     dims2D = OrderedDict(["lon" => long, "lat" => lat])
@@ -50,26 +47,26 @@ using OrderedCollections
     var2D =
         ClimaAnalysis.OutputVar(attribs, dims2D, dim_attributes2D, data2D, path)
 
-    ClimaAnalysis.Visualize.contour_plot2D!(fig, var2D)
+    ClimaAnalysis.Visualize.heatmap2D!(fig, var2D)
 
     output_name = joinpath(tmp_dir, "test2D.png")
     CairoMakie.save(output_name, fig)
 
     # New figure
     fig = CairoMakie.Figure()
-    @test_throws ErrorException ClimaAnalysis.Visualize.sliced_contour_plot!(
+    @test_throws ErrorException ClimaAnalysis.Visualize.sliced_heatmap!(
         fig,
         var3D,
     )
 
     cut = Dict("time" => 1)
-    ClimaAnalysis.Visualize.sliced_contour_plot!(fig, var3D, cut)
+    ClimaAnalysis.Visualize.sliced_heatmap!(fig, var3D, cut)
     output_name = joinpath(tmp_dir, "test3D_sliced.png")
     CairoMakie.save(output_name, fig)
 
     # New figure
     fig = CairoMakie.Figure()
-    ClimaAnalysis.Visualize.contour_plot!(fig, var3D; time = 1)
+    ClimaAnalysis.Visualize.heatmap!(fig, var3D; time = 1)
     output_name = joinpath(tmp_dir, "test3D_sliced_kwargs.png")
     CairoMakie.save(output_name, fig)
 
@@ -132,7 +129,7 @@ using OrderedCollections
         fig,
         var3D;
         time = 1,
-        plot_kwargs = Utils.kwargs(colormap = :inferno),
+        plot_kwargs = ClimaAnalysis.Utils.kwargs(colormap = :inferno),
     )
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_once.png")
     CairoMakie.save(output_name, fig)

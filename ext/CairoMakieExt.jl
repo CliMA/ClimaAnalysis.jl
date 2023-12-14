@@ -5,7 +5,7 @@ import ClimaAnalysis
 import ClimaAnalysis: Visualize
 
 """
-    contour_plot2D!(
+    heatmap2D!(
                     fig::CairoMakie.Figure,
                     var::ClimaAnalysis.OutputVar;
                     p_loc = (1,1),
@@ -13,7 +13,7 @@ import ClimaAnalysis: Visualize
                     cb_kwargs,
                     )
 
-Plot a contour plot of the given 2D `var`iable in the given `fig`ure and location.
+Plot a heatmap of the given 2D `var`iable in the given `fig`ure and location.
 
 The plot comes with labels, units, and a colorbar.
 
@@ -30,7 +30,7 @@ and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
 additional options.
 
 """
-function Visualize.contour_plot2D!(
+function Visualize.heatmap2D!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
@@ -55,11 +55,7 @@ function Visualize.contour_plot2D!(
 
     CairoMakie.Axis(fig[p_loc...]; title, xlabel, ylabel)
 
-    # custom_levels is a workaround for plotting constant fields with CairoMakie
-    Z = var.data
-    custom_levels =
-        minimum(Z) ≈ maximum(Z) ? (minimum(Z):0.1:(minimum(Z) + 0.2)) : 25
-    plot = CairoMakie.contourf!(dim1, dim2, Z; plot_kwargs...)
+    plot = CairoMakie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
     CairoMakie.Colorbar(
@@ -115,7 +111,7 @@ function _plot_generic_kwargs(
 end
 
 """
-    sliced_contour_plot!(
+    sliced_heatmap!(
                         fig::CairoMakie.Figure,
                         var::ClimaAnalysis.OutputVar,
                         cut::Union{Nothing, AbstractDict{String, <: Real}};
@@ -124,7 +120,7 @@ end
                         cb_kwargs,
                         )
 
-Take a `var`iable, slice as directed, and plot a 2D contour plot in the given `fig`ure and
+Take a `var`iable, slice as directed, and plot a 2D heatmap in the given `fig`ure and
 location.
 
 The plot comes with labels, units, and a colorbar.
@@ -136,7 +132,7 @@ If the variable is not 2D, `cut` has to be a dictionary that maps the dimension 
 be sliced and the value where to cut.
 
 For example, if `var` has four dimensions: `time`, `long`, `lat`, `z`, this function can be
-used to plot a `lat-long` contour plot at fixed `time` and `z`. Assuming we want to plot
+used to plot a `lat-long` heatmap at fixed `time` and `z`. Assuming we want to plot
 time `100.` and altitude `50.`, `cut` should be `Dict("time" => 100., "z" => 50.)`.
 
 This function assumes that the following attributes are available:
@@ -151,7 +147,7 @@ Additional arguments to the plotting functions
 and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
 additional options.
 """
-function Visualize.sliced_contour_plot!(
+function Visualize.sliced_heatmap!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
@@ -160,7 +156,7 @@ function Visualize.sliced_contour_plot!(
     cb_kwargs = Dict(),
 )
     return _sliced_plot_generic(
-        Visualize.contour_plot2D!,
+        Visualize.heatmap2D!,
         fig,
         var,
         cut;
@@ -171,7 +167,7 @@ function Visualize.sliced_contour_plot!(
 end
 
 """
-    contour_plot!(
+    heatmap!(
                 fig::CairoMakie.Figure,
                 var::ClimaAnalysis.OutputVar;
                 p_loc = (1,1),
@@ -180,12 +176,12 @@ end
                 kwargs...
                 )
 
-Syntactic sugar for `sliced_contour_plot` with `kwargs` instead of `cut`.
+Syntactic sugar for `sliced_heatmap` with `kwargs` instead of `cut`.
 
 Example
 =======
 
-`contour_plot!(fig, var, time = 100, lat = 70)` plots a contour plot by slicing `var` along
+`heatmap!(fig, var, time = 100, lat = 70)` plots a heatmap by slicing `var` along
 the time nearest to 100 and latitude nearest 70.
 
 Additional arguments to the plotting functions
@@ -195,7 +191,7 @@ Additional arguments to the plotting functions
 and the colorbar. Populate them with a Dictionary of `Symbol`s => values to pass
 additional options.
 """
-function Visualize.contour_plot!(
+function Visualize.heatmap!(
     fig::CairoMakie.Figure,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
@@ -204,7 +200,7 @@ function Visualize.contour_plot!(
     kwargs...,
 )
     _plot_generic_kwargs(
-        Visualize.sliced_contour_plot!,
+        Visualize.sliced_heatmap!,
         fig,
         var;
         p_loc,
@@ -223,7 +219,7 @@ end
                  cb_kwargs
                  )
 
-Plot a contour plot of the given 2D `var`iable in the given `fig`ure and location.
+Plot a heatmap of the given 2D `var`iable in the given `fig`ure and location.
 
 The plot comes with labels, units, and a colorbar.
 
@@ -285,7 +281,7 @@ If the variable is not 1D, `cut` has to be a dictionary that maps the dimension 
 be sliced and the value where to cut.
 
 For example, if `var` has four dimensions: `time`, `long`, `lat`, `z`, this function can be
-used to plot a `lat-long` contour plot at fixed `time` and `z`. Assuming we want to plot
+used to plot a `lat-long` heatmap at fixed `time` and `z`. Assuming we want to plot
 time `100.` and altitude `50.`, `cut` should be `Dict("time" => 100., "z" => 50.)`.
 
 This function assumes that the following attributes are available:
@@ -371,7 +367,7 @@ end
                  plot_kwargs,
                 )
 
-Take a `var`iable, slice as directed, and plot a 1D line plot or 2D contour plot in the given `fig`ure and
+Take a `var`iable, slice as directed, and plot a 1D line plot or 2D heatmap in the given `fig`ure and
 location.
 
 The plot comes with labels, and units (and possibly a colorbar).
@@ -383,7 +379,7 @@ If the variable is not 1D/2D, `cut` has to be a dictionary that maps the dimensi
 be sliced and the value where to cut.
 
 For example, if `var` has four dimensions: `time`, `long`, `lat`, `z`, this function can be
-used to plot a `lat-long` contour plot at fixed `time` and `z`. Assuming we want to plot
+used to plot a `lat-long` heatmap at fixed `time` and `z`. Assuming we want to plot
 time `100.` and altitude `50.`, `cut` should be `Dict("time" => 100., "z" => 50.)`.
 
 This function assumes that the following attributes are available:
@@ -412,7 +408,7 @@ function Visualize.sliced_plot!(
     if final_dim == 1
         fun = Visualize.line_plot1D!
     elseif final_dim == 2
-        fun = Visualize.contour_plot2D!
+        fun = Visualize.heatmap2D!
     else
         error("Sliced variable has $dim_num dimensions (needed 1 or 2)")
     end
@@ -444,7 +440,7 @@ Syntactic sugar for `sliced_plot` with `kwargs` instead of `cut`.
 Example
 =======
 
-`line_plot!(fig, var, time = 100, lat = 70)` plots a line plot or a contour plot by slicing
+`line_plot!(fig, var, time = 100, lat = 70)` plots a line plot or a heatmap by slicing
 `var` along the time nearest to 100 and latitude nearest 70.
 
 Additional arguments to the plotting functions

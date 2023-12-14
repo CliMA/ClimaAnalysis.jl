@@ -113,7 +113,7 @@ If `CairoMakie` is available, `ClimaAnalysis` can be used for plotting.
 Importing `CairoMakie` and `ClimaAnalysis` in the same session automatically
 loads the necessary `ClimaAnalysis` plotting modules.
 
-If we want to make a contour plot for `ta_max` at time of 100 s at altitude `z` of 30000 meters:
+If we want to make a heatmap for `ta_max` at time of 100 s at altitude `z` of 30000 meters:
 
 ``` julia
 import CairoMakie
@@ -166,6 +166,6 @@ With `Utils.kwargs`, you can just pass the arguments as you would pass them to t
 ## Features
 
 - Read, organize, and process NetCDF files
-- Visualize contour plots with `CairoMakie`
+- Visualize heatmaps with `CairoMakie`
 - Apply averages and other reductions to the output variables.
 - Slice variables along a given value (e.g., take the slice with altitude of 500 meters)
