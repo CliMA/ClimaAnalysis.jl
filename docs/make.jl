@@ -1,8 +1,19 @@
 using ClimaAnalysis
 using Documenter
+import CairoMakie
+
+DocMeta.setdocmeta!(
+    ClimaAnalysis,
+    :DocTestSetup,
+    :(using ClimaAnalysis.Utils);
+    recursive = true,
+)
 
 makedocs(;
-    modules = [ClimaAnalysis],
+    modules = [
+        ClimaAnalysis,
+        Base.get_extension(ClimaAnalysis, :CairoMakieExt),
+    ],
     authors = "Climate Modelling Alliance",
     repo = "https://github.com/Sbozzolo/ClimaAnalysis.jl",
     sitename = "ClimaAnalysis.jl",
@@ -10,7 +21,8 @@ makedocs(;
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical = "https://sbozzolo.github.io/ClimaAnalysis.jl",
     ),
-    pages = ["Home" => "index.md"],
+    checkdocs = :exports,
+    pages = ["Home" => "index.md", "APIs" => "api.md"],
 )
 
 deploydocs(; repo = "github.com/Sbozzolo/ClimaAnalysis.jl")

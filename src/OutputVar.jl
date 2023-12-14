@@ -15,6 +15,9 @@ export OutputVar,
     slice_lon,
     slice_lat
 
+"""
+    Representing an output variable
+"""
 struct OutputVar{
     T <: AbstractArray,
     A <: AbstractArray,

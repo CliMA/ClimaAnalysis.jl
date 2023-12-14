@@ -12,8 +12,6 @@ function sliced_line_plot! end
 
 function line_plot! end
 
-function sliced_line! end
-
 function sliced_plot! end
 
 function plot! end
