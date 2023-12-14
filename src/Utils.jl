@@ -1,5 +1,7 @@
 module Utils
 
+export match_nc_filename, squeeze, nearest_index, kwargs
+
 """
     match_nc_filename(filename::String)
 
@@ -11,32 +13,23 @@ The convention is: `shortname_(period)_reduction.nc`, with `period` being option
 Examples
 =========
 
-```julia-repl
+```jldoctest
 julia> match_nc_filename("bob")
 ```
 
-```julia-repl
+```jldoctest
 julia> match_nc_filename("ta_1d_average.nc")
-3-element Vector{Union{Nothing, SubString{String}}}:
- "ta"
- "1d"
- "average"
+("ta", "1d", "average")
 ```
 
-```julia-repl
+```jldoctest
 julia> match_nc_filename("pfull_6.0min_max.nc")
-3-element Vector{Union{Nothing, SubString{String}}}:
- "pfull"
- "6.0min"
- "max"
+("pfull", "6.0min", "max")
 ```
 
-```julia-repl
+```jldoctest
 julia> match_nc_filename("hu_inst.nc")
-3-element Vector{Union{Nothing, SubString{String}}}:
- "hu"
- nothing
- "inst"
+("hu", nothing, "inst")
 ```
 """
 function match_nc_filename(filename::String)
@@ -78,13 +71,18 @@ Examples
 =========
 
 ```jldoctest
-julia> A = [[1 2] [3 4]]
+julia> A = [[1 2] [3 4]];
+
 julia> size(A)
 (1, 4)
-julia> A_squeezed = squeeze(A)
+
+julia> A_squeezed = squeeze(A);
+
 julia> size(A_squeezed)
-(4, )
-julia> A_not_squeezed = squeeze(A; dims = (2, ))
+(4,)
+
+julia> A_not_squeezed = squeeze(A; dims = (2, ));
+
 julia> size(A_not_squeezed)
 (1, 4)
 ```
@@ -116,9 +114,11 @@ Examples
 =========
 
 ```jldoctest
-julia> A = [-1, 0, 1, 2, 3, 4, 5]
+julia> A = [-1, 0, 1, 2, 3, 4, 5];
+
 julia> nearest_index(A, 3)
 5
+
 julia> nearest_index(A, 0.1)
 2
 ```

@@ -3,6 +3,18 @@ import OrderedCollections: OrderedDict
 
 import Statistics: mean
 
+export OutputVar,
+    read_var,
+    average_lat,
+    average_lon,
+    average_time,
+    slice_time,
+    slice_x,
+    slice_x,
+    slice_y,
+    slice_lon,
+    slice_lat
+
 struct OutputVar{
     T <: AbstractArray,
     A <: AbstractArray,
@@ -105,15 +117,14 @@ Example
 
 Average over latitudes
 
-```jldoctest
-julia> import Statistics: mean
-julia> long = 0.:180. |> collect
-julia> lat = 0.:90. |> collect
-julia> data = reshape(1.:91*181., (181, 91))
-julia> dims = Dict(["lat" => lat, "long" => long])
-julia> var = OutputVar(dims, data)
-
-julia> reduce_over(mean, "lat", var)
+```julia
+import Statistics: mean
+long = 0.:180. |> collect
+lat = 0.:90. |> collect
+data = reshape(1.:91*181., (181, 91))
+dims = Dict(["lat" => lat, "long" => long])
+var = OutputVar(dims, data)
+_reduce_over(mean, "lat", var)
 ```
 """
 function _reduce_over(
