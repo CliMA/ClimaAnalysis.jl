@@ -1,5 +1,6 @@
 <h1 align="center">
-  ClimaAnalysis.jl
+  <img src="logo.svg" width="100px"> <br>
+ClimaAnalysis.jl
 </h1>
 <p align="center">
   <strong>Analyzing and visualizing ClimaAtmos simulations</strong>
