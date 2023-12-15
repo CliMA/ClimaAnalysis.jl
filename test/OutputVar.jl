@@ -75,4 +75,16 @@ end
     @test t_sliced.data == t_expected_data
 
     @test t_sliced.attributes["long_name"] == "hi time = 10.0 s"
+
+    # Test with the general slice
+
+    t_sliced = ClimaAnalysis.slice(var, time = 20.0)
+    # 20 is the last index
+    t_expected_data = data[end, :]
+    @test t_sliced.dims == OrderedDict(["z" => z])
+    @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
+    @test t_sliced.file_path == path
+    @test t_sliced.data == t_expected_data
+
+    @test t_sliced.attributes["long_name"] == "hi time = 10.0 s"
 end

@@ -8,6 +8,7 @@ export OutputVar,
     average_lat,
     average_lon,
     average_time,
+    slice,
     slice_time,
     slice_x,
     slice_x,
@@ -210,6 +211,9 @@ Return a new OutputVar by selecting the available index closest to the given `va
 given dimension
 """
 function slice_general(var, val, dim_name)
+    haskey(var.dims, dim_name) ||
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+
     nearest_index = Utils.nearest_index(var.dims[dim_name], val)
     _slice_over(data; dims) = selectdim(data, dims, nearest_index)
     reduced_var = _reduce_over(_slice_over, dim_name, var)
@@ -267,3 +271,22 @@ slice_lon(var, lon) = slice_general(var, lon, "lon")
 Return a new OutputVar by selecting the available date closest to the given `lat`.
 """
 slice_lat(var, lat) = slice_general(var, lat, "lon")
+
+"""
+    slice(var::OutputVar, kwargs...)
+
+Return a new OutputVar by slicing across dimensions as defined by the keyword arguments.
+
+Example
+===========
+```julia
+slice(var, lat = 30, lon = 20, time = 100)
+```
+"""
+function slice(var; kwargs...)
+    sliced_var = var
+    for (dim_name, val) in kwargs
+        sliced_var = slice_general(sliced_var, val, String(dim_name))
+    end
+    return sliced_var
+end

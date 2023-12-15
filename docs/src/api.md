@@ -19,6 +19,7 @@ available_periods
 ```@docs
 OutputVar
 read_var
+slice
 slice_general
 slice_x
 slice_y
