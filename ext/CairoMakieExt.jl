@@ -410,7 +410,7 @@ function Visualize.sliced_plot!(
     elseif final_dim == 2
         fun = Visualize.heatmap2D!
     else
-        error("Sliced variable has $dim_num dimensions (needed 1 or 2)")
+        error("Sliced variable has $final_dim dimensions (needed 1 or 2)")
     end
 
     return _sliced_plot_generic(
