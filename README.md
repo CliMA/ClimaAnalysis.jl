@@ -6,13 +6,13 @@ ClimaAnalysis.jl
   <strong>Analyzing and visualizing ClimaAtmos simulations</strong>
 </p>
 
-[![CI](https://github.com/Sbozzolo/ClimaAnalysis.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/Sbozzolo/ClimaAnalysis.jl/actions/workflows/CI.yml)
-[![Documentation](https://github.com/Sbozzolo/ClimaAnalysis.jl/actions/workflows/Documentation.yml/badge.svg)](https://sbozzolo.github.io/ClimaAnalysis.jl)
+[![CI](https://github.com/CliMA/ClimaAnalysis.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/CliMA/ClimaAnalysis.jl/actions/workflows/CI.yml)
+[![Documentation](https://github.com/CliMA/ClimaAnalysis.jl/actions/workflows/Documentation.yml/badge.svg)](https://CliMA.github.io/ClimaAnalysis.jl)
 
 `ClimaAnalysis.jl` is a Julia library to post-process and visualize `ClimaAtmos`
 simulations.
 
-Check out the [documentation](https://sbozzolo.github.io/ClimaAnalysis.jl) for more information and tutorials.
+Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more information and tutorials.
 
 ## Features
 
