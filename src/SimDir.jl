@@ -1,5 +1,7 @@
 import Base: get
 
+export SimDir, available_vars, available_reductions, available_periods
+
 """
     SimDir(simulation_path::String)
 
