@@ -22,7 +22,11 @@ makedocs(;
         canonical = "https://CliMA.github.io/ClimaAnalysis.jl",
     ),
     checkdocs = :exports,
-    pages = ["Home" => "index.md", "APIs" => "api.md"],
+    pages = [
+        "Home" => "index.md",
+        "APIs" => "api.md",
+        "How do I?" => "howdoi.md",
+    ],
 )
 
 deploydocs(; repo = "github.com/CliMA/ClimaAnalysis.jl")

@@ -135,4 +135,18 @@ using OrderedCollections
     )
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_once.png")
     CairoMakie.save(output_name, fig)
+
+    # Test dim_on_y
+    ClimaAnalysis.Visualize.plot!(
+        fig,
+        var3D;
+        time = 1,
+        lon = 30,
+        more_kwargs = Dict(
+            :plot => ClimaAnalysis.Utils.kwargs(colormap = :inferno),
+            :axis => ClimaAnalysis.Utils.kwargs(dim_on_y = true),
+        ),
+    )
+    output_name = joinpath(tmp_dir, "test_plot3D_sliced_swapped.png")
+    CairoMakie.save(output_name, fig)
 end

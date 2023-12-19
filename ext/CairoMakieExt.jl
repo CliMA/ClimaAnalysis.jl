@@ -57,6 +57,17 @@ function Visualize.heatmap2D!(
     xlabel = get(axis_kwargs, :xlabel, "$dim1_name [$dim1_units]")
     ylabel = get(axis_kwargs, :ylabel, "$dim2_name [$dim2_units]")
 
+    # dim_on_y is only supported by plot_line1D. We remove it here to ensure that we can a
+    # consistent entry point between plot_line1D and heatmap2D. It we left it here, it would
+    # be passed down and lead to a unknown argument error.
+    #
+    # TODO: Refactor: We shouldn't have to deal with dim_on_y if we don't use it!
+    if haskey(axis_kwargs, :dim_on_y)
+        axis_kwargs_dict = Dict(axis_kwargs)
+        pop!(axis_kwargs_dict, :dim_on_y)
+        axis_kwargs = pairs(axis_kwargs_dict)
+    end
+
     CairoMakie.Axis(fig[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
 
     plot = CairoMakie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
@@ -241,6 +252,10 @@ Additional arguments to the plotting and axis functions
 The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 
+A special argument that can be passed to `:axis` is `:dim_on_y`, which puts the dimension on
+the y axis instead of the variable. This is useful to plot columns with `z` on the vertical
+axis instead of the horizontal one.
+
 """
 function Visualize.line_plot1D!(
     fig::CairoMakie.Figure,
@@ -265,8 +280,21 @@ function Visualize.line_plot1D!(
     xlabel = get(axis_kwargs, :xlabel, "$dim_name [$dim_units]")
     ylabel = get(axis_kwargs, :ylabel, "$short_name [$units]")
 
+    x, y = dim, var.data
+
+    if get(axis_kwargs, :dim_on_y, false)
+        xlabel, ylabel = ylabel, xlabel
+        x, y = y, x
+        # dim_on_y is not a real keyword for Axis, so we have to remove it from the
+        # arguments. Since axis_kwargs is a Pairs object, we have to go through its
+        # underlying dictionary first
+        axis_kwargs_dict = Dict(axis_kwargs)
+        pop!(axis_kwargs_dict, :dim_on_y)
+        axis_kwargs = pairs(axis_kwargs_dict)
+    end
+
     CairoMakie.Axis(fig[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
-    CairoMakie.lines!(dim, var.data; title, plot_kwargs...)
+    CairoMakie.lines!(x, y; plot_kwargs...)
 end
 
 """
