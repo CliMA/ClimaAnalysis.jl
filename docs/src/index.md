@@ -128,19 +128,19 @@ CairoMakie.save("ta_max.png", fig)
 If we want to have a line plot, we can simply add another argument (e.g., `lat =
 30`), to slice through that value.
 
-If you want to customize some of the properties, you can pass the `plot_kwargs`
-and `cb_kwargs` fields to the `plot!` function. For instance, to choose the
-colormap for the colorbar to viridis
-
-colormap = :viridis
-
+If you want to customize some of the properties, you can pass the `more_kwargs`
+ to the `plot!` function. `more_kwargs` is a dictionary that can contain
+ additional arguments to the `Axis` (`:axis`), `plot` (`:plot`), and `Colorbar`
+ (`:cb`) functions. `more_kwargs` is a Dictionary that maps the symbols `:axis`,
+ `:plot`, and `:cb` to their additional arguments. For instance, to choose the
+ colormap for the colorbar to viridis
 ``` julia
 viz.plot!(
   fig,
   ta_max,
   time = 100.0,
   z = 30_000.0,
-  cb_kwargs = [:colormap => :viridis]
+  more_kwargs = Dict(:cb => [:colormap => :viridis])
 )
 ```
 Note the `Symbol` in colormap!. `cb_kwargs` has to be a mapping of `Symbol`s and values.  `ClimaAnalysis` has a convenience function `kwargs` to more easily pass down the
@@ -152,7 +152,7 @@ viz.plot!(
   ta_max,
   time = 100.0,
   z = 30_000.0,
-  plot_kwargs = Utils.kwargs(colormap = :inferno)
+  plot_kwargs = Dict(:cb => Utils.kwargs(colormap = :inferno))
 )
 ```
 With `Utils.kwargs`, you can just pass the arguments as you would pass them to the constructor.
