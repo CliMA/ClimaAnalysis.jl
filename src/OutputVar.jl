@@ -24,7 +24,7 @@ struct OutputVar{
     A <: AbstractArray,
     B,
     C,
-    FP <: Union{String, Nothing},
+    FP <: Union{<:AbstractString, Nothing},
 }
 
     "Attributes associated to this variable, such as short/long name"
@@ -92,12 +92,11 @@ read_var(simdir.variable_paths["hu"]["inst"])
 """
 function read_var(path::String)
     NCDatasets.NCDataset(path) do nc
-        dims = map(nc.dim) do dim
-            dim_name = dim[1]
+        dims = map(NCDatasets.dimnames(nc)) do dim_name
             return dim_name => Array(nc[dim_name])
         end |> OrderedDict
         var_name = pop!(setdiff(keys(nc), keys(dims)))
-        attribs = Dict(nc[var_name].attrib)
+        attribs = Dict(k => v for (k, v) in nc[var_name].attrib)
         dim_attribs = OrderedDict(
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
         )
