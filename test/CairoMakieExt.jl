@@ -123,13 +123,15 @@ using OrderedCollections
         fig,
         var3D;
         time = 1,
-        cb_kwargs = [:vertical => :false],
+        more_kwargs = Dict(:cb => [:vertical => :false]),
     )
     ClimaAnalysis.Visualize.plot!(
         fig,
         var3D;
         time = 1,
-        plot_kwargs = ClimaAnalysis.Utils.kwargs(colormap = :inferno),
+        more_kwargs = Dict(
+            :plot => ClimaAnalysis.Utils.kwargs(colormap = :inferno),
+        ),
     )
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_once.png")
     CairoMakie.save(output_name, fig)
