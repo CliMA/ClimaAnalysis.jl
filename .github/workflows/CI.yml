@@ -13,7 +13,7 @@ jobs:
       matrix:
         version:
           - '1.9'
-          - '~1.10.0-rc1'
+          - '1.10'
     timeout-minutes: 30
     steps:
       - name: Checkout
