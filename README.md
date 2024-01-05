@@ -21,3 +21,4 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 - Visualize heatmaps and 1D profiles with `CairoMakie`
 - Apply averages and other reductions to the output variables.
 - Slice variables along a given value (e.g., take the slice with altitude of 500 meters)
+- Window variables within given ranges (e.g., select times between 10 and 100 days)

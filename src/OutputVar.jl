@@ -293,3 +293,47 @@ function slice(var; kwargs...)
     return sliced_var
 end
 
+"""
+    window(var::OutputVar, dim_name; left = nothing, right = nothing)
+
+Return a new OutputVar by selecting the values of the given `dim`ension that are between
+`left` and `right`.
+
+If `left` and/or `right` are `nothing`, assume beginning (or end) of the array.
+
+Example
+===========
+```julia
+window(var, 'lat', left = -50, right = 50)
+```
+"""
+function window(var, dim_name; left = nothing, right = nothing)
+    haskey(var.dims, dim_name) ||
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+
+    nearest_index_left =
+        isnothing(left) ? 1 : nearest_index(var.dims[dim_name], left)
+    nearest_index_right =
+        isnothing(right) ? length(var.dims[dim_name]) :
+        nearest_index(var.dims[dim_name], right)
+
+    (nearest_index_right >= nearest_index_left) ||
+        error("Right window value has to be larger than left one")
+
+    # Take only what's between nearest_index_left and nearest_index_right
+    reduced_data = selectdim(
+        var.data,
+        var.dim2index[dim_name],
+        nearest_index_left:nearest_index_right,
+    )
+
+    dims = copy(var.dims)
+    dim_attributes = copy(var.dim_attributes)
+    return OutputVar(
+        copy(var.attributes),
+        dims,
+        dim_attributes,
+        reduced_data,
+        var.file_path,
+    )
+end

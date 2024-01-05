@@ -30,6 +30,7 @@ slice_time
 average_lat
 average_lon
 average_time
+window
 ```
 
 

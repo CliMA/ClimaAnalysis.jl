@@ -88,3 +88,33 @@ end
 
     @test t_sliced.attributes["long_name"] == "hi time = 10.0 s"
 end
+
+@testset "Windowing" begin
+    z = 0.0:20.0 |> collect
+    time = 0.0:10.0 |> collect
+
+    data = reshape(1.0:(11 * 21), (11, 21))
+
+    dims = OrderedDict(["time" => time, "z" => z])
+    dim_attributes =
+        OrderedDict(["time" => Dict("units" => "s"), "z" => Dict("b" => 2)])
+    attribs = Dict("long_name" => "hi")
+    path = "a/b/c"
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
+
+    # Dimension not existing
+    @test_throws ErrorException ClimaAnalysis.window(var, "lat")
+
+    # Left right not ordered
+    @test_throws ErrorException ClimaAnalysis.window(
+        var,
+        "time",
+        left = 10,
+        right = 1,
+    )
+
+    var_windowed = ClimaAnalysis.window(var, "time", left = 2.5, right = 5.1)
+    expected_data = data[3:6, :]
+
+    @test var_windowed.data == expected_data
+end
