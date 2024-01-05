@@ -3,6 +3,8 @@ import OrderedCollections: OrderedDict
 
 import Statistics: mean
 
+import .Utils: nearest_index
+
 export OutputVar,
     read_var,
     average_lat,
@@ -14,7 +16,8 @@ export OutputVar,
     slice_x,
     slice_y,
     slice_lon,
-    slice_lat
+    slice_lat,
+    window
 
 """
     Representing an output variable
@@ -213,8 +216,8 @@ function slice_general(var, val, dim_name)
     haskey(var.dims, dim_name) ||
         error("Var does not have dimension $dim_name, found $(keys(var.dims))")
 
-    nearest_index = Utils.nearest_index(var.dims[dim_name], val)
-    _slice_over(data; dims) = selectdim(data, dims, nearest_index)
+    nearest_index_val = nearest_index(var.dims[dim_name], val)
+    _slice_over(data; dims) = selectdim(data, dims, nearest_index_val)
     reduced_var = _reduce_over(_slice_over, dim_name, var)
 
     # Let's try adding this operation to the long_name, if possible (ie, if the correct
@@ -222,7 +225,7 @@ function slice_general(var, val, dim_name)
     try
         dim_array = var.dims[dim_name]
         dim_units = var.dim_attributes[dim_name]["units"]
-        cut_point = dim_array[nearest_index]
+        cut_point = dim_array[nearest_index_val]
         reduced_var.attributes["long_name"] *= " $dim_name = $cut_point $dim_units"
     catch
     end
@@ -289,3 +292,4 @@ function slice(var; kwargs...)
     end
     return sliced_var
 end
+
