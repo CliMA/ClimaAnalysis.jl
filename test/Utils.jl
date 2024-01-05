@@ -23,6 +23,8 @@ end
     @test Utils.nearest_index([10, 20, 30], 0) == 1
     @test Utils.nearest_index([10, 20, 30], 100) == 3
     @test Utils.nearest_index([10, 20, 30], 20) == 2
+    @test Utils.nearest_index([10, 20, 30], typemax(Int)) == 3
+    @test Utils.nearest_index([10, 20, 30], -typemax(Int)) == 1
 end
 
 @testset "kwargs" begin

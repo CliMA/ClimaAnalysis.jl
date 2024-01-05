@@ -124,6 +124,8 @@ julia> nearest_index(A, 0.1)
 ```
 """
 function nearest_index(A::AbstractArray, val)
+    val < minimum(A) && return findmin(A)[2]
+    val > maximum(A) && return findmax(A)[2]
     return findmin(A -> abs(A - val), A)[2]
 end
 
