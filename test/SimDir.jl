@@ -8,7 +8,7 @@ import ClimaAnalysis
     simdir = ClimaAnalysis.SimDir(simulation_path)
 
     @test ClimaAnalysis.available_vars(simdir) ==
-          Set(["va", "ua", "orog", "ta", "ts"])
+          Set(["va", "ua", "orog", "ta", "ts", "pfull"])
 
     @test ClimaAnalysis.available_reductions(simdir, short_name = "ta") ==
           Set(["average", "max", "min"])
@@ -79,4 +79,9 @@ end
     # Check if reduction = inst and passing a period
     orog = get(simdir, short_name = "orog", reduction = "inst", period = "4.0h")
     @test orog == get(simdir, short_name = "orog", reduction = "inst")
+
+    # Check is_z_1d
+    pfull = get(simdir, short_name = "pfull", reduction = "inst")
+    @test ClimaAnalysis.is_z_1D(pfull) == false
+
 end

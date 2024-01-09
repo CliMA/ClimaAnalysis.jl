@@ -10,6 +10,7 @@ export OutputVar,
     average_lat,
     average_lon,
     average_time,
+    is_z_1D,
     slice,
     slice_time,
     slice_x,
@@ -106,6 +107,25 @@ function read_var(path::String)
         data = Array(nc[var_name])
         return OutputVar(attribs, dims, dim_attribs, data, path)
     end
+end
+
+
+"""
+    is_z_1D(var::OutputVar)
+
+Return whether the given `var`iable has an altitude dimension that is 1D.
+
+
+When topography is present, the altitude dimension in the output variable is typically
+multidimensional. The dimensions are (X, Y, Z), where (X, Y) are the horizontal dimensions.
+In this case, `dims["z"]` is essentially a map that identifies the physical altitude of the
+given point.
+"""
+function is_z_1D(var::OutputVar)
+    haskey(var.dims, "z") ||
+        error("Variable does not have an altitude dimension")
+
+    return length(size(var.dims["z"])) == 1
 end
 
 """
