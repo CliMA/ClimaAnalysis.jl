@@ -46,7 +46,7 @@ end
 
 @testset "Slicing" begin
     z = 0.0:20.0 |> collect
-    time = 0.0:10.0 |> collect
+    time = 100.0:110.0 |> collect
 
     data = reshape(1.0:(11 * 21), (11, 21))
 
@@ -66,27 +66,27 @@ end
     @test z_sliced.file_path == path
     @test z_sliced.data == z_expected_data
 
-    t_sliced = ClimaAnalysis.slice_time(var, 20.0)
-    # 20 is the last index
+    t_sliced = ClimaAnalysis.slice_time(var, 200.0)
+    # 200 is the last index
     t_expected_data = data[end, :]
     @test t_sliced.dims == OrderedDict(["z" => z])
     @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
     @test t_sliced.file_path == path
     @test t_sliced.data == t_expected_data
 
-    @test t_sliced.attributes["long_name"] == "hi time = 10.0 s"
+    @test t_sliced.attributes["long_name"] == "hi time = 1m 50.0s"
 
     # Test with the general slice
 
-    t_sliced = ClimaAnalysis.slice(var, time = 20.0)
-    # 20 is the last index
+    t_sliced = ClimaAnalysis.slice(var, time = 200.0)
+    # 200 is the last index
     t_expected_data = data[end, :]
     @test t_sliced.dims == OrderedDict(["z" => z])
     @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
     @test t_sliced.file_path == path
     @test t_sliced.data == t_expected_data
 
-    @test t_sliced.attributes["long_name"] == "hi time = 10.0 s"
+    @test t_sliced.attributes["long_name"] == "hi time = 1m 50.0s"
 end
 
 @testset "Windowing" begin

@@ -3,7 +3,7 @@ import OrderedCollections: OrderedDict
 
 import Statistics: mean
 
-import .Utils: nearest_index
+import .Utils: nearest_index, seconds_to_prettystr
 
 export OutputVar,
     read_var,
@@ -246,7 +246,13 @@ function slice_general(var, val, dim_name)
         dim_array = var.dims[dim_name]
         dim_units = var.dim_attributes[dim_name]["units"]
         cut_point = dim_array[nearest_index_val]
-        reduced_var.attributes["long_name"] *= " $dim_name = $cut_point $dim_units"
+        if (dim_name == "time" || dim_name == "t") && dim_units == "s"
+            # Dimension is time and units are seconds. Let's convert them to something nicer
+            pretty_timestr = seconds_to_prettystr(cut_point)
+            reduced_var.attributes["long_name"] *= " $dim_name = $pretty_timestr"
+        else
+            reduced_var.attributes["long_name"] *= " $dim_name = $cut_point $dim_units"
+        end
     catch
     end
     return reduced_var
