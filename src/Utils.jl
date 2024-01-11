@@ -1,6 +1,6 @@
 module Utils
 
-export match_nc_filename, squeeze, nearest_index, kwargs
+export match_nc_filename, squeeze, nearest_index, kwargs, seconds_to_prettystr
 
 """
     match_nc_filename(filename::String)
@@ -146,5 +146,56 @@ pairs(::NamedTuple) with 1 entry:
 ```
 """
 kwargs(; kwargs...) = kwargs
+
+"""
+    seconds_to_prettystr(seconds::Real)
+
+Convert the given `seconds` into a string with rich time information.
+
+One year is defined as having 365 days.
+
+Examples
+=========
+
+```jldoctest
+julia> seconds_to_prettystr(10)
+"10s"
+
+julia> seconds_to_prettystr(600)
+"10m"
+
+julia> seconds_to_prettystr(86400)
+"1d"
+
+julia> seconds_to_prettystr(864000)
+"10d"
+
+julia> seconds_to_prettystr(864010)
+"10d 10s"
+
+julia> seconds_to_prettystr(24 * 60 * 60 * 365 + 1)
+"1y 1s"
+```
+"""
+function seconds_to_prettystr(seconds::Real)
+    time = String[]
+
+    years, rem_seconds = divrem(seconds, 24 * 60 * 60 * 365)
+    days, rem_seconds = divrem(rem_seconds, 24 * 60 * 60)
+    hours, rem_seconds = divrem(rem_seconds, 60 * 60)
+    minutes, seconds = divrem(rem_seconds, 60)
+
+    # At this point, days, hours, minutes, seconds have to be integers.
+    # Let us force them to be such so that we can have a consistent string output.
+    years, days, hours, minutes = map(Int, (years, days, hours, minutes))
+
+    years > 0 && push!(time, "$(years)y")
+    days > 0 && push!(time, "$(days)d")
+    hours > 0 && push!(time, "$(hours)h")
+    minutes > 0 && push!(time, "$(minutes)m")
+    seconds > 0 && push!(time, "$(seconds)s")
+
+    return join(time, " ")
+end
 
 end

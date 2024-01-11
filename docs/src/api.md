@@ -44,6 +44,7 @@ Utils.match_nc_filename
 Utils.squeeze
 Utils.nearest_index
 Utils.kwargs
+Utils.seconds_to_prettystr
 ```
 
 ## CairoMakie

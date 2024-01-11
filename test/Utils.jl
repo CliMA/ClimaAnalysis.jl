@@ -30,3 +30,20 @@ end
 @testset "kwargs" begin
     @test values(Utils.kwargs(a = 1, b = 2)) == (; a = 1, b = 2)
 end
+
+@testset "seconds_to_prettystr" begin
+    @test Utils.seconds_to_prettystr(1) == "1s"
+    @test Utils.seconds_to_prettystr(2) == "2s"
+    @test Utils.seconds_to_prettystr(60) == "1m"
+    @test Utils.seconds_to_prettystr(61) == "1m 1s"
+    @test Utils.seconds_to_prettystr(3600) == "1h"
+    @test Utils.seconds_to_prettystr(3666) == "1h 1m 6s"
+    @test Utils.seconds_to_prettystr(86400) == "1d"
+    @test Utils.seconds_to_prettystr(86401) == "1d 1s"
+    @test Utils.seconds_to_prettystr(86522) == "1d 2m 2s"
+    @test Utils.seconds_to_prettystr(24 * 60 * 60 * 365) == "1y"
+    @test Utils.seconds_to_prettystr(24 * 60 * 60 * 365 + 60) == "1y 1m"
+    @test Utils.seconds_to_prettystr(24 * 60 * 60 * 365 + 68) == "1y 1m 8s"
+
+    @test Utils.seconds_to_prettystr(24 * 60 * 60 * 365 + 68.5) == "1y 1m 8.5s"
+end
