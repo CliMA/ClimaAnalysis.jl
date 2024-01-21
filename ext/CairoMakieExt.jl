@@ -233,9 +233,9 @@ end
                  more_kwargs
                  )
 
-Plot a heatmap of the given 2D `var`iable in the given `fig`ure and location.
+Plot a line plot of the given 1D `var`iable in the given `fig`ure and location.
 
-The plot comes with labels, units, and a colorbar.
+The plot comes with labels, units.
 
 This function assumes that the following attributes are available:
 - long_name
