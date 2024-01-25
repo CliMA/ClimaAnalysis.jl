@@ -29,3 +29,19 @@ reduced_var = window(var, "time", left = 10, right = 100)
 ```
 
 Now, you can apply the usual average functions.
+
+## How do I make the y axis logscale?
+
+The plotting routines can pass additional arguments to `Makie` through the
+`more_kwargs` keyword arguments. `more_kwargs` has to be a dictionary that maps
+symbols to a list of pairs. The accepted symbols are `:axis`, `:plot`, and
+`:cb`, and the pairs have to be pairs of symbols to values (the keyword
+arguments you want to pass down). Given that the type structure is a little
+complicated, `ClimaAnalysis` comes with a helper function for you to use. So, if
+you want to set the logscale for the `y` axis, you would do something like
+```julia
+import ClimaAnalysis.Utils: kwargs as ca_kwargs
+
+plot!(fig, var, more_kwargs = Dict(:axis => ca_kwargs(yscale = log)))
+```
+where inside `ca_kwargs` you pass the arguments you would pass to `Makie.Axis`.

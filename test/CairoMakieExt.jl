@@ -116,7 +116,7 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_once.png")
     CairoMakie.save(output_name, fig)
 
-    # Test passing a cb_kwargs and plot_kwargs
+    # Test passing more_kwargs
 
     fig = CairoMakie.Figure()
     ClimaAnalysis.Visualize.plot!(
