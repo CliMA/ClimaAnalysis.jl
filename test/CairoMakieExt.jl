@@ -52,6 +52,15 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "test2D.png")
     CairoMakie.save(output_name, fig)
 
+    # Test with a GridLayout
+    fig = CairoMakie.Figure()
+    layout = fig[1, 1] = CairoMakie.GridLayout()
+    ClimaAnalysis.Visualize.heatmap2D!(layout, var2D)
+
+    output_name = joinpath(tmp_dir, "test2D_gd.png")
+    CairoMakie.save(output_name, fig)
+
+
     # New figure
     fig = CairoMakie.Figure()
     @test_throws ErrorException ClimaAnalysis.Visualize.sliced_heatmap!(
@@ -125,6 +134,8 @@ using OrderedCollections
         time = 1,
         more_kwargs = Dict(:cb => [:vertical => :false]),
     )
+
+    fig = CairoMakie.Figure()
     ClimaAnalysis.Visualize.plot!(
         fig,
         var3D;
@@ -137,6 +148,7 @@ using OrderedCollections
     CairoMakie.save(output_name, fig)
 
     # Test dim_on_y
+    fig = CairoMakie.Figure()
     ClimaAnalysis.Visualize.plot!(
         fig,
         var3D;
@@ -149,4 +161,5 @@ using OrderedCollections
     )
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_swapped.png")
     CairoMakie.save(output_name, fig)
+
 end

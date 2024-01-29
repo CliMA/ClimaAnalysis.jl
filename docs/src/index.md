@@ -160,3 +160,23 @@ With `Utils.kwargs`, you can just pass the arguments as you would pass them to
 the constructor.
 
 
+If you need more control over the placement of plots, you can pass
+`Makie.GridLayout` objects to the plotting functions. For example,
+``` julia
+using CairoMakie
+
+fig = Figure()
+layout = fig[1, 2] = GridLayout()
+
+viz.plot!(
+  layout,
+  ta_max,
+  time = 100.0,
+  z = 30_000.0,
+  more_kwargs = Dict(:cb => ca_kwargs(colormap = :inferno))
+)
+```
+
+When you pass a `GridLayout`, the optional argument `p_loc` refers to the
+placement within the layout. When you pass a `Figure`, it refers to the
+placement within the figure.
