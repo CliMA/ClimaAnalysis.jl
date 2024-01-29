@@ -4,13 +4,60 @@ import CairoMakie
 import ClimaAnalysis
 import ClimaAnalysis: Visualize
 
+# GridLayouts are flexible, so it is best to use them when possible. However, sometimes,
+# Figures are just simpler to use. We define a notion of Place, which is either a Figure or
+# a GridLayout. Plotting functions in this file are designed to plot on Places. When Figures
+# are passed, a new GridLayout is created.
+MakiePlace = Union{CairoMakie.Figure, CairoMakie.GridLayout}
+
+"""
+    create_grid_layout_maybe(place::CairoMakie.Figure; p_loc = (1, 1))
+    create_grid_layout_maybe(place::CairoMakie.GridLayout; p_loc = nothing)
+
+If `place` is a `Figure`, create and return a new `GridLayout`, with a new `p_loc`.
+
+When `place` is a `GridLayout`, return it with an unchanged `p_loc`.
+
+After this function is called, assume that `p_loc` refers to the `GridLayout`.
+
+Example
+=========
+```julia
+using CairoMakie
+p_loc = (1, 2)
+fig = Figure()
+
+layout, p_loc = create_grid_layout_maybe(fig; p_loc)
+# p_loc now is (1, 1) because it refers to the new layout
+```
+"""
+function create_grid_layout_maybe(place::MakiePlace) end
+
+function create_grid_layout_maybe(place::CairoMakie.Figure; p_loc = (1, 1))
+    place[p_loc...] = CairoMakie.GridLayout()
+    # When we create a new GridLayout, we also need to reset p_loc because it has to refer
+    # to the grid layout.
+    p_loc = (1, 1)
+    return place[p_loc...], p_loc
+end
+
+function create_grid_layout_maybe(place::CairoMakie.GridLayout; p_loc = nothing)
+    return place, p_loc
+end
+
 """
     heatmap2D!(fig::CairoMakie.Figure,
                var::ClimaAnalysis.OutputVar;
                p_loc = (1,1),
                more_kwargs)
+    heatmap2D!(grid_layout::CairoMakie.GridLayout,
+               var::ClimaAnalysis.OutputVar;
+               p_loc = (1,1),
+               more_kwargs)
 
-Plot a heatmap of the given 2D `var`iable in the given `fig`ure and location.
+
+Plot a heatmap of the given 2D `var`iable in the given place and location.
+The place can be a `Figure` or a `GridLayout`.
 
 The plot comes with labels, units, and a colorbar.
 
@@ -32,7 +79,7 @@ Dictionary of `Symbol`s => values to pass additional options.
 
 """
 function Visualize.heatmap2D!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
     more_kwargs = Dict(:plot => Dict(), :cb => Dict(), :axis => Dict()),
@@ -68,13 +115,15 @@ function Visualize.heatmap2D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    CairoMakie.Axis(fig[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    layout, p_loc = create_grid_layout_maybe(place; p_loc)
+
+    CairoMakie.Axis(layout[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
 
     plot = CairoMakie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
     CairoMakie.Colorbar(
-        fig[p_loc_cb...],
+        layout[p_loc_cb...],
         plot,
         label = colorbar_label;
         cb_kwargs...,
@@ -124,16 +173,23 @@ function _plot_generic_kwargs(
 end
 
 """
-    sliced_heatmap!(
-                        fig::CairoMakie.Figure,
-                        var::ClimaAnalysis.OutputVar,
-                        cut::Union{Nothing, AbstractDict{String, <: Real}};
-                        p_loc = (1,1),
-                        more_kwargs,
-                        )
+    sliced_heatmap!(fig::CairoMakie.Figure,
+                    var::ClimaAnalysis.OutputVar,
+                    cut::Union{Nothing, AbstractDict{String, <: Real}};
+                    p_loc = (1,1),
+                    more_kwargs,
+                    )
+    sliced_heatmap!(grid_layout::CairoMakie.GridLayout,
+                    var::ClimaAnalysis.OutputVar,
+                    cut::Union{Nothing, AbstractDict{String, <: Real}};
+                    p_loc = (1,1),
+                    more_kwargs,
+                    )
 
-Take a `var`iable, slice as directed, and plot a 2D heatmap in the given `fig`ure and
+Take a `var`iable, slice as directed, and plot a 2D heatmap in the given place and
 location.
+
+The place can be a `Figure` or a `GridLayout`.
 
 The plot comes with labels, units, and a colorbar.
 
@@ -164,7 +220,7 @@ The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.sliced_heatmap!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
@@ -172,7 +228,7 @@ function Visualize.sliced_heatmap!(
 )
     return _sliced_plot_generic(
         Visualize.heatmap2D!,
-        fig,
+        place,
         var,
         cut;
         p_loc,
@@ -181,13 +237,12 @@ function Visualize.sliced_heatmap!(
 end
 
 """
-    heatmap!(
-                fig::CairoMakie.Figure,
-                var::ClimaAnalysis.OutputVar;
-                p_loc = (1,1),
-                more_kwargs,
-                kwargs...
-                )
+    heatmap!(place::MakiePlace,
+             var::ClimaAnalysis.OutputVar;
+             p_loc = (1,1),
+             more_kwargs,
+             kwargs...
+            )
 
 Syntactic sugar for `sliced_heatmap` with `kwargs` instead of `cut`.
 
@@ -209,7 +264,7 @@ The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.heatmap!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
     more_kwargs = Dict(:plot => Dict(), :cb => Dict(), :axis => Dict()),
@@ -217,7 +272,7 @@ function Visualize.heatmap!(
 )
     _plot_generic_kwargs(
         Visualize.sliced_heatmap!,
-        fig,
+        place,
         var;
         p_loc,
         more_kwargs,
@@ -226,14 +281,19 @@ function Visualize.heatmap!(
 end
 
 """
-    line_plot1D!(
-                 fig::CairoMakie.Figure,
+    line_plot1D!(place::CairoMakie.Figure,
+                 var::ClimaAnalysis.OutputVar;
+                 p_loc = (1,1),
+                 more_kwargs
+                 )
+    line_plot1D!(place::CairoMakie.GridLayout,
                  var::ClimaAnalysis.OutputVar;
                  p_loc = (1,1),
                  more_kwargs
                  )
 
-Plot a line plot of the given 1D `var`iable in the given `fig`ure and location.
+Plot a line plot of the given 1D `var`iable in the given place and location.
+The place can be a `Figure` or a `GridLayout`.
 
 The plot comes with labels, units.
 
@@ -258,7 +318,7 @@ axis instead of the horizontal one.
 
 """
 function Visualize.line_plot1D!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
     more_kwargs = Dict(:plot => Dict(), :axis => Dict()),
@@ -293,21 +353,28 @@ function Visualize.line_plot1D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    CairoMakie.Axis(fig[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    layout, p_loc = create_grid_layout_maybe(place; p_loc)
+
+    CairoMakie.Axis(layout[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
     CairoMakie.lines!(x, y; plot_kwargs...)
 end
 
 """
-    sliced_line_plot!(
-                        fig::CairoMakie.Figure,
-                        var::ClimaAnalysis.OutputVar,
-                        cut::Union{Nothing, AbstractDict{String, <: Real}};
-                        p_loc = (1,1),
-                        more_kwargs
-                        )
+    sliced_line_plot!(place::CairoMakie.Figure,
+                      var::ClimaAnalysis.OutputVar,
+                      cut::Union{Nothing, AbstractDict{String, <: Real}};
+                      p_loc = (1,1),
+                      more_kwargs
+                      )
+    sliced_line_plot!(place::CairoMakie.GridLayout,
+                      var::ClimaAnalysis.OutputVar,
+                      cut::Union{Nothing, AbstractDict{String, <: Real}};
+                      p_loc = (1,1),
+                      more_kwargs
+                      )
 
-Take a `var`iable, slice as directed, and plot a 1D line plot in the given `fig`ure and
-location.
+Take a `var`iable, slice as directed, and plot a 1D line plot in the given place and
+location. The place can be a `Figure` or a `GridLayout`.
 
 The plot comes with labels, and units.
 
@@ -338,7 +405,7 @@ The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.sliced_line_plot!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
@@ -346,7 +413,7 @@ function Visualize.sliced_line_plot!(
 )
     return _sliced_plot_generic(
         Visualize.line_plot1D!,
-        fig,
+        place,
         var,
         cut;
         p_loc,
@@ -355,13 +422,18 @@ function Visualize.sliced_line_plot!(
 end
 
 """
-    line_plot!(
-                fig::CairoMakie.Figure,
-                var::ClimaAnalysis.OutputVar;
-                p_loc = (1,1),
-                more_kwargs,
-                kwargs...
-                )
+    line_plot!(place::CairoMakie.Figure,
+               var::ClimaAnalysis.OutputVar;
+               p_loc = (1,1),
+               more_kwargs,
+               kwargs...
+               )
+    line_plot!(place::CairoMakie.GridLayout,
+               var::ClimaAnalysis.OutputVar;
+               p_loc = (1,1),
+               more_kwargs,
+               kwargs...
+               )
 
 Syntactic sugar for `sliced_line_plot` with `kwargs` instead of `cut`.
 
@@ -382,7 +454,7 @@ The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.line_plot!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
     more_kwargs = Dict(:plot => Dict(), :axis => Dict()),
@@ -390,7 +462,7 @@ function Visualize.line_plot!(
 )
     _plot_generic_kwargs(
         Visualize.sliced_line_plot!,
-        fig,
+        place,
         var;
         p_loc,
         more_kwargs,
@@ -399,16 +471,21 @@ function Visualize.line_plot!(
 end
 
 """
-    sliced_plot!(
-                 fig::CairoMakie.Figure,
+    sliced_plot!(place::CairoMakie.Figure,
                  var::ClimaAnalysis.OutputVar,
                  cut::Union{Nothing, AbstractDict{String, <: Real}};
                  p_loc = (1,1),
                  more_kwargs
-                )
+                 )
+    sliced_plot!(place::CairoMakie.GridLayout,
+                 var::ClimaAnalysis.OutputVar,
+                 cut::Union{Nothing, AbstractDict{String, <: Real}};
+                 p_loc = (1,1),
+                 more_kwargs
+                 )
 
-Take a `var`iable, slice as directed, and plot a 1D line plot or 2D heatmap in the given `fig`ure and
-location.
+Take a `var`iable, slice as directed, and plot a 1D line plot or 2D heatmap in the given place and
+location. The place can be a `Figure` or a `GridLayout`.
 
 The plot comes with labels, and units (and possibly a colorbar).
 
@@ -439,7 +516,7 @@ The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.sliced_plot!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar,
     cut::Union{Nothing, AbstractDict{String, <:Real}} = nothing;
     p_loc = (1, 1),
@@ -457,13 +534,18 @@ function Visualize.sliced_plot!(
         error("Sliced variable has $final_dim dimensions (needed 1 or 2)")
     end
 
-    return _sliced_plot_generic(fun, fig, var, cut; p_loc, more_kwargs)
+    return _sliced_plot_generic(fun, place, var, cut; p_loc, more_kwargs)
 end
 
 
 """
-    plot!(
-          fig::CairoMakie.Figure,
+    plot!(place::CairoMakie.Figure,
+          var::ClimaAnalysis.OutputVar;
+          p_loc = (1,1),
+          more_kwargs,
+          kwargs...
+          )
+    plot!(place::CairoMakie.GridLayout,
           var::ClimaAnalysis.OutputVar;
           p_loc = (1,1),
           more_kwargs,
@@ -490,7 +572,7 @@ The values are splatted in the relevant functions. Populate them with a
 Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.plot!(
-    fig::CairoMakie.Figure,
+    place::MakiePlace,
     var::ClimaAnalysis.OutputVar;
     p_loc = (1, 1),
     more_kwargs = Dict(:plot => Dict(), :cb => Dict(), :axis => Dict()),
@@ -498,7 +580,7 @@ function Visualize.plot!(
 )
     _plot_generic_kwargs(
         Visualize.sliced_plot!,
-        fig,
+        place,
         var;
         p_loc,
         more_kwargs,
