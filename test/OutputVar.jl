@@ -87,6 +87,9 @@ end
     @test t_sliced.data == t_expected_data
 
     @test t_sliced.attributes["long_name"] == "hi time = 1m 50.0s"
+
+    @test t_sliced.attributes["slice_time"] == "110.0"
+    @test t_sliced.attributes["slice_time_units"] == "s"
 end
 
 @testset "Windowing" begin

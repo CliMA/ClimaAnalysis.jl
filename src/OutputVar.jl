@@ -253,6 +253,8 @@ function slice_general(var, val, dim_name)
         else
             reduced_var.attributes["long_name"] *= " $dim_name = $cut_point $dim_units"
         end
+        reduced_var.attributes["slice_$dim_name"] = "$cut_point"
+        reduced_var.attributes["slice_$(dim_name)_units"] = dim_units
     catch
     end
     return reduced_var
