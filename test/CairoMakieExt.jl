@@ -162,4 +162,21 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_swapped.png")
     CairoMakie.save(output_name, fig)
 
+    # Test overriding title, xlabel, and ylabel
+    fig = CairoMakie.Figure()
+    ClimaAnalysis.Visualize.heatmap2D!(
+        fig,
+        var2D,
+        more_kwargs = Dict(
+            :axis => ClimaAnalysis.Utils.kwargs(
+                title = "My title",
+                xlabel = "My xlabel",
+                ylabel = "My ylabel",
+            ),
+        ),
+    )
+
+    output_name = joinpath(tmp_dir, "test2D_title.png")
+    CairoMakie.save(output_name, fig)
+
 end
