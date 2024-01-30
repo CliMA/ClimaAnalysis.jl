@@ -84,4 +84,8 @@ end
     pfull = get(simdir, short_name = "pfull", reduction = "inst")
     @test ClimaAnalysis.is_z_1D(pfull) == false
 
+    # Check the shorter get(simdir, short_name)
+    @test_throws ErrorException get(simdir, "ta")
+    @test orog == get(simdir, "orog")
+
 end

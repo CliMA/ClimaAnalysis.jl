@@ -46,8 +46,11 @@ Now, you can access any given variable
 ``` julia
 ta_max = get(simdir; short_name = "t12", reduction = "max", period = "3.0h")
 ```
-`ta_max` is a ` OutputVar`, a type that contains the variable as
-well as some metadata.
+
+`ta_max` is a ` OutputVar`, a type that contains the variable as well as some
+metadata. When there is only one combination `short_name/reduction/period`, the
+function `get` can be used with `get(simdir, short_name)` (e.g., `get(simdir,
+"orog")` in the previous example).
 
 Let us learn about ` OutputVar`s
 

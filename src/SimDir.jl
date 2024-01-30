@@ -158,3 +158,29 @@ function get(
     end
     return simdir.vars[short_name][reduction][period]
 end
+
+"""
+    get(simdir::SimDir, short_name)
+
+If only one reduction and period exist for `short_name`, return the corresponding
+`OutputVar`.
+"""
+function get(simdir::SimDir, short_name::String)
+    reductions = available_reductions(simdir; short_name)
+    length(reductions) == 1 || error(
+        "Found reductions $reductions for $short_name. Use full get function",
+    )
+
+    # Only one reduction
+    reduction = pop!(reductions)
+
+    periods = available_periods(simdir; short_name, reduction)
+    length(periods) == 1 || error(
+        "Found periods $periods for $short_name ($reduction). Use full get function",
+    )
+
+    # Only one period
+    period = pop!(periods)
+
+    return get(simdir; short_name, reduction, period)
+end
