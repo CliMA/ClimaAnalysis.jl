@@ -162,7 +162,6 @@ viz.plot!(
 With `Utils.kwargs`, you can just pass the arguments as you would pass them to
 the constructor.
 
-
 If you need more control over the placement of plots, you can pass
 `Makie.GridLayout` objects to the plotting functions. For example,
 ``` julia

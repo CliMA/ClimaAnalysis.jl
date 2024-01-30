@@ -4,46 +4,7 @@ import CairoMakie
 import ClimaAnalysis
 import ClimaAnalysis: Visualize
 
-# GridLayouts are flexible, so it is best to use them when possible. However, sometimes,
-# Figures are just simpler to use. We define a notion of Place, which is either a Figure or
-# a GridLayout. Plotting functions in this file are designed to plot on Places. When Figures
-# are passed, a new GridLayout is created.
 MakiePlace = Union{CairoMakie.Figure, CairoMakie.GridLayout}
-
-"""
-    create_grid_layout_maybe(place::CairoMakie.Figure; p_loc = (1, 1))
-    create_grid_layout_maybe(place::CairoMakie.GridLayout; p_loc = nothing)
-
-If `place` is a `Figure`, create and return a new `GridLayout`, with a new `p_loc`.
-
-When `place` is a `GridLayout`, return it with an unchanged `p_loc`.
-
-After this function is called, assume that `p_loc` refers to the `GridLayout`.
-
-Example
-=========
-```julia
-using CairoMakie
-p_loc = (1, 2)
-fig = Figure()
-
-layout, p_loc = create_grid_layout_maybe(fig; p_loc)
-# p_loc now is (1, 1) because it refers to the new layout
-```
-"""
-function create_grid_layout_maybe(place::MakiePlace) end
-
-function create_grid_layout_maybe(place::CairoMakie.Figure; p_loc = (1, 1))
-    place[p_loc...] = CairoMakie.GridLayout()
-    # When we create a new GridLayout, we also need to reset p_loc because it has to refer
-    # to the grid layout.
-    p_loc = (1, 1)
-    return place[p_loc...], p_loc
-end
-
-function create_grid_layout_maybe(place::CairoMakie.GridLayout; p_loc = nothing)
-    return place, p_loc
-end
 
 """
     heatmap2D!(fig::CairoMakie.Figure,
@@ -115,15 +76,13 @@ function Visualize.heatmap2D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    layout, p_loc = create_grid_layout_maybe(place; p_loc)
-
-    CairoMakie.Axis(layout[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    CairoMakie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
 
     plot = CairoMakie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
     CairoMakie.Colorbar(
-        layout[p_loc_cb...],
+        place[p_loc_cb...],
         plot,
         label = colorbar_label;
         cb_kwargs...,
@@ -353,9 +312,7 @@ function Visualize.line_plot1D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    layout, p_loc = create_grid_layout_maybe(place; p_loc)
-
-    CairoMakie.Axis(layout[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    CairoMakie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
     CairoMakie.lines!(x, y; plot_kwargs...)
 end
 
