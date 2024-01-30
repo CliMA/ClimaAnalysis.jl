@@ -158,7 +158,7 @@ function get(
         if isnothing(period)
             periods = available_periods(simdir; short_name, reduction)
             length(periods) == 1 || error(
-                "Found multiple periods for $short_name: $period. You have to specify it.",
+                "Found multiple periods for $short_name: $periods. You have to specify it.",
             )
             period = pop!(periods)
         else
