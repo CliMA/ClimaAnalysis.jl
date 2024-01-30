@@ -122,33 +122,58 @@ end
 """
     get(simdir::SimDir;
         short_name,
-        reduction = "inst",
+        reduction = nothing,
         period = nothing)
 
 Return a `OutputVar` for the corresponding combination of `short_name`, `reduction`,
 and `period` (if it exists).
 
 The variable is read only once and saved into the `simdir`.
+
+Keyword arguments
+==================
+
+When passing `nothing` to `reduction` and `period`, `ClimaAnalysis` will try to
+automatically deduce the value. An error will be thrown if this is not possible.
+
+For instance, if the simulation has only one `ta`, you do not need to specify `short_name`,
+`reduction`, and `period` (`short_name` is enough). Similarly, if there is only one
+`ta_average` (ie, not multiple periods), `short_name` and `reduction` will be enough.
 """
 function get(
     simdir::SimDir;
     short_name::String,
-    reduction::String = "inst",
+    reduction::Union{String, Nothing} = nothing,
     period::Union{String, Nothing} = nothing,
 )
+    if isnothing(reduction)
+        reductions = available_reductions(simdir; short_name)
+        length(reductions) == 1 || error(
+            "Found multiple reductions for $short_name: $reductions. You have to specify it.",
+        )
+        reduction = pop!(reductions)
+    end
 
-    # When the reduction is "inst", we enforce the period to be "nothing"
-    if reduction == "inst"
+    if reduction != "inst"
+        if isnothing(period)
+            periods = available_periods(simdir; short_name, reduction)
+            length(periods) == 1 || error(
+                "Found multiple periods for $short_name: $period. You have to specify it.",
+            )
+            period = pop!(periods)
+        else
+            if !(period in available_periods(simdir; short_name, reduction))
+                error(
+                    "Period $period not available for $short_name and reduction $reduction. " *
+                    "Available: $(available_periods(simdir; short_name, reduction))",
+                )
+            end
+        end
+    else
+        # When the reduction is "inst", we enforce the period to be "nothing"
         isnothing(period) ||
             @debug "$short_name, found period $period for inst reduction"
         period = nothing
-    end
-
-    if !(period in available_periods(simdir; short_name, reduction))
-        error(
-            "Period $period not available for $short_name and reduction $reduction. " *
-            "Available: $(available_periods(simdir; short_name, reduction))",
-        )
     end
 
     # Variable has not been read before. Read it now.
@@ -166,21 +191,5 @@ If only one reduction and period exist for `short_name`, return the correspondin
 `OutputVar`.
 """
 function get(simdir::SimDir, short_name::String)
-    reductions = available_reductions(simdir; short_name)
-    length(reductions) == 1 || error(
-        "Found reductions $reductions for $short_name. Use full get function",
-    )
-
-    # Only one reduction
-    reduction = pop!(reductions)
-
-    periods = available_periods(simdir; short_name, reduction)
-    length(periods) == 1 || error(
-        "Found periods $periods for $short_name ($reduction). Use full get function",
-    )
-
-    # Only one period
-    period = pop!(periods)
-
-    return get(simdir; short_name, reduction, period)
+    return get(simdir; short_name, reduction = nothing, period = nothing)
 end

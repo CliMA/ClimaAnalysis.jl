@@ -53,6 +53,7 @@ end
     simdir = ClimaAnalysis.SimDir(simulation_path)
 
     ta_max = get(simdir, short_name = "ta", reduction = "max", period = "4.0h")
+    ts_max = get(simdir, short_name = "ts", reduction = "max", period = "1.0h")
 
     @test ta_max.attributes["units"] == "K"
 
@@ -84,8 +85,17 @@ end
     pfull = get(simdir, short_name = "pfull", reduction = "inst")
     @test ClimaAnalysis.is_z_1D(pfull) == false
 
-    # Check the shorter get(simdir, short_name)
+    # Check the shorter gets
     @test_throws ErrorException get(simdir, "ta")
-    @test orog == get(simdir, "orog")
+    @test_throws ErrorException get(simdir; short_name = "ta")
+    @test_throws ErrorException get(
+        simdir;
+        short_name = "ta",
+        reduction = "max",
+    )
 
+    @test orog == get(simdir, "orog")
+    @test orog ==
+          get(simdir; short_name = "orog", reduction = "inst", period = "4.0h")
+    @test ts_max == get(simdir; short_name = "ts", reduction = "max")
 end
