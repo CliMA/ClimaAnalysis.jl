@@ -226,7 +226,9 @@ function slice_general(var, val, dim_name)
 
     # Let's try adding this operation to the long_name, if possible (ie, if the correct
     # attributes are available)
-    try
+    if haskey(var.attributes, "long_name") &&
+       haskey(var.dim_attributes, dim_name) &&
+       haskey(var.dim_attributes[dim_name], "units")
         dim_array = var.dims[dim_name]
         dim_units = var.dim_attributes[dim_name]["units"]
         cut_point = dim_array[nearest_index_val]
@@ -239,7 +241,6 @@ function slice_general(var, val, dim_name)
         end
         reduced_var.attributes["slice_$dim_name"] = "$cut_point"
         reduced_var.attributes["slice_$(dim_name)_units"] = dim_units
-    catch
     end
     return reduced_var
 end
