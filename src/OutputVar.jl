@@ -96,6 +96,39 @@ end
 
 
 """
+    short_name(var::OutputVar)
+
+Return the `short_name` of the given `var`, if available.
+
+If not available, return an empty string.
+"""
+function short_name(var::OutputVar)
+    get(var.attributes, "short_name", "")
+end
+
+"""
+    long_name(var::OutputVar)
+
+Return the `long_name` of the given `var`, if available.
+
+If not available, return an empty string.
+"""
+function long_name(var::OutputVar)
+    get(var.attributes, "long_name", "")
+end
+
+"""
+    units(var::OutputVar)
+
+Return the `units` of the given `var`, if available.
+
+If not available, return an empty string.
+"""
+function units(var::OutputVar)
+    get(var.attributes, "units", "")
+end
+
+"""
     is_z_1D(var::OutputVar)
 
 Return whether the given `var`iable has an altitude dimension that is 1D.

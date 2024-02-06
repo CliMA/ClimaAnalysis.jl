@@ -98,4 +98,14 @@ end
     @test orog ==
           get(simdir; short_name = "orog", reduction = "inst", period = "4.0h")
     @test ts_max == get(simdir; short_name = "ts", reduction = "max")
+
+    # short_name, long_name, units
+    @test ClimaAnalysis.short_name(orog) == "orog"
+    @test ClimaAnalysis.long_name(orog) == "Surface Altitude, Instantaneous"
+    @test ClimaAnalysis.units(orog) == "m"
+
+    # The ts_max file bundled with ClimaAnalysis does not have the short_name
+    # attribute because it was generated before that was a feature. We use that
+    # to check the empty tring
+    @test ClimaAnalysis.short_name(ts_max) == ""
 end
