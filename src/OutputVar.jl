@@ -18,7 +18,8 @@ export OutputVar,
     slice_z,
     slice_lon,
     slice_lat,
-    window
+    window,
+    arecompatible
 
 """
     Representing an output variable
@@ -341,4 +342,21 @@ function window(var, dim_name; left = nothing, right = nothing)
     dims = copy(var.dims)
     dim_attributes = copy(var.dim_attributes)
     return OutputVar(copy(var.attributes), dims, dim_attributes, reduced_data)
+end
+
+"""
+    arecompatible(x::OutputVar, y::OutputVar)
+
+Return whether two `OutputVar` are defined on the same physical space
+
+This is accomplished by comparing `dims` and `dim_attributes` (the latter because they might contain information about the units).
+
+We assume that:
+- `dim2index` and `index2dim` where correctly created and they reflect `dims`
+- `data` is also consistent with `dims`,
+
+We also *do not* check units for `data`.
+"""
+function arecompatible(x::OutputVar, y::OutputVar)
+    return (x.dims == y.dims) && (x.dim_attributes == y.dim_attributes)
 end
