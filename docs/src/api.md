@@ -20,6 +20,9 @@ available_periods
 OutputVar
 read_var
 is_z_1D
+short_name
+long_name
+units
 slice
 slice_general
 slice_x
@@ -32,6 +35,7 @@ average_lat
 average_lon
 average_time
 window
+arecompatible
 ```
 
 

@@ -4,6 +4,40 @@ import ClimaAnalysis
 import Statistics: mean
 import OrderedCollections: OrderedDict
 
+@testset "Arithmetic operations" begin
+    long = 0.0:180.0 |> collect
+    lat = 0.0:90.0 |> collect
+    time = 0.0:10.0 |> collect
+
+    data1 = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+
+    dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
+    dim_attributes = OrderedDict([
+        "time" => Dict(),
+        "lon" => Dict("b" => 2),
+        "lat" => Dict("a" => 1),
+    ])
+    attribs = Dict("long_name" => "hi")
+    var1 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data1)
+
+    dim_attributes2 = OrderedDict([
+        "time" => Dict(),
+        "lon" => Dict("lol" => 2),
+        "lat" => Dict("a" => 1),
+    ])
+
+    var2 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes2, data1)
+
+    data3 = 5.0 .+ reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    attribs3 = Dict("long_name" => "bob")
+    var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3)
+
+    # Check arecompatible
+    @test !ClimaAnalysis.arecompatible(var1, var2)
+    @test ClimaAnalysis.arecompatible(var1, var3)
+
+end
+
 @testset "Reductions" begin
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
