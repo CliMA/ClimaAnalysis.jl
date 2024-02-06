@@ -17,7 +17,7 @@ import OrderedCollections: OrderedDict
         "lon" => Dict("b" => 2),
         "lat" => Dict("a" => 1),
     ])
-    attribs = Dict("long_name" => "hi")
+    attribs = Dict("short_name" => "bob", "long_name" => "hi")
     var1 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data1)
 
     dim_attributes2 = OrderedDict([
@@ -29,13 +29,30 @@ import OrderedCollections: OrderedDict
     var2 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes2, data1)
 
     data3 = 5.0 .+ reshape(1.0:(91 * 181 * 10), (10, 181, 91))
-    attribs3 = Dict("long_name" => "bob")
+    attribs3 = Dict("long_name" => "bob", "short_name" => "bula")
     var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3)
 
     # Check arecompatible
     @test !ClimaAnalysis.arecompatible(var1, var2)
     @test ClimaAnalysis.arecompatible(var1, var3)
 
+    var1plus10 = var1 + 10
+
+    @test var1plus10.data == data1 .+ 10
+    @test ClimaAnalysis.short_name(var1plus10) == "bob + 10"
+    @test ClimaAnalysis.long_name(var1plus10) == "hi + 10"
+
+    tenplusvar1 = 10 + var1
+
+    @test tenplusvar1.data == data1 .+ 10
+    @test ClimaAnalysis.short_name(tenplusvar1) == "10 + bob"
+    @test ClimaAnalysis.long_name(tenplusvar1) == "10 + hi"
+
+    var1plusvar3 = var1 + var3
+
+    @test var1plusvar3.data == data1 .+ data3
+    @test ClimaAnalysis.short_name(var1plusvar3) == "bob + bula"
+    @test ClimaAnalysis.long_name(var1plusvar3) == "hi + bob"
 end
 
 @testset "Reductions" begin

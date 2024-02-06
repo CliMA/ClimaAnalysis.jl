@@ -109,9 +109,18 @@ OrderedCollections.OrderedDict{String, Vector{Float32}} with 2 entries:
   "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
 ```
 
-We can directly visualize these quantities.
+#### Mathematical operations
 
-### `Visualize`
+`OutputVar`s support the usual mathematical operations. For instance, if
+`ts_max` is an `OutputVar`, `2 * ts_max` will be an `OutputVar` with doubled values.
+
+For binary operations (e.g., `+, -, *, /`), `ClimaAnalysis` will check if the
+operation is well defined (i.e., the two variables are defined on the physical
+space). Binary operations do remove some attribute information.
+
+#### `Visualize`
+
+We can directly visualize `OutputVar`s.
 
 If `CairoMakie` is available, `ClimaAnalysis` can be used for plotting.
 Importing `CairoMakie` and `ClimaAnalysis` in the same session automatically

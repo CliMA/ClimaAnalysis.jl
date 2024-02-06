@@ -394,3 +394,83 @@ We also *do not* check units for `data`.
 function arecompatible(x::OutputVar, y::OutputVar)
     return (x.dims == y.dims) && (x.dim_attributes == y.dim_attributes)
 end
+
+"""
+    overload_binary_op(op)
+
+Add methods to overload the given binary `op`erator for `OutputVars` and `Real`s.
+
+Attributes that are not `short_name`, `long_name`, are discarded in the process.
+"""
+macro overload_binary_op(op)
+    quote
+        function Base.$op(x::OutputVar, y::OutputVar)
+            arecompatible(x, y) || error("Input OutputVars are not compatible")
+
+            ret_attributes = Dict{String, Any}()
+
+            specific_attributes = ("short_name", "long_name")
+
+            for attr in specific_attributes
+                if haskey(x.attributes, attr) && haskey(y.attributes, attr)
+                    ret_attributes[attr] = string(
+                        x.attributes[attr],
+                        " ",
+                        string($op),
+                        " ",
+                        y.attributes[attr],
+                    )
+                end
+            end
+
+            ret_dims = x.dims
+            ret_dim_attributes = x.dim_attributes
+
+            ret_data = $op(x.data, y.data)
+
+            return OutputVar(
+                ret_attributes,
+                ret_dims,
+                ret_dim_attributes,
+                ret_data,
+            )
+        end
+        function Base.$op(x::OutputVar, y::Real)
+            ret_var = copy(x)
+            @. ret_var.data = $op(x.data, y)
+            empty!(ret_var.attributes)
+
+            specific_attributes = ("short_name", "long_name")
+
+            for attr in specific_attributes
+                if haskey(x.attributes, attr)
+                    ret_var.attributes[attr] =
+                        string(x.attributes[attr], " ", string($op), " ", y)
+                end
+            end
+
+            return ret_var
+        end
+        function Base.$op(x::Real, y::OutputVar)
+            ret_var = copy(y)
+            @. ret_var.data = $op(x, y.data)
+            empty!(ret_var.attributes)
+
+            specific_attributes = ("short_name", "long_name")
+
+            for attr in specific_attributes
+                if haskey(y.attributes, attr)
+                    ret_var.attributes[attr] =
+                        string(x, " ", string($op), " ", y.attributes[attr])
+                end
+            end
+
+            return ret_var
+        end
+    end
+end
+
+@overload_binary_op (+)
+@overload_binary_op (-)
+@overload_binary_op (*)
+@overload_binary_op (/)
