@@ -112,6 +112,11 @@ function is_z_1D(var::OutputVar)
     return length(size(var.dims["z"])) == 1
 end
 
+function Base.copy(var::OutputVar)
+    fields = fieldnames(OutputVar)
+    return OutputVar([copy(getfield(var, field)) for field in fields]...)
+end
+
 """
     _reduce_over(reduction::F, dim::String, var::OutputVar)
 
