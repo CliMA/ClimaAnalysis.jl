@@ -18,14 +18,12 @@ import OrderedCollections: OrderedDict
         "lat" => Dict("a" => 1),
     ])
     attribs = Dict("long_name" => "hi")
-    path = "a/b/c"
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
     lat_avg = ClimaAnalysis.average_lat(var)
     @test lat_avg.dims == OrderedDict(["lon" => long, "time" => time])
     @test lat_avg.dim_attributes ==
           OrderedDict(["lon" => Dict("b" => 2), "time" => Dict()])
-    @test lat_avg.file_path == path
     @test lat_avg.data == dropdims(mean(data, dims = 3), dims = 3)
 
     lat_lon_avg = ClimaAnalysis.average_lon(lat_avg)
@@ -54,8 +52,7 @@ end
     dim_attributes =
         OrderedDict(["time" => Dict("units" => "s"), "z" => Dict("b" => 2)])
     attribs = Dict("long_name" => "hi")
-    path = "a/b/c"
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
     z_sliced = ClimaAnalysis.slice_z(var, 1.0)
     # 1.0 is the second index
@@ -63,7 +60,6 @@ end
     @test z_sliced.dims == OrderedDict(["time" => time])
     @test z_sliced.dim_attributes ==
           OrderedDict(["time" => Dict("units" => "s")])
-    @test z_sliced.file_path == path
     @test z_sliced.data == z_expected_data
 
     t_sliced = ClimaAnalysis.slice_time(var, 200.0)
@@ -71,7 +67,6 @@ end
     t_expected_data = data[end, :]
     @test t_sliced.dims == OrderedDict(["z" => z])
     @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
-    @test t_sliced.file_path == path
     @test t_sliced.data == t_expected_data
 
     @test t_sliced.attributes["long_name"] == "hi time = 1m 50.0s"
@@ -83,7 +78,6 @@ end
     t_expected_data = data[end, :]
     @test t_sliced.dims == OrderedDict(["z" => z])
     @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
-    @test t_sliced.file_path == path
     @test t_sliced.data == t_expected_data
 
     @test t_sliced.attributes["long_name"] == "hi time = 1m 50.0s"
@@ -102,8 +96,7 @@ end
     dim_attributes =
         OrderedDict(["time" => Dict("units" => "s"), "z" => Dict("b" => 2)])
     attribs = Dict("long_name" => "hi")
-    path = "a/b/c"
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data, path)
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
     # Dimension not existing
     @test_throws ErrorException ClimaAnalysis.window(var, "lat")
