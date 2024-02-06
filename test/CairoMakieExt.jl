@@ -26,8 +26,7 @@ using OrderedCollections
         "lon" => Dict(["units" => "degrees"]),
         "lat" => Dict(["units" => "degrees"]),
     ])
-    var3D =
-        ClimaAnalysis.OutputVar(attribs, dims3D, dim_attributes3D, data3D, path)
+    var3D = ClimaAnalysis.OutputVar(attribs, dims3D, dim_attributes3D, data3D)
 
     fig = CairoMakie.Figure()
     @test_throws ErrorException ClimaAnalysis.Visualize.heatmap2D!(fig, var3D)
@@ -44,8 +43,7 @@ using OrderedCollections
         "lon" => Dict(["units" => "degrees"]),
         "lat" => Dict(["units" => "degrees"]),
     ])
-    var2D =
-        ClimaAnalysis.OutputVar(attribs, dims2D, dim_attributes2D, data2D, path)
+    var2D = ClimaAnalysis.OutputVar(attribs, dims2D, dim_attributes2D, data2D)
 
     ClimaAnalysis.Visualize.heatmap2D!(fig, var2D)
 
@@ -90,8 +88,7 @@ using OrderedCollections
     ])
     path = "a/b/c"
     dim_attributes1D = OrderedDict(["lat" => Dict(["units" => "degrees"])])
-    var1D =
-        ClimaAnalysis.OutputVar(attribs, dims1D, dim_attributes1D, data1D, path)
+    var1D = ClimaAnalysis.OutputVar(attribs, dims1D, dim_attributes1D, data1D)
 
     fig = CairoMakie.Figure()
     ClimaAnalysis.Visualize.line_plot1D!(fig, var1D)

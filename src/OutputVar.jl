@@ -23,13 +23,7 @@ export OutputVar,
 """
     Representing an output variable
 """
-struct OutputVar{
-    T <: AbstractArray,
-    A <: AbstractArray,
-    B,
-    C,
-    FP <: Union{<:AbstractString, Nothing},
-}
+struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
@@ -43,9 +37,6 @@ struct OutputVar{
     "Array that contains all the data"
     data::A
 
-    "File associated to this variable"
-    file_path::FP
-
     "Dictionary that maps dimension name to its array index"
     dim2index::Dict{String, Int}
 
@@ -54,7 +45,7 @@ struct OutputVar{
 
 end
 
-function OutputVar(attribs, dims, dim_attribs, data, path)
+function OutputVar(attribs, dims, dim_attribs, data)
     index2dim = keys(dims) |> collect
     dim2index =
         Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
@@ -64,7 +55,6 @@ function OutputVar(attribs, dims, dim_attribs, data, path)
         OrderedDict(dims),
         OrderedDict(dim_attribs),
         data,
-        path,
         dim2index,
         index2dim,
     )
@@ -72,13 +62,7 @@ end
 
 
 function OutputVar(dims, data)
-    return OutputVar(
-        Dict{String, Any}(),
-        dims,
-        Dict{String, Any}(),
-        data,
-        nothing,
-    )
+    return OutputVar(Dict{String, Any}(), dims, Dict{String, Any}(), data)
 end
 
 """
@@ -105,7 +89,7 @@ function read_var(path::String)
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
         )
         data = Array(nc[var_name])
-        return OutputVar(attribs, dims, dim_attribs, data, path)
+        return OutputVar(attribs, dims, dim_attribs, data)
     end
 end
 
@@ -173,13 +157,7 @@ function _reduce_over(
     dim_attributes = copy(var.dim_attributes)
     pop!(dims, dim)
     haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
-    return OutputVar(
-        copy(var.attributes),
-        dims,
-        dim_attributes,
-        data,
-        var.file_path,
-    )
+    return OutputVar(copy(var.attributes), dims, dim_attributes, data)
 end
 
 """
@@ -357,11 +335,5 @@ function window(var, dim_name; left = nothing, right = nothing)
 
     dims = copy(var.dims)
     dim_attributes = copy(var.dim_attributes)
-    return OutputVar(
-        copy(var.attributes),
-        dims,
-        dim_attributes,
-        reduced_data,
-        var.file_path,
-    )
+    return OutputVar(copy(var.attributes), dims, dim_attributes, reduced_data)
 end
