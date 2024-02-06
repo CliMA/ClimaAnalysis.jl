@@ -20,6 +20,15 @@ import OrderedCollections: OrderedDict
     attribs = Dict("long_name" => "hi")
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
+    # Test copy
+    var_copied = copy(var)
+    fields = fieldnames(ClimaAnalysis.OutputVar)
+    for field in fields
+        @test getfield(var, field) == getfield(var_copied, field)
+        @test getfield(var, field) !== getfield(var_copied, field)
+    end
+
+    # Test reduction
     lat_avg = ClimaAnalysis.average_lat(var)
     @test lat_avg.dims == OrderedDict(["lon" => long, "time" => time])
     @test lat_avg.dim_attributes ==
