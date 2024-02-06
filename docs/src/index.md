@@ -76,6 +76,13 @@ julia> ts_max.dim_attributes["lon"]
   "lon"  => Dict("units"=>"degrees_east")
 ```
 
+Some of the attributes are exposed with function calls. For example
+``` julia-repl
+julia> long_name(ts_max)
+  Surface Temperature, max within 1.0 Hour(s)
+```
+These function use the attributes in the NetCDF files. When not available, empty strings are returned.
+
 Given an `OutputVar`, we can perform manipulations. For instance, we can take
 the average over latitudes:
 ``` julia
