@@ -114,7 +114,7 @@ If we want to make a heatmap for `ta_max` at time of 100 s at altitude `z` of 30
 
 ``` julia
 import CairoMakie
-import ClimaAnalysis: Visualize
+import ClimaAnalysis.Visualize as viz
 
 fig = CairoMakie.Figure(resolution = (400, 600))
 
