@@ -124,7 +124,7 @@ end
     attribs = Dict("long_name" => "hi")
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
-    z_sliced = ClimaAnalysis.slice_z(var, 1.0)
+    z_sliced = ClimaAnalysis.slice(var, z = 1.0)
     # 1.0 is the second index
     z_expected_data = data[:, 2]
     @test z_sliced.dims == OrderedDict(["time" => time])
@@ -132,7 +132,7 @@ end
           OrderedDict(["time" => Dict("units" => "s")])
     @test z_sliced.data == z_expected_data
 
-    t_sliced = ClimaAnalysis.slice_time(var, 200.0)
+    t_sliced = ClimaAnalysis.slice(var, time = 200.0)
     # 200 is the last index
     t_expected_data = data[end, :]
     @test t_sliced.dims == OrderedDict(["z" => z])
