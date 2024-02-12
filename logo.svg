@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- This SVG file is handwritten :) -->
 <svg
    viewBox="0 0 500 500"
    version="1.1"
@@ -7,19 +8,19 @@
    xmlns:svg="http://www.w3.org/2000/svg">
   <!-- Green -->
   <circle
-     style="fill:#399746;stroke:#000000"
+     style="fill:#389826"
      cx="245"
      cy="155"
      r="90" />
   <!-- Purple -->
   <circle
-     style="fill:#9259a3;stroke:#000000"
+     style="fill:#9558B2"
      cx="355"
      cy="355"
      r="90" />
   <!-- Red -->
   <circle
-     style="fill:#ca3c32;stroke:#000000"
+     style="fill:#CB3C33"
      cx="135"
      cy="355"
      r="90" />
