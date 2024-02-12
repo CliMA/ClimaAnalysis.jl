@@ -244,12 +244,12 @@ function average_time(var)
 end
 
 """
-    slice_general(var::OutputVar, val, dim_name)
+    __slice_general(var::OutputVar, val, dim_name)
 
 Return a new OutputVar by selecting the available index closest to the given `val` for the
 given dimension
 """
-function slice_general(var, val, dim_name)
+function _slice_general(var, val, dim_name)
     haskey(var.dims, dim_name) ||
         error("Var does not have dimension $dim_name, found $(keys(var.dims))")
 
@@ -283,42 +283,42 @@ end
 
 Return a new OutputVar by selecting the available snapshot closest to the given `time`.
 """
-slice_time(var, time) = slice_general(var, time, "time")
+slice_time(var, time) = _slice_general(var, time, "time")
 
 """
     slice_z(var::OutputVar, z)
 
 Return a new OutputVar by selecting the available date closest to the given `z`.
 """
-slice_z(var, z) = slice_general(var, z, "z")
+slice_z(var, z) = _slice_general(var, z, "z")
 
 """
     slice_x(var::OutputVar, x)
 
 Return a new OutputVar by selecting the available date closest to the given `x`.
 """
-slice_x(var, x) = slice_general(var, x, "x")
+slice_x(var, x) = _slice_general(var, x, "x")
 
 """
     slice_y(var::OutputVar, y)
 
 Return a new OutputVar by selecting the available date closest to the given `y`.
 """
-slice_y(var, y) = slice_general(var, y, "y")
+slice_y(var, y) = _slice_general(var, y, "y")
 
 """
     slice_lon(var::OutputVar, lon)
 
 Return a new OutputVar by selecting the available date closest to the given `lon`.
 """
-slice_lon(var, lon) = slice_general(var, lon, "lon")
+slice_lon(var, lon) = _slice_general(var, lon, "lon")
 
 """
     slice_lat(var::OutputVar, lat)
 
 Return a new OutputVar by selecting the available date closest to the given `lat`.
 """
-slice_lat(var, lat) = slice_general(var, lat, "lon")
+slice_lat(var, lat) = _slice_general(var, lat, "lon")
 
 """
     slice(var::OutputVar, kwargs...)
@@ -334,7 +334,7 @@ slice(var, lat = 30, lon = 20, time = 100)
 function slice(var; kwargs...)
     sliced_var = var
     for (dim_name, val) in kwargs
-        sliced_var = slice_general(sliced_var, val, String(dim_name))
+        sliced_var = _slice_general(sliced_var, val, String(dim_name))
     end
     return sliced_var
 end

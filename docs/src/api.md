@@ -24,7 +24,6 @@ short_name
 long_name
 units
 slice
-slice_general
 slice_x
 slice_y
 slice_z
