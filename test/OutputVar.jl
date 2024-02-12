@@ -4,6 +4,16 @@ import ClimaAnalysis
 import Statistics: mean
 import OrderedCollections: OrderedDict
 
+@testset "General" begin
+    # Add test for short constructor
+    long = 0.0:180.0 |> collect
+    data = copy(long)
+
+    longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
+
+    @test longvar.dims["long"] == long
+end
+
 @testset "Arithmetic operations" begin
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
