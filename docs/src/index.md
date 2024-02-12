@@ -98,7 +98,7 @@ OrderedCollections.OrderedDict{String, Vector{Float32}} with 3 entries:
 ```
 We can also take a time/altitude slice, for example, the plane with altitude closest to 8000 meters.
 ``` julia
-ts_max_lat_averaged_sliced = ClimaAnalysis.slice_z(ts_max_lat_averaged, 8_000)
+ts_max_lat_averaged_sliced = ClimaAnalysis.slice(ts_max_lat_averaged, 8_000)
 ```
 Alternatively, you can also call `ClimaAnalysis.slice(ts_max_lat_averaged_sliced, time = 8_000)`.
 Now,

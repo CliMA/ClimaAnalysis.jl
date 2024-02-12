@@ -24,12 +24,6 @@ short_name
 long_name
 units
 slice
-slice_x
-slice_y
-slice_z
-slice_lon
-slice_lat
-slice_time
 average_lat
 average_lon
 average_time

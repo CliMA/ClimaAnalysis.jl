@@ -12,12 +12,6 @@ export OutputVar,
     average_time,
     is_z_1D,
     slice,
-    slice_time,
-    slice_x,
-    slice_y,
-    slice_z,
-    slice_lon,
-    slice_lat,
     window,
     arecompatible
 
@@ -277,48 +271,6 @@ function _slice_general(var, val, dim_name)
     end
     return reduced_var
 end
-
-"""
-    slice_time(var::OutputVar, time)
-
-Return a new OutputVar by selecting the available snapshot closest to the given `time`.
-"""
-slice_time(var, time) = _slice_general(var, time, "time")
-
-"""
-    slice_z(var::OutputVar, z)
-
-Return a new OutputVar by selecting the available date closest to the given `z`.
-"""
-slice_z(var, z) = _slice_general(var, z, "z")
-
-"""
-    slice_x(var::OutputVar, x)
-
-Return a new OutputVar by selecting the available date closest to the given `x`.
-"""
-slice_x(var, x) = _slice_general(var, x, "x")
-
-"""
-    slice_y(var::OutputVar, y)
-
-Return a new OutputVar by selecting the available date closest to the given `y`.
-"""
-slice_y(var, y) = _slice_general(var, y, "y")
-
-"""
-    slice_lon(var::OutputVar, lon)
-
-Return a new OutputVar by selecting the available date closest to the given `lon`.
-"""
-slice_lon(var, lon) = _slice_general(var, lon, "lon")
-
-"""
-    slice_lat(var::OutputVar, lat)
-
-Return a new OutputVar by selecting the available date closest to the given `lat`.
-"""
-slice_lat(var, lat) = _slice_general(var, lat, "lon")
 
 """
     slice(var::OutputVar, kwargs...)
