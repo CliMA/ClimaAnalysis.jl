@@ -198,3 +198,7 @@ viz.plot!(
 When you pass a `GridLayout`, the optional argument `p_loc` refers to the
 placement within the layout. When you pass a `Figure`, it refers to the
 placement within the figure.
+
+If you have `GeoMakie` and are working on a variable defined on a `long-lat`
+grid, you can directly plot on a projected global surface. For that, load
+`GeoMakie` and use the `heatmap2D_on_globe!` function.

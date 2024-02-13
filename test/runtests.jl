@@ -10,6 +10,7 @@ using Test
 @safetestset "SimDir" begin @time include("SimDir.jl") end
 @safetestset "OutputVar" begin @time include("OutputVar.jl") end
 @safetestset "CairoMakieExt" begin @time include("CairoMakieExt.jl") end
+@safetestset "GeoMakieExt" begin @time include("GeoMakieExt.jl") end
 #! format: on
 
 nothing
