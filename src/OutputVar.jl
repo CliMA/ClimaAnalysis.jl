@@ -238,7 +238,7 @@ function average_time(var)
 end
 
 """
-    __slice_general(var::OutputVar, val, dim_name)
+    _slice_general(var::OutputVar, val, dim_name)
 
 Return a new OutputVar by selecting the available index closest to the given `val` for the
 given dimension
