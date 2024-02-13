@@ -13,7 +13,8 @@ export OutputVar,
     is_z_1D,
     slice,
     window,
-    arecompatible
+    arecompatible,
+    center_longitude!
 
 """
     Representing an output variable
@@ -235,6 +236,45 @@ function average_time(var)
     end
 
     return reduced_var
+end
+
+"""
+    center_longitude!(var::OutputVar, lon::Real)
+
+Shift the longitudes in `var` so that `lon` is the center one.
+
+This is useful to center the global projection to the 180 meridian instead of the 0.
+"""
+function center_longitude!(var, lon)
+    LONG_NAMES = Set(["long", "lon"])
+
+    # Pick the correct longitude name and check that we have a longitude variable
+    lon_name = ""
+    for possible_lon_name in LONG_NAMES
+        haskey(var.dims, possible_lon_name) &&
+            (lon_name = possible_lon_name; break)
+    end
+    lon_name != "" || error("var does not have longitude among its dimensions")
+
+    old_center_lon_index = nearest_index(var.dims[lon_name], lon)
+    half_index = div(length(var.dims[lon_name]), 2)
+
+    # half_index = old_index + shift => shift = half_index - old_index
+    shift = half_index - old_center_lon_index
+
+    # We do not use circshift! because it can lead to unpredictable problems when mutating
+    shifted_lon = circshift(var.dims[lon_name], shift)
+    var.dims[lon_name] = shifted_lon
+
+    lon_dim_index = var.dim2index[lon_name]
+
+    # Prepare the shift tuple for the data array: do not shift, except for the dimension
+    # corresponding to the longitude
+    shift_tuple = zeros(length(var.dims))
+    shift_tuple[lon_dim_index] = shift
+
+    shifted_data = circshift(var.data, shift)
+    var.data .= shifted_data
 end
 
 """

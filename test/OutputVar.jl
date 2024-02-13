@@ -6,12 +6,43 @@ import OrderedCollections: OrderedDict
 
 @testset "General" begin
     # Add test for short constructor
-    long = 0.0:180.0 |> collect
+    long = -180.0:180.0 |> collect
     data = copy(long)
 
     longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
 
     @test longvar.dims["long"] == long
+
+
+    # center_longitude!
+    #
+    # Check var without long
+    dims = Dict("z" => long)
+    var_error = ClimaAnalysis.OutputVar(
+        Dict{String, Any}(),
+        dims,
+        Dict{String, Any}(),
+        data,
+    )
+    @test_throws ErrorException ClimaAnalysis.center_longitude!(
+        var_error,
+        180.0,
+    )
+
+    time = 0:10.0 |> collect
+    dims = Dict("lon" => long, "time" => time)
+    data = collect(reshape(1:(361 * 11), (361, 11)))
+    var_good = ClimaAnalysis.OutputVar(
+        Dict{String, Any}(),
+        dims,
+        Dict{String, Any}(),
+        data,
+    )
+    ClimaAnalysis.center_longitude!(var_good, 90.0)
+    # We are shifting by 91
+    @test var_good.dims["lon"][180] == 90
+    @test var_good.data[3, :] == data[3, :]
+    @test var_good.data[180, 1] == 271
 end
 
 @testset "Arithmetic operations" begin
