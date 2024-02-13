@@ -190,7 +190,7 @@ function _reduce_over(
     dim_attributes = copy(var.dim_attributes)
     pop!(dims, dim)
     haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
-    return OutputVar(copy(var.attributes), dims, dim_attributes, data)
+    return OutputVar(copy(var.attributes), dims, dim_attributes, copy(data))
 end
 
 """
