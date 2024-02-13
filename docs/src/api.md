@@ -55,3 +55,9 @@ Visualize.sliced_line_plot!
 Visualize.sliced_plot!
 Visualize.plot!
 ```
+
+## CairoMakie
+
+```@docs
+Visualize.heatmap2D_on_globe!
+```
