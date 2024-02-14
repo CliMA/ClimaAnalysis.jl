@@ -63,9 +63,19 @@ function Visualize.heatmap2D_on_globe!(
 )
     length(var.dims) == 2 || error("Can only plot 2D variables")
 
-    lon_name, lat_name = var.index2dim
-    lon_name in LONGITUDE_NAMES || error("$lon_name is not a longitude")
-    lat_name in LATITUDE_NAMES || error("$lat_name is not a latitude")
+    lon_name = ""
+    lat_name = ""
+
+    for dim in var.index2dim
+        if dim in LONGITUDE_NAMES
+            lon_name = dim
+        elseif dim in LATITUDE_NAMES
+            lat_name = dim
+        else
+            error("$dim is neither longitude nor latitude")
+        end
+    end
+
     lon = var.dims[lon_name]
     lat = var.dims[lat_name]
 
