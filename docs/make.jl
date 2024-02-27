@@ -1,6 +1,7 @@
 using ClimaAnalysis
 using Documenter
 import CairoMakie
+import GeoMakie
 
 DocMeta.setdocmeta!(
     ClimaAnalysis,
@@ -13,6 +14,7 @@ makedocs(;
     modules = [
         ClimaAnalysis,
         Base.get_extension(ClimaAnalysis, :CairoMakieExt),
+        Base.get_extension(ClimaAnalysis, :GeoMakieExt),
     ],
     authors = "Climate Modelling Alliance",
     repo = "https://github.com/CliMA/ClimaAnalysis.jl",

@@ -57,7 +57,7 @@ Visualize.sliced_plot!
 Visualize.plot!
 ```
 
-## CairoMakie
+## GeoMakie
 
 ```@docs
 Visualize.heatmap2D_on_globe!
