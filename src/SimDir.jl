@@ -111,10 +111,8 @@ function Base.summary(io::IO, simdir::SimDir)
         print(io, "\n- $short_name")
         for reduction in available_reductions(simdir; short_name)
             print(io, "\n    $reduction")
-            if reduction != "inst"
-                periods = available_periods(simdir; short_name, reduction)
-                print(io, " (", join(periods, ", "), ")")
-            end
+            periods = available_periods(simdir; short_name, reduction)
+            print(io, " (", join(periods, ", "), ")")
         end
     end
 end
@@ -154,26 +152,19 @@ function get(
         reduction = pop!(reductions)
     end
 
-    if reduction != "inst"
-        if isnothing(period)
-            periods = available_periods(simdir; short_name, reduction)
-            length(periods) == 1 || error(
-                "Found multiple periods for $short_name: $periods. You have to specify it.",
-            )
-            period = pop!(periods)
-        else
-            if !(period in available_periods(simdir; short_name, reduction))
-                error(
-                    "Period $period not available for $short_name and reduction $reduction. " *
-                    "Available: $(available_periods(simdir; short_name, reduction))",
-                )
-            end
-        end
+    if isnothing(period)
+        periods = available_periods(simdir; short_name, reduction)
+        length(periods) == 1 || error(
+            "Found multiple periods for $short_name: $periods. You have to specify it.",
+        )
+        period = pop!(periods)
     else
-        # When the reduction is "inst", we enforce the period to be "nothing"
-        isnothing(period) ||
-            @debug "$short_name, found period $period for inst reduction"
-        period = nothing
+        if !(period in available_periods(simdir; short_name, reduction))
+            error(
+                "Period $period not available for $short_name and reduction $reduction. " *
+                "Available: $(available_periods(simdir; short_name, reduction))",
+            )
+        end
     end
 
     # Variable has not been read before. Read it now.

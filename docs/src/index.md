@@ -21,7 +21,7 @@ As of version `0.1.0`, `ClimaAnalysis` uses file names to identify files and
 variables. In this, `ClimaAnalysis` assumes that the default names for outputs
 are used in `ClimaAtmos` (i.e.,
 `<short_name>_<reduction_time>_<reduction_type>.nc`, as in `ta_1h_max.nc`, or
-`<short_name>_inst.nc`).
+`<short_name>_1d_inst.nc`).
 
 Once you have a `SimDir`, you can inspect the output. For example, to find what
 variables are available:
@@ -34,7 +34,7 @@ Variables:
 - ua
     average (6.0h)
 - orog
-    inst
+    inst (1.0d)
 - ta
     average (3.0h)
     max (4.0h, 3.0h)
