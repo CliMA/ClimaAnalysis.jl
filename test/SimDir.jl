@@ -78,8 +78,9 @@ end
     )
 
     # Check if reduction = inst and passing a period
-    orog = get(simdir, short_name = "orog", reduction = "inst", period = "4.0h")
-    @test orog == get(simdir, short_name = "orog", reduction = "inst")
+    @test_throws ErrorException orog =
+        get(simdir, short_name = "orog", reduction = "inst", period = "4.0h")
+    orog = get(simdir, short_name = "orog", reduction = "inst")
 
     # Check is_z_1d
     pfull = get(simdir, short_name = "pfull", reduction = "inst")
@@ -96,7 +97,7 @@ end
 
     @test orog == get(simdir, "orog")
     @test orog ==
-          get(simdir; short_name = "orog", reduction = "inst", period = "4.0h")
+          get(simdir; short_name = "orog", reduction = "inst", period = nothing)
     @test ts_max == get(simdir; short_name = "ts", reduction = "max")
 
     # short_name, long_name, units
