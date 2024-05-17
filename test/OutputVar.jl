@@ -214,4 +214,6 @@ end
     expected_data = data[3:6, :]
 
     @test var_windowed.data == expected_data
+
+    @test var_windowed.dims["time"] == time[3:6]
 end
