@@ -18,7 +18,7 @@ GeoMakieExt = "GeoMakie"
 
 [compat]
 Aqua = "0.8"
-CairoMakie = "0.9, 0.10, 0.11"
+CairoMakie = "0.9, 0.10, 0.11, 0.12"
 Documenter = "1"
 GeoMakie = "0.6"
 JuliaFormatter = "1"
