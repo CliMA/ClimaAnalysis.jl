@@ -26,6 +26,9 @@ units
 slice
 average_lat
 average_lon
+average_x
+average_y
+average_xy
 average_time
 window
 arecompatible

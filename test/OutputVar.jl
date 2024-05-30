@@ -96,7 +96,7 @@ end
     @test ClimaAnalysis.long_name(var1plusvar3) == "hi + bob"
 end
 
-@testset "Reductions" begin
+@testset "Reductions (sphere dims)" begin
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
@@ -141,6 +141,51 @@ end
 
     @test lat_lon_time_avg.attributes["long_name"] ==
           "hi averaged over latitudes averaged over longitudes averaged over time"
+end
+
+@testset "Reductions (box dims)" begin
+    x = 0.0:180.0 |> collect
+    y = 0.0:90.0 |> collect
+    time = 0.0:10.0 |> collect
+
+    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+
+    # Identical test pattern to sphere setup, with `dims` modified.
+    dims = OrderedDict(["time" => time, "x" => x, "y" => y])
+    dim_attributes = OrderedDict([
+        "time" => Dict(),
+        "x" => Dict("b" => 2),
+        "y" => Dict("a" => 1),
+    ])
+    attribs = Dict("long_name" => "hi")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+
+    y_avg = ClimaAnalysis.average_y(var)
+    @test y_avg.dims == OrderedDict(["x" => x, "time" => time])
+    @test y_avg.dim_attributes ==
+          OrderedDict(["x" => Dict("b" => 2), "time" => Dict()])
+    @test y_avg.data == dropdims(mean(data, dims = 3), dims = 3)
+
+    y_x_avg = ClimaAnalysis.average_x(y_avg)
+    xy_avg = ClimaAnalysis.average_xy(var)
+    @test y_x_avg.data == xy_avg.data
+    @test y_x_avg.dims == OrderedDict(["time" => time])
+    @test y_x_avg.dim_attributes == OrderedDict(["time" => Dict()])
+
+    @test y_x_avg.data == dropdims(mean(y_avg.data, dims = 2), dims = 2)
+
+    y_x_time_avg = ClimaAnalysis.average_time(y_x_avg)
+    xy_time_avg = ClimaAnalysis.average_time(xy_avg)
+    @test y_x_time_avg.dims == OrderedDict()
+    @test y_x_time_avg.dim_attributes == OrderedDict()
+
+    @test y_x_time_avg.data[] == mean(data)
+
+    @test y_x_time_avg.attributes["long_name"] ==
+          "hi averaged over y averaged over x averaged over time"
+
+    @test xy_time_avg.attributes["long_name"] ==
+          "hi averaged horizontally averaged over time"
 end
 
 @testset "Slicing" begin

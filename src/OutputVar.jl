@@ -9,6 +9,9 @@ export OutputVar,
     read_var,
     average_lat,
     average_lon,
+    average_x,
+    average_y,
+    average_xy,
     average_time,
     is_z_1D,
     slice,
@@ -218,6 +221,52 @@ function average_lon(var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over longitudes"
+    end
+
+    return reduced_var
+end
+
+"""
+    average_x(var::OutputVar)
+
+Return a new OutputVar where the values along the `x` dimension are averaged arithmetically.
+"""
+function average_x(var)
+    reduced_var = _reduce_over(mean, "x", var)
+
+    if haskey(var.attributes, "long_name")
+        reduced_var.attributes["long_name"] *= " averaged over x"
+    end
+
+    return reduced_var
+end
+
+"""
+    average_y(var::OutputVar)
+
+Return a new OutputVar where the values along the `y` dimension are averaged arithmetically.
+"""
+function average_y(var)
+    reduced_var = _reduce_over(mean, "y", var)
+
+    if haskey(var.attributes, "long_name")
+        reduced_var.attributes["long_name"] *= " averaged over y"
+    end
+
+    return reduced_var
+end
+
+"""
+    average_xy(var::OutputVar)
+
+Return a new OutputVar where the values along both horizontal dimensions `x` and `y` 
+are averaged arithmetically.
+"""
+function average_xy(var)
+    reduced_var = _reduce_over(mean, "x", _reduce_over(mean, "y", var))
+
+    if haskey(var.attributes, "long_name")
+        reduced_var.attributes["long_name"] *= " averaged horizontally"
     end
 
     return reduced_var
