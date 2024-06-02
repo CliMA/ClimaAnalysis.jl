@@ -25,6 +25,7 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 - Window variables within given ranges (e.g., select times between 10 and 100 days)
 - Perform mathematical operations between output variables.
 - Interpolate output variables onto arbitrary points
+- Reinterpolate output variables onto pressure levels
 
 
 ## ClimaAnalysis.jl Developer Guidelines
@@ -158,3 +159,4 @@ Please, squash commits that represent a single logical change (e.g., do not have
 two commits when the second just fixes the first).
 
 Pull requests are not merged, but _rebased_, ensuring a linear history (this is
+handled automatically by GitHub).

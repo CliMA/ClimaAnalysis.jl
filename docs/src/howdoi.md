@@ -49,3 +49,11 @@ where inside `ca_kwargs` you pass the arguments you would pass to `Makie.Axis`.
 ## How do I center my longitude to 180 instead of 0?
 
 You can use the `center_longitude!` function.
+
+## How do I move to pressure coordinates?
+
+The `Atmos` module in `ClimaAnalysis` comes with a function,
+`to_pressure_coordinates` that does precisely that. The function takes an input
+`OutputVar` and a pressure `OutputVar`. If the two are compatible, a new
+`OutputVar` is returned where the values are linearly interpolated on fixed
+pressure levels.

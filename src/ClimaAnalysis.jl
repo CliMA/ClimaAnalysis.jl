@@ -10,4 +10,6 @@ import .SimDir
 include("Visualize.jl")
 import .Visualize
 
+include("Atmos.jl")
+
 end # module ClimaAnalysis
