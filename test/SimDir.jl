@@ -44,6 +44,9 @@ import ClimaAnalysis
     )
 
     @test simdir.allfiles == expected_files
+
+    @test !isempty(simdir)
+    @test isempty(ClimaAnalysis.SimDir(tempdir()))
 end
 
 @testset "OutputVar" begin
