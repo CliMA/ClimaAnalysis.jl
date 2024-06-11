@@ -184,3 +184,10 @@ If only one reduction and period exist for `short_name`, return the correspondin
 function get(simdir::SimDir, short_name::String)
     return get(simdir; short_name, reduction = nothing, period = nothing)
 end
+
+"""
+    isempty(simdir::SimDir)
+
+Check if the given SimDir contains OutputVars.
+"""
+Base.isempty(simdir::SimDir) = isempty(simdir.vars)
