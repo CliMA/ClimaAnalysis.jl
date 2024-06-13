@@ -20,7 +20,7 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 - Read, organize, and process NetCDF files
 - Visualize heatmaps and 1D profiles with `CairoMakie`
 - Visualize heatmaps on a globe with `GeoMakie`
-- Apply averages and other reductions to the output variables.
+- Apply averages and other reductions to the output variables
 - Slice variables along a given value (e.g., take the slice with altitude of 500 meters)
 - Window variables within given ranges (e.g., select times between 10 and 100 days)
 - Perform mathematical operations between output variables.
@@ -157,3 +157,4 @@ two commits when the second just fixes the first).
 
 Pull requests are not merged, but _rebased_, ensuring a linear history (this is
 handled automatically by GitHub).
+
