@@ -1,6 +1,7 @@
 using Test
 import ClimaAnalysis
 
+import Interpolations as Intp
 import Statistics: mean
 import OrderedCollections: OrderedDict
 
@@ -12,7 +13,6 @@ import OrderedCollections: OrderedDict
     longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
 
     @test longvar.dims["long"] == long
-
 
     # center_longitude!
     #
@@ -261,4 +261,25 @@ end
     @test var_windowed.data == expected_data
 
     @test var_windowed.dims["time"] == time[3:6]
+end
+
+@testset "Interpolation" begin
+    # 1D interpolation with linear data, should yield correct results
+    long = -180.0:180.0 |> collect
+    data = copy(long)
+
+    longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
+
+    @test longvar.([10.5, 20.5]) == [10.5, 20.5]
+
+    # Test error for data outside of range
+    @test_throws BoundsError longvar(200.0)
+
+    # 2D interpolation with linear data, should yield correct results
+    time = 100.0:110.0 |> collect
+    z = 0.0:20.0 |> collect
+
+    data = reshape(1.0:(11 * 21), (11, 21))
+    var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data)
+    @test var2d.([[105.0, 10.0], [105.5, 10.5]]) == [116.0, 122]
 end
