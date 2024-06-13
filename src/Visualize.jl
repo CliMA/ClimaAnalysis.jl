@@ -16,6 +16,8 @@ function sliced_plot! end
 
 function plot! end
 
+function contour2D_on_globe! end
+
 function heatmap2D_on_globe! end
 
 end
