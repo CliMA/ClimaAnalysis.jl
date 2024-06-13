@@ -109,6 +109,14 @@ OrderedCollections.OrderedDict{String, Vector{Float32}} with 2 entries:
   "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
 ```
 
+`OutputVar`s can be evaluated on arbitrary points. For instance
+``` julia-repl
+julia> ts_max(12000., 23., 45., 1200.)
+```
+will return the value of the maximum temperature at time 12000, longitude 23,
+latitude 45, and altitude 1200. This can be used to interpolate `OutputVar`s
+onto new grids.
+
 #### Mathematical operations
 
 `OutputVar`s support the usual mathematical operations. For instance, if
