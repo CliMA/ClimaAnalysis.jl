@@ -1,6 +1,11 @@
 ClimaAnalysis.jl Release Notes
 ===============================
 
+main
+------
+- Add support for evaluating `OutputVar`s onto arbitrary target points (with
+  multilinear interpolation).
+
 v0.5.6
 ------
 - Fix finding variables with name like `clwup_1m_40s_inst.nc` (composed period).
