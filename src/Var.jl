@@ -3,6 +3,7 @@ module Var
 import NCDatasets
 import OrderedCollections: OrderedDict
 
+import Interpolations as Intp
 import Statistics: mean
 
 import ..Utils: nearest_index, seconds_to_prettystr, squeeze
@@ -28,7 +29,7 @@ export OutputVar,
 """
     Representing an output variable
 """
-struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
+struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, ITP}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
@@ -48,12 +49,41 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
     "Array that maps name array index to the dimension name"
     index2dim::Vector{String}
 
+    "Interpolant from Interpolations.jl, used to evaluate the OutputVar onto any given point."
+    interpolant::ITP
 end
 
 function OutputVar(attribs, dims, dim_attribs, data)
     index2dim = keys(dims) |> collect
     dim2index =
         Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
+
+    # We can only create interpolants when we have 1D dimensions
+    if isempty(index2dim) ||
+       any(d -> ndims(d) != 1 || length(d) == 1, values(dims))
+        itp = nothing
+    else
+        # Dimensions are all 1D, check that they are compatible with data
+        size_data = size(data)
+        for (dim_index, (dim_name, dim_array)) in enumerate(dims)
+            dim_length = length(dim_array)
+            data_length = size_data[dim_index]
+            if dim_length != data_length
+                error(
+                    "Dimension $dim_name has inconsistent size with provided data ($dim_length != $data_length)",
+                )
+            end
+        end
+
+        dims_tuple = tuple(values(dims)...)
+
+        # TODO: Make this lazy: we should compute the spline the first time we use
+        # it, not when we create the object
+        itp = Intp.extrapolate(
+            Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
+            Intp.Throw(),
+        )
+    end
 
     return OutputVar(
         attribs,
@@ -62,6 +92,7 @@ function OutputVar(attribs, dims, dim_attribs, data)
         data,
         dim2index,
         index2dim,
+        itp,
     )
 end
 
@@ -155,7 +186,9 @@ end
 
 function Base.copy(var::OutputVar)
     fields = fieldnames(OutputVar)
-    return OutputVar([copy(getfield(var, field)) for field in fields]...)
+    # We have nested containers and we have to make sure we hand ownership off,
+    # so we deepcopy
+    return OutputVar([deepcopy(getfield(var, field)) for field in fields]...)
 end
 
 """
@@ -294,7 +327,7 @@ end
 """
     average_xy(var::OutputVar)
 
-Return a new OutputVar where the values along both horizontal dimensions `x` and `y` 
+Return a new OutputVar where the values along both horizontal dimensions `x` and `y`
 are averaged arithmetically.
 """
 function average_xy(var)
@@ -447,6 +480,38 @@ function window(var, dim_name; left = nothing, right = nothing)
 
     dim_attributes = copy(var.dim_attributes)
     return OutputVar(copy(var.attributes), dims, dim_attributes, reduced_data)
+end
+
+"""
+    (x::OutputVar)(target_coord)
+
+Interpolate variable `x` onto the given `target_coord` coordinate using
+multilinear interpolation.
+
+Extrapolation is now allowed and will throw a `BoundsError`.
+
+Example
+=======
+```jldoctest
+julia> import ClimaAnalysis;
+
+julia> time = 100.0:110.0 |> collect;
+
+julia> z = 0.0:20.0 |> collect;
+
+julia> data = reshape(1.0:(11 * 21), (11, 21));
+
+julia> var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data); var2d.([[105., 10.], [105.5, 10.5]])
+2-element Vector{Float64}:
+ 116.0
+ 122.0
+```
+"""
+function (x::OutputVar)(target_coord)
+    isnothing(x.interpolant) && error(
+        "Splines cannot be constructed because one (or more) of the dimensions of variable is not 1D",
+    )
+    return x.interpolant(target_coord...)
 end
 
 """

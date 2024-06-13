@@ -120,6 +120,14 @@ times(ts_max_lat_averaged_sliced) =
  43200.0
 ```
 
+`OutputVar`s can be evaluated on arbitrary points. For instance
+``` julia-repl
+julia> ts_max(12000., 23., 45., 1200.)
+```
+will return the value of the maximum temperature at time 12000, longitude 23,
+latitude 45, and altitude 1200. This can be used to interpolate `OutputVar`s
+onto new grids.
+
 #### Mathematical operations
 
 `OutputVar`s support the usual mathematical operations. For instance, if
