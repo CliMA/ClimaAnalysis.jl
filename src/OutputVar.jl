@@ -415,13 +415,7 @@ function window(var, dim_name; left = nothing, right = nothing)
     )
 
     dims = copy(var.dims)
-
-    reduced_dim = selectdim(
-        var.dims[dim_name],
-        var.dim2index[dim_name],
-        nearest_index_left:nearest_index_right,
-    )
-
+    reduced_dim = var.dims[dim_name][nearest_index_left:nearest_index_right]
     dims[dim_name] = reduced_dim
 
     dim_attributes = copy(var.dim_attributes)
