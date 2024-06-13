@@ -13,7 +13,7 @@ using OrderedCollections
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data3D = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data3D = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
     dims3D = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     attribs = Dict([
         "long_name" => "My name",

@@ -1,6 +1,7 @@
 using Test
 import ClimaAnalysis
 
+import Interpolations as Intp
 import Statistics: mean
 import OrderedCollections: OrderedDict
 
@@ -12,7 +13,6 @@ import OrderedCollections: OrderedDict
     longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
 
     @test longvar.dims["long"] == long
-
 
     # center_longitude!
     #
@@ -30,7 +30,7 @@ import OrderedCollections: OrderedDict
     )
 
     time = 0:10.0 |> collect
-    dims = Dict("lon" => long, "time" => time)
+    dims = OrderedDict("lon" => long, "time" => time)
     data = collect(reshape(1:(361 * 11), (361, 11)))
     var_good = ClimaAnalysis.OutputVar(
         Dict{String, Any}(),
@@ -50,7 +50,7 @@ end
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data1 = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data1 = reshape(1.0:(91 * 181 * 11), (11, 181, 91)) |> collect
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     dim_attributes = OrderedDict([
@@ -69,7 +69,7 @@ end
 
     var2 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes2, data1)
 
-    data3 = 5.0 .+ reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data3 = 5.0 .+ reshape(1.0:(91 * 181 * 11), (11, 181, 91))
     attribs3 = Dict("long_name" => "bob", "short_name" => "bula")
     var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3)
 
@@ -101,7 +101,7 @@ end
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data = reshape(1.0:(91 * 181 * 11), (11, 181, 91)) |> collect
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     dim_attributes = OrderedDict([
@@ -148,7 +148,7 @@ end
     y = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
 
     # Identical test pattern to sphere setup, with `dims` modified.
     dims = OrderedDict(["time" => time, "x" => x, "y" => y])
@@ -261,4 +261,25 @@ end
     @test var_windowed.data == expected_data
 
     @test var_windowed.dims["time"] == time[3:6]
+end
+
+@testset "Interpolation" begin
+    # 1D interpolation with linear data, should yield correct results
+    long = -180.0:180.0 |> collect
+    data = copy(long)
+
+    longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
+
+    @test longvar.([10.5, 20.5]) == [10.5, 20.5]
+
+    # Test error for data outside of range
+    @test_throws BoundsError longvar(200.0)
+
+    # 2D interpolation with linear data, should yield correct results
+    time = 100.0:110.0 |> collect
+    z = 0.0:20.0 |> collect
+
+    data = reshape(1.0:(11 * 21), (11, 21))
+    var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data)
+    @test var2d.([[105.0, 10.0], [105.5, 10.5]]) == [116.0, 122]
 end
