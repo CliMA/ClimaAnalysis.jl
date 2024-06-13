@@ -3,7 +3,7 @@ module ClimaAnalysis
 include("Utils.jl")
 import .Utils
 
-include("OutputVar.jl")
+include("outputvar/OutputVar.jl")
 include("SimDir.jl")
 import .SimDir
 
