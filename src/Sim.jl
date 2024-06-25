@@ -1,6 +1,11 @@
+module Sim
+
 import Base: get
 
 export SimDir, available_vars, available_reductions, available_periods
+
+import ..Utils
+import ..Var: read_var
 
 """
     SimDir(simulation_path::String)
@@ -191,3 +196,5 @@ end
 Check if the given SimDir contains OutputVars.
 """
 Base.isempty(simdir::SimDir) = isempty(simdir.vars)
+
+end

@@ -1,5 +1,7 @@
 module Visualize
 
+export plot!
+
 function heatmap2D! end
 
 function sliced_heatmap! end
