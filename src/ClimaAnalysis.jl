@@ -1,13 +1,15 @@
 module ClimaAnalysis
+using Reexport
 
 include("Utils.jl")
 import .Utils
 
-include("OutputVar.jl")
-include("SimDir.jl")
-import .SimDir
+include("Var.jl")
+@reexport using .Var
+include("Sim.jl")
+@reexport using .Sim
 
 include("Visualize.jl")
-import .Visualize
+@reexport using .Visualize
 
 end # module ClimaAnalysis

@@ -1,9 +1,11 @@
+module Var
+
 import NCDatasets
 import OrderedCollections: OrderedDict
 
 import Statistics: mean
 
-import .Utils: nearest_index, seconds_to_prettystr
+import ..Utils: nearest_index, seconds_to_prettystr, squeeze
 
 export OutputVar,
     read_var,
@@ -17,7 +19,10 @@ export OutputVar,
     slice,
     window,
     arecompatible,
-    center_longitude!
+    center_longitude!,
+    short_name,
+    long_name,
+    units
 
 """
     Representing an output variable
@@ -184,10 +189,7 @@ function _reduce_over(
     dim_index = var.dim2index[dim]
 
     # squeeze removes the unnecessary singleton dimension
-    data = Utils.squeeze(
-        reduction(var.data, dims = dim_index),
-        dims = (dim_index,),
-    )
+    data = squeeze(reduction(var.data, dims = dim_index), dims = (dim_index,))
 
     # If we reduce over a dimension, we have to remove it
     dims = copy(var.dims)
@@ -518,3 +520,5 @@ end
 @overload_binary_op (-)
 @overload_binary_op (*)
 @overload_binary_op (/)
+
+end
