@@ -49,3 +49,12 @@ where inside `ca_kwargs` you pass the arguments you would pass to `Makie.Axis`.
 ## How do I center my longitude to 180 instead of 0?
 
 You can use the `center_longitude!` function.
+
+## How do I find the specific name of a dimension in a `OutputVar` given its conventional name?
+
+Suppose you want to extract the `longitudes` of your data but you don't know if
+the dimension was called `lon` or `long`. In this case, you can use the
+`Var.longitude_name` function to find the name. This function scans the names
+and compares them to a standard list in `ClimaAnalysis.Var.LONGITUDE_NAMES`.
+You can also customize that variable if your name is not in that list. 
+Equivalent functions exist for others dimensions too.

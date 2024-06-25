@@ -4,37 +4,46 @@
 CurrentModule = ClimaAnalysis
 ```
 
-## SimDir
+## Sim
 
 ```@docs
-SimDir
+Sim.SimDir
 Base.get
-available_vars
-available_reductions
-available_periods
+Sim.available_vars
+Sim.available_reductions
+Sim.available_periods
 ```
 
-## OutputVar
+## Var
 
 ```@docs
-OutputVar
-read_var
-is_z_1D
-short_name
-long_name
-units
-slice
-average_lat
-average_lon
-average_x
-average_y
-average_xy
-average_time
-window
-arecompatible
-center_longitude!
+Var.OutputVar
+Var.read_var
+Var.is_z_1D
+Var.short_name
+Var.long_name
+Var.units
+Var.slice
+Var.average_lat
+Var.average_lon
+Var.average_x
+Var.average_y
+Var.average_xy
+Var.average_time
+Var.window
+Var.arecompatible
+Var.center_longitude!
+Var.times
+Var.dates
+Var.longitudes
+Var.latitudes
+Var.altitudes
+Var.time_name
+Var.date_name
+Var.longitude_name
+Var.latitude_name
+Var.altitude_name
 ```
-
 
 ## Utilities
 
@@ -63,5 +72,6 @@ Visualize.plot!
 ## GeoMakie
 
 ```@docs
+Visualize.contour2D_on_globe!
 Visualize.heatmap2D_on_globe!
 ```

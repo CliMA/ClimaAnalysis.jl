@@ -205,7 +205,7 @@ end
 Return a new OutputVar where the values on the latitudes are averaged arithmetically.
 """
 function average_lat(var)
-    reduced_var = _reduce_over(mean, "lat", var)
+    reduced_var = _reduce_over(mean, latitude_name(var), var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over latitudes"
@@ -219,7 +219,7 @@ end
 Return a new OutputVar where the values on the longitudes are averaged arithmetically.
 """
 function average_lon(var)
-    reduced_var = _reduce_over(mean, "lon", var)
+    reduced_var = _reduce_over(mean, longitude_name(var), var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over longitudes"
@@ -280,7 +280,7 @@ end
 Return a new OutputVar where the values are averaged arithmetically in time.
 """
 function average_time(var)
-    reduced_var = _reduce_over(mean, "time", var)
+    reduced_var = _reduce_over(mean, time_name(var), var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over time"
@@ -297,15 +297,7 @@ Shift the longitudes in `var` so that `lon` is the center one.
 This is useful to center the global projection to the 180 meridian instead of the 0.
 """
 function center_longitude!(var, lon)
-    LONG_NAMES = Set(["long", "lon"])
-
-    # Pick the correct longitude name and check that we have a longitude variable
-    lon_name = ""
-    for possible_lon_name in LONG_NAMES
-        haskey(var.dims, possible_lon_name) &&
-            (lon_name = possible_lon_name; break)
-    end
-    lon_name != "" || error("var does not have longitude among its dimensions")
+    lon_name = longitude_name(var)
 
     old_center_lon_index = nearest_index(var.dims[lon_name], lon)
     half_index = div(length(var.dims[lon_name]), 2)
@@ -520,5 +512,7 @@ end
 @overload_binary_op (-)
 @overload_binary_op (*)
 @overload_binary_op (/)
+
+include("outvar_dimensions.jl")
 
 end

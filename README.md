@@ -24,6 +24,7 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 - Slice variables along a given value (e.g., take the slice with altitude of 500 meters)
 - Window variables within given ranges (e.g., select times between 10 and 100 days)
 - Perform mathematical operations between output variables.
+- Extract dimensions from conventional names (e.g., `times`).
 
 ## ClimaAnalysis.jl Developer Guidelines
 
