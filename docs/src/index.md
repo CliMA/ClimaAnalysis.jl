@@ -109,6 +109,17 @@ OrderedCollections.OrderedDict{String, Vector{Float32}} with 2 entries:
   "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
 ```
 
+You can get the dimensions from standard names, for example, to find the
+`times`, simply run
+``` julia
+times(ts_max_lat_averaged_sliced) =
+4-element Vector{Float32}:
+ 10800.0
+ 21600.0
+ 32400.0
+ 43200.0
+```
+
 #### Mathematical operations
 
 `OutputVar`s support the usual mathematical operations. For instance, if

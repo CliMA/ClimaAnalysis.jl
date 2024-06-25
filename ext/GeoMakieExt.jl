@@ -7,9 +7,6 @@ import ClimaAnalysis: Visualize
 
 MakiePlace = Union{Makie.Figure, Makie.GridLayout}
 
-const LONGITUDE_NAMES = Set(["lon", "long"])
-const LATITUDE_NAMES = Set(["lat"])
-
 function _geomakie_plot_on_globe!(
     place::MakiePlace,
     var::ClimaAnalysis.OutputVar;
@@ -30,9 +27,9 @@ function _geomakie_plot_on_globe!(
     lat_name = ""
 
     for dim in var.index2dim
-        if dim in LONGITUDE_NAMES
+        if dim in ClimaAnalysis.Var.LONGITUDE_NAMES
             lon_name = dim
-        elseif dim in LATITUDE_NAMES
+        elseif dim in ClimaAnalysis.Var.LATITUDE_NAMES
             lat_name = dim
         else
             error("$dim is neither longitude nor latitude")

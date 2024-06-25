@@ -6,7 +6,10 @@ import ClimaAnalysis
     DocMeta.setdocmeta!(
         ClimaAnalysis,
         :DocTestSetup,
-        :(using ClimaAnalysis.Utils);
+        :(using ClimaAnalysis;
+        using ClimaAnalysis.Utils;
+        using ClimaAnalysis.Var;
+        using ClimaAnalysis.Sim);
         recursive = true,
     )
 

@@ -13,7 +13,6 @@ import OrderedCollections: OrderedDict
 
     @test longvar.dims["long"] == long
 
-
     # center_longitude!
     #
     # Check var without long
@@ -261,4 +260,34 @@ end
     @test var_windowed.data == expected_data
 
     @test var_windowed.dims["time"] == time[3:6]
+end
+
+@testset "Extracting dimension" begin
+    @test ClimaAnalysis.Var.find_dim_name(["a", "b"], ["c", "a"]) == "a"
+    @test_throws ErrorException ClimaAnalysis.Var.find_dim_name(
+        ["a", "b"],
+        ["c", "d"],
+    )
+
+    long = 0.0:180.0 |> collect
+    lat = 0.0:90.0 |> collect
+    time = 0.0:10.0 |> collect
+
+    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+
+    dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
+    attribs = Dict("short_name" => "bob", "long_name" => "hi")
+    dim_attributes = OrderedDict([
+        "time" => Dict(),
+        "lon" => Dict("b" => 2),
+        "lat" => Dict("a" => 1),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+
+    @test ClimaAnalysis.time_name(var) == "time"
+    @test ClimaAnalysis.longitude_name(var) == "lon"
+    @test ClimaAnalysis.latitude_name(var) == "lat"
+    @test ClimaAnalysis.times(var) == time
+    @test ClimaAnalysis.latitudes(var) == lat
+    @test ClimaAnalysis.longitudes(var) == long
 end
