@@ -1,7 +1,7 @@
 name = "ClimaAnalysis"
 uuid = "29b5916a-a76c-4e73-9657-3c8fd22e65e6"
 authors = ["Gabriele Bozzola <gbozzola@caltech.edu>"]
-version = "0.5.3"
+version = "0.5.4"
 
 [deps]
 NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
