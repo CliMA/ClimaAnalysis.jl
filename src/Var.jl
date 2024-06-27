@@ -84,10 +84,13 @@ read_var(simdir.variable_paths["hu"]["inst"])
 """
 function read_var(path::String)
     NCDatasets.NCDataset(path) do nc
-        dims = map(NCDatasets.dimnames(nc)) do dim_name
+        # First, we have to identify the name of the variable by finding what is
+        # not a dimension
+        unordered_dims = NCDatasets.dimnames(nc)
+        var_name = pop!(setdiff(keys(nc), unordered_dims))
+        dims = map(NCDatasets.dimnames(nc[var_name])) do dim_name
             return dim_name => Array(nc[dim_name])
         end |> OrderedDict
-        var_name = pop!(setdiff(keys(nc), keys(dims)))
         attribs = Dict(k => v for (k, v) in nc[var_name].attrib)
         dim_attribs = OrderedDict(
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
