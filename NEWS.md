@@ -1,6 +1,10 @@
 ClimaAnalysis.jl Release Notes
 ===============================
 
+v0.5.5
+------
+- Fix reading `NetCDF` files with dimensions in incorrect order.
+
 v0.5.4
 ------
 - Added support for extraction dimension from functions, such as `times`.
