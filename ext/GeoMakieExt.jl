@@ -63,7 +63,6 @@ function _geomakie_plot_on_globe!(
             label = colorbar_label;
             cb_kwargs...,
         )
-        @show cb_kwargs
     end
 end
 
