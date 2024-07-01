@@ -1,6 +1,10 @@
 ClimaAnalysis.jl Release Notes
 ===============================
 
+v0.5.6
+------
+- Fix finding variables with name like `clwup_1m_40s_inst.nc` (composed period).
+
 v0.5.5
 ------
 - Fix reading `NetCDF` files with dimensions in incorrect order.

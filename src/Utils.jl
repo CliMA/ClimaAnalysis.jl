@@ -39,15 +39,14 @@ function match_nc_filename(filename::String)
     # ^ $: mean match the entire string
     # (\w+?): the first capturing group, matching any word non greedily
     # _: matches this literal character
-    # (?>([a-zA-Z0-9\.]*)_)?: an optional group (it doesn't exist for _inst variables)
-    #                         ?> means that we don't want to capture the outside group
-    #                         the inside group is any combinations of letters/numbers,
-    #                         and the literal character ., followed by the _.
-    #                         We capture the combination of characters because that's
-    #                         the reduction
+    # (?>([a-zA-Z0-9\.]*)_)?: an optional group (it doesn't always exist for _inst
+    #                         variables) ?> means that we don't want to capture the outside
+    #                         group the inside group is any combinations of letters/numbers,
+    #                         and the literal character ., followed by the _. We capture the
+    #                         combination of characters because that's the reduction
     # (\w+): Again, any word
     # \.nc: file extension has to be .nc
-    re = r"^(\w+?)_(?>([a-zA-Z0-9\.]*)_)?(\w*)\.nc$"
+    re = r"^(\w+?)_(?>([a-zA-Z0-9_\.]*)_)?(\w*)\.nc$"
     m = match(re, filename)
     if !isnothing(m)
         # m.captures returns `SubString`s (or nothing). We want to have actual `String`s (or

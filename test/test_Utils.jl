@@ -8,6 +8,9 @@ import ClimaAnalysis: Utils
     @test Utils.match_nc_filename("ta_1d_average.nc") ==
           Tuple(["ta", "1d", "average"])
 
+    @test Utils.match_nc_filename("ta_1m_40s_inst.nc") ==
+          Tuple(["ta", "1m_40s", "inst"])
+
     @test Utils.match_nc_filename("pfull_6.0min_max.nc") ==
           Tuple(["pfull", "6.0min", "max"])
 
