@@ -10,6 +10,7 @@ import ..Utils: nearest_index, seconds_to_prettystr, squeeze
 export OutputVar,
     read_var,
     average_lat,
+    weighted_average_lat,
     average_lon,
     average_x,
     average_y,
@@ -203,11 +204,32 @@ function _reduce_over(
 end
 
 """
-    average_lat(var::OutputVar)
+    average_lat(var::OutputVar; weighted = false)
 
 Return a new OutputVar where the values on the latitudes are averaged arithmetically.
+
+When `weighted` is `true`, weight the average over `cos(lat)`.
 """
-function average_lat(var)
+function average_lat(var; weighted = false)
+    if weighted
+        var = copy(var)
+        lats = latitudes(var)
+        abs(maximum(lats)) >= 0.5π ||
+            @warn "Detected latitudes are small. If units are radians, results will be wrong"
+
+        weights_1d = cosd.(lats)
+        lat_index = var.dim2index[latitude_name(var)]
+        weights = ones(size(var.data))
+        for index in CartesianIndices(weights)
+            index_tuple =
+                ntuple(d -> d == lat_index ? Colon() : index[d], ndims(weights))
+
+            weights[index_tuple...] .= weights_1d
+        end
+        weights ./= mean(weights_1d)
+        var.data .*= weights
+    end
+
     reduced_var = _reduce_over(mean, latitude_name(var), var)
 
     if haskey(var.attributes, "long_name")
@@ -215,6 +237,14 @@ function average_lat(var)
     end
     return reduced_var
 end
+
+"""
+    weighted_average_lat(var::OutputVar)
+
+Return a new OutputVar where the values on the latitudes are averaged arithmetically
+with weights of `cos(lat)`.
+"""
+weighted_average_lat(var) = average_lat(var; weighted = true)
 
 """
     average_lon(var::OutputVar)

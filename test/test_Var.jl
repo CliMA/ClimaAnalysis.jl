@@ -49,7 +49,7 @@ end
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data1 = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data1 = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     dim_attributes = OrderedDict([
@@ -68,7 +68,7 @@ end
 
     var2 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes2, data1)
 
-    data3 = 5.0 .+ reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data3 = 5.0 .+ reshape(1.0:(91 * 181 * 11), (11, 181, 91))
     attribs3 = Dict("long_name" => "bob", "short_name" => "bula")
     var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3)
 
@@ -100,7 +100,7 @@ end
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     dim_attributes = OrderedDict([
@@ -126,6 +126,35 @@ end
           OrderedDict(["lon" => Dict("b" => 2), "time" => Dict()])
     @test lat_avg.data == dropdims(mean(data, dims = 3), dims = 3)
 
+    wei_lat_avg = ClimaAnalysis.weighted_average_lat(var)
+    @test wei_lat_avg.dims == OrderedDict(["lon" => long, "time" => time])
+    @test wei_lat_avg.dim_attributes ==
+          OrderedDict(["lon" => Dict("b" => 2), "time" => Dict()])
+    weights = ones(size(data))
+    for i in eachindex(time)
+        for j in eachindex(long)
+            for k in eachindex(lat)
+                weights[i, j, k] = cosd(lat[k])
+            end
+        end
+    end
+    weights ./= mean(cosd.(lat))
+    expected_avg = dropdims(mean(data .* weights, dims = 3), dims = 3)
+    @test wei_lat_avg.data == expected_avg
+
+    wrong_dims = OrderedDict(["lat" => [0.0, 0.1]])
+    wrong_dim_attributes = OrderedDict(["lat" => Dict("a" => 1)])
+    wrong_var = ClimaAnalysis.OutputVar(
+        Dict{String, Any}(),
+        wrong_dims,
+        wrong_dim_attributes,
+        [0.0, 0.1],
+    )
+    @test_logs (
+        :warn,
+        "Detected latitudes are small. If units are radians, results will be wrong",
+    )
+
     lat_lon_avg = ClimaAnalysis.average_lon(lat_avg)
     @test lat_lon_avg.dims == OrderedDict(["time" => time])
     @test lat_lon_avg.dim_attributes == OrderedDict(["time" => Dict()])
@@ -147,7 +176,7 @@ end
     y = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
 
     # Identical test pattern to sphere setup, with `dims` modified.
     dims = OrderedDict(["time" => time, "x" => x, "y" => y])
@@ -273,7 +302,7 @@ end
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data = reshape(1.0:(91 * 181 * 10), (10, 181, 91))
+    data = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     attribs = Dict("short_name" => "bob", "long_name" => "hi")
