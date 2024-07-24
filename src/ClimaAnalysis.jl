@@ -1,5 +1,5 @@
 module ClimaAnalysis
-using Reexport
+import Reexport: @reexport
 
 include("Utils.jl")
 import .Utils
