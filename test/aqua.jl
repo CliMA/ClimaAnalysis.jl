@@ -19,4 +19,7 @@ end
     @test isnothing(
         ExplicitImports.check_all_qualified_accesses_via_owners(ClimaAnalysis),
     )
+    @test isnothing(
+        ExplicitImports.check_no_self_qualified_accesses(ClimaAnalysis),
+    )
 end
