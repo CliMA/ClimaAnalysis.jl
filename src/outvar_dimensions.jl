@@ -3,7 +3,7 @@ LONGITUDE_NAMES = ["long", "lon", "longitude"]
 LATITUDE_NAMES = ["lat", "latitude"]
 TIME_NAMES = ["t", "time"]
 DATE_NAMES = ["date"]
-ALTITUDE_NAMES = ["z", "z_reference"]
+ALTITUDE_NAMES = ["z", "z_reference", "z_physical"]
 
 export times,
     dates,
