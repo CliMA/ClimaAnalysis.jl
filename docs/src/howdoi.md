@@ -56,5 +56,14 @@ Suppose you want to extract the `longitudes` of your data but you don't know if
 the dimension was called `lon` or `long`. In this case, you can use the
 `Var.longitude_name` function to find the name. This function scans the names
 and compares them to a standard list in `ClimaAnalysis.Var.LONGITUDE_NAMES`.
-You can also customize that variable if your name is not in that list. 
+You can also customize that variable if your name is not in that list.
 Equivalent functions exist for others dimensions too.
+
+## How do I move to pressure coordinates?
+
+The `Atmos` module in `ClimaAnalysis` comes with a function,
+`to_pressure_coordinates` that does precisely that. The function takes an input
+`OutputVar` and a pressure `OutputVar`. If the two are compatible, a new
+`OutputVar` is returned where the values are linearly interpolated on fixed
+pressure levels.
+

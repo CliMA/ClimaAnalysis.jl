@@ -12,4 +12,6 @@ include("Sim.jl")
 include("Visualize.jl")
 @reexport using .Visualize
 
+include("Atmos.jl")
+
 end # module ClimaAnalysis
