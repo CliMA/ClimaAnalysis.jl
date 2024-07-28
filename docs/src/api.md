@@ -58,6 +58,12 @@ Utils.kwargs
 Utils.seconds_to_prettystr
 ```
 
+## Atmos
+
+```@docs
+Atmos.to_pressure_coordinates
+```
+
 ## CairoMakie
 
 ```@docs
