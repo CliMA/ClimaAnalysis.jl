@@ -9,6 +9,7 @@ DocMeta.setdocmeta!(
     :(using ClimaAnalysis;
     using ClimaAnalysis.Utils;
     using ClimaAnalysis.Var;
+    using ClimaAnalysis.Atmos;
     using ClimaAnalysis.Sim);
     recursive = true,
 )
