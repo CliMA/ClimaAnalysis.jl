@@ -21,11 +21,10 @@ makedocs(;
         Base.get_extension(ClimaAnalysis, :GeoMakieExt),
     ],
     authors = "Climate Modelling Alliance",
-    repo = "https://github.com/CliMA/ClimaAnalysis.jl",
     sitename = "ClimaAnalysis.jl",
     format = Documenter.HTML(;
-        prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://CliMA.github.io/ClimaAnalysis.jl",
+        prettyurls = !isempty(get(ENV, "CI", "")),
+        collapselevel = 1,
     ),
     checkdocs = :exports,
     pages = [
