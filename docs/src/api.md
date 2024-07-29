@@ -61,6 +61,7 @@ Utils.seconds_to_prettystr
 ## Atmos
 
 ```@docs
+Atmos
 Atmos.to_pressure_coordinates
 ```
 
