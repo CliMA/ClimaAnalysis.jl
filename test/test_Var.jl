@@ -2,7 +2,7 @@ using Test
 import ClimaAnalysis
 
 import Interpolations as Intp
-import Statistics: mean
+import NaNStatistics: nanmean
 import OrderedCollections: OrderedDict
 
 @testset "General" begin
@@ -130,7 +130,7 @@ end
     @test lat_avg.dims == OrderedDict(["lon" => long, "time" => time])
     @test lat_avg.dim_attributes ==
           OrderedDict(["lon" => Dict("b" => 2), "time" => Dict()])
-    @test lat_avg.data == dropdims(mean(data, dims = 3), dims = 3)
+    @test lat_avg.data == dropdims(nanmean(data, dims = 3), dims = 3)
 
     wei_lat_avg = ClimaAnalysis.weighted_average_lat(var)
     @test wei_lat_avg.dims == OrderedDict(["lon" => long, "time" => time])
@@ -144,9 +144,23 @@ end
             end
         end
     end
-    weights ./= mean(cosd.(lat))
-    expected_avg = dropdims(mean(data .* weights, dims = 3), dims = 3)
-    @test wei_lat_avg.data == expected_avg
+    weights ./= nanmean(cosd.(lat))
+    expected_avg = dropdims(nanmean(data .* weights, dims = 3), dims = 3)
+    @test wei_lat_avg.data ≈ expected_avg
+
+    # Test reduction with NaN
+    latnan = [1, 2, 3]
+    datanan = [10.0, 20.0, NaN]
+
+    dimsnan = OrderedDict(["lat" => latnan])
+    dim_attributesnan = OrderedDict(["lat" => Dict("b" => 2)])
+    attribsnan = Dict("lat_name" => "hi")
+    varnan =
+        ClimaAnalysis.OutputVar(attribsnan, dimsnan, dim_attributesnan, datanan)
+    @test isnan(ClimaAnalysis.average_lat(varnan; ignore_nan = false).data[])
+    @test ClimaAnalysis.average_lat(varnan; weighted = true).data[] ≈
+          (datanan[1] * cosd(latnan[1]) + datanan[2] * cosd(latnan[2])) /
+          (cosd(latnan[1]) + cosd(latnan[2]))
 
     wrong_dims = OrderedDict(["lat" => [0.0, 0.1]])
     wrong_dim_attributes = OrderedDict(["lat" => Dict("a" => 1)])
@@ -165,13 +179,14 @@ end
     @test lat_lon_avg.dims == OrderedDict(["time" => time])
     @test lat_lon_avg.dim_attributes == OrderedDict(["time" => Dict()])
 
-    @test lat_lon_avg.data == dropdims(mean(lat_avg.data, dims = 2), dims = 2)
+    @test lat_lon_avg.data ==
+          dropdims(nanmean(lat_avg.data, dims = 2), dims = 2)
 
     lat_lon_time_avg = ClimaAnalysis.average_time(lat_lon_avg)
     @test lat_lon_time_avg.dims == OrderedDict()
     @test lat_lon_time_avg.dim_attributes == OrderedDict()
 
-    @test lat_lon_time_avg.data[] == mean(data)
+    @test lat_lon_time_avg.data[] == nanmean(data)
 
     @test lat_lon_time_avg.attributes["long_name"] ==
           "hi averaged over latitudes averaged over longitudes averaged over time"
@@ -198,7 +213,7 @@ end
     @test y_avg.dims == OrderedDict(["x" => x, "time" => time])
     @test y_avg.dim_attributes ==
           OrderedDict(["x" => Dict("b" => 2), "time" => Dict()])
-    @test y_avg.data == dropdims(mean(data, dims = 3), dims = 3)
+    @test y_avg.data == dropdims(nanmean(data, dims = 3), dims = 3)
 
     y_x_avg = ClimaAnalysis.average_x(y_avg)
     xy_avg = ClimaAnalysis.average_xy(var)
@@ -206,14 +221,14 @@ end
     @test y_x_avg.dims == OrderedDict(["time" => time])
     @test y_x_avg.dim_attributes == OrderedDict(["time" => Dict()])
 
-    @test y_x_avg.data == dropdims(mean(y_avg.data, dims = 2), dims = 2)
+    @test y_x_avg.data == dropdims(nanmean(y_avg.data, dims = 2), dims = 2)
 
     y_x_time_avg = ClimaAnalysis.average_time(y_x_avg)
     xy_time_avg = ClimaAnalysis.average_time(xy_avg)
     @test y_x_time_avg.dims == OrderedDict()
     @test y_x_time_avg.dim_attributes == OrderedDict()
 
-    @test y_x_time_avg.data[] == mean(data)
+    @test y_x_time_avg.data[] == nanmean(data)
 
     @test y_x_time_avg.attributes["long_name"] ==
           "hi averaged over y averaged over x averaged over time"

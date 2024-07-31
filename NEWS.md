@@ -5,6 +5,7 @@ main
 ------
 - Add support for evaluating `OutputVar`s onto arbitrary target points (with
   multilinear interpolation).
+- `average` operations now ignore `NaN`s by default.
 
 v0.5.6
 ------

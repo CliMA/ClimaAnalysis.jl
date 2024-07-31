@@ -5,6 +5,7 @@ import OrderedCollections: OrderedDict
 
 import Interpolations as Intp
 import Statistics: mean
+import NaNStatistics: nanmean
 
 import ..Utils: nearest_index, seconds_to_prettystr, squeeze
 
@@ -237,13 +238,13 @@ function _reduce_over(
 end
 
 """
-    average_lat(var::OutputVar; weighted = false)
+    average_lat(var::OutputVar; ignore_nan = true, weighted = false)
 
 Return a new OutputVar where the values on the latitudes are averaged arithmetically.
 
 When `weighted` is `true`, weight the average over `cos(lat)`.
 """
-function average_lat(var; weighted = false)
+function average_lat(var; ignore_nan = true, weighted = false)
     if weighted
         var = copy(var)
         lats = latitudes(var)
@@ -253,17 +254,21 @@ function average_lat(var; weighted = false)
         weights_1d = cosd.(lats)
         lat_index = var.dim2index[latitude_name(var)]
         weights = ones(size(var.data))
+        # Create a bitmask for the NaN's, we use this to remove weights in the normalization (with nanmean)
+        nan_mask = ifelse.(isnan.(var.data), NaN, 1)
         for index in CartesianIndices(weights)
             index_tuple =
                 ntuple(d -> d == lat_index ? Colon() : index[d], ndims(weights))
 
             weights[index_tuple...] .= weights_1d
+            weights[index_tuple...] ./=
+                nanmean(nan_mask[index_tuple...] .* weights_1d)
         end
-        weights ./= mean(weights_1d)
         var.data .*= weights
     end
 
-    reduced_var = _reduce_over(mean, latitude_name(var), var)
+    reduced_var =
+        _reduce_over(ignore_nan ? nanmean : mean, latitude_name(var), var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over latitudes"
@@ -272,20 +277,22 @@ function average_lat(var; weighted = false)
 end
 
 """
-    weighted_average_lat(var::OutputVar)
+    weighted_average_lat(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values on the latitudes are averaged arithmetically
 with weights of `cos(lat)`.
 """
-weighted_average_lat(var) = average_lat(var; weighted = true)
+weighted_average_lat(var; ignore_nan = true) =
+    average_lat(var; ignore_nan, weighted = true)
 
 """
-    average_lon(var::OutputVar)
+    average_lon(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values on the longitudes are averaged arithmetically.
 """
-function average_lon(var)
-    reduced_var = _reduce_over(mean, longitude_name(var), var)
+function average_lon(var; ignore_nan = true)
+    reduced_var =
+        _reduce_over(ignore_nan ? nanmean : mean, longitude_name(var), var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over longitudes"
@@ -295,12 +302,12 @@ function average_lon(var)
 end
 
 """
-    average_x(var::OutputVar)
+    average_x(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values along the `x` dimension are averaged arithmetically.
 """
-function average_x(var)
-    reduced_var = _reduce_over(mean, "x", var)
+function average_x(var; ignore_nan = true)
+    reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "x", var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over x"
@@ -310,12 +317,12 @@ function average_x(var)
 end
 
 """
-    average_y(var::OutputVar)
+    average_y(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values along the `y` dimension are averaged arithmetically.
 """
-function average_y(var)
-    reduced_var = _reduce_over(mean, "y", var)
+function average_y(var; ignore_nan = true)
+    reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "y", var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over y"
@@ -325,13 +332,14 @@ function average_y(var)
 end
 
 """
-    average_xy(var::OutputVar)
+    average_xy(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values along both horizontal dimensions `x` and `y`
 are averaged arithmetically.
 """
-function average_xy(var)
-    reduced_var = _reduce_over(mean, "x", _reduce_over(mean, "y", var))
+function average_xy(var; ignore_nan = true)
+    fn = ignore_nan ? nanmean : mean
+    reduced_var = _reduce_over(fn, "x", _reduce_over(fn, "y", var))
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged horizontally"
@@ -341,12 +349,12 @@ function average_xy(var)
 end
 
 """
-    average_time(var::OutputVar)
+    average_time(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values are averaged arithmetically in time.
 """
-function average_time(var)
-    reduced_var = _reduce_over(mean, time_name(var), var)
+function average_time(var; ignore_nan = true)
+    reduced_var = _reduce_over(ignore_nan ? nanmean : mean, time_name(var), var)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " averaged over time"
