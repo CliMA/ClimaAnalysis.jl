@@ -27,6 +27,18 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 - Extract dimensions from conventional names (e.g., `times`)
 - Interpolate output variables onto arbitrary points
 - Reinterpolate output variables onto pressure levels
+- Interactively explore the content of a simulation with `ClimaExplorer`
+
+## ClimaExplorer
+
+`ClimaExplorer` is a webapp built with
+[Bonito.jl](https://github.com/SimonDanisch/Bonito.jl) to interactively inspect
+the output of a simulation with `ClimaAnalysis`.
+
+Here is a gif demonstrating an early version of `ClimaExplorer`:
+![ClimaExplorer](./docs/src/assets/climaexplorer.gif)
+The grains in the gif should be taken as indication that current versions of
+`ClimaExplorer` might be more polished and advanced.
 
 ## ClimaAnalysis.jl Developer Guidelines
 
