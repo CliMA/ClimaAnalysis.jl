@@ -6,6 +6,7 @@ main
 - Add support for evaluating `OutputVar`s onto arbitrary target points (with
   multilinear interpolation).
 - `average` operations now ignore `NaN`s by default.
+- Add `has_*` methods to query whether a `Var` has a given dimension (e.g., `z`).
 
 v0.5.6
 ------

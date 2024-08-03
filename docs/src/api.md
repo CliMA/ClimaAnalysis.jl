@@ -44,6 +44,11 @@ Var.date_name
 Var.longitude_name
 Var.latitude_name
 Var.altitude_name
+Var.has_time
+Var.has_date
+Var.has_longitude
+Var.has_latitude
+Var.has_altitude
 ```
 
 ## Utilities
