@@ -324,7 +324,7 @@ end
     time = 0.0:10.0 |> collect
     alt = 0.0:2.0 |> collect
 
-    data = reshape(1.0:(3 * 91 * 181 * 11), (3, 11, 181, 91))
+    data = reshape(1.0:(3 * 91 * 181 * 11), (11, 181, 91, 3))
 
     dims =
         OrderedDict(["time" => time, "lon" => long, "lat" => lat, "z" => alt])
