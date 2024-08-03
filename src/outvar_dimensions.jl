@@ -25,11 +25,18 @@ export times,
     _dim_name(dim_names, allowed_names)
 
 Return the `dim_name` within `dim_names` that is contained in `allowed_names`.
-Return `nothing` is not available
+Return `nothing` is not available.
+
+Example
+==========
+
+```jldoctest
+julia> ClimaAnalysis.Var._dim_name(["z", "lat", "lon"], ["lon", "long"])
+1
+```
 """
 function _dim_name(dim_names, allowed_names)
-    return
-    findfirst(possible_name -> possible_name in dim_names, allowed_names)
+    return findfirst(possible_name -> possible_name in dim_names, allowed_names)
 end
 
 """
