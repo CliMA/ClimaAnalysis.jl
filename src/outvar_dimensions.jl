@@ -14,7 +14,62 @@ export times,
     date_name,
     longitude_name,
     latitude_name,
-    altitude_name
+    altitude_name,
+    has_time,
+    has_date,
+    has_longitude,
+    has_latitude,
+    has_altitude
+
+"""
+    _dim_name(dim_names, allowed_names)
+
+Return the `dim_name` within `dim_names` that is contained in `allowed_names`.
+Return `nothing` is not available
+"""
+function _dim_name(dim_names, allowed_names)
+    return
+    findfirst(possible_name -> possible_name in dim_names, allowed_names)
+end
+
+"""
+    has_time(var::OutputVar)
+
+Return whether `var` has a `time` dimesnion.
+"""
+has_time(var::OutputVar) = !isnothing(_dim_name(keys(var.dims), TIME_NAMES))
+
+"""
+    has_date(var::OutputVar)
+
+Return whether `var` has a `date` dimesnion.
+"""
+has_date(var::OutputVar) = !isnothing(_dim_name(keys(var.dims), DATE_NAMES))
+
+"""
+    has_longitude(var::OutputVar)
+
+Return whether `var` has a `longitude` dimesnion.
+"""
+has_longitude(var::OutputVar) =
+    !isnothing(_dim_name(keys(var.dims), LONGITUDE_NAMES))
+
+"""
+    has_latitude(var::OutputVar)
+
+Return whether `var` has a `latitude` dimesnion.
+"""
+has_latitude(var::OutputVar) =
+    !isnothing(_dim_name(keys(var.dims), LATITUDE_NAMES))
+
+"""
+    has_altitude(var::OutputVar)
+
+Return whether `var` has a `altitude` dimesnion.
+"""
+has_altitude(var::OutputVar) =
+    !isnothing(_dim_name(keys(var.dims), ALTITUDE_NAMES))
+
 
 """
     find_dim_name(dim_names::Iterable, allowed_names::Iterable)
@@ -30,8 +85,7 @@ julia> ClimaAnalysis.Var.find_dim_name(["z", "lat", "lon"], ["lon", "long"])
 ```
 """
 function find_dim_name(dim_names, allowed_names)
-    dim_name =
-        findfirst(possible_name -> possible_name in dim_names, allowed_names)
+    dim_name = _dim_name(dim_names, allowed_names)
     isnothing(dim_name) &&
         error("var does not have $(first(allowed_names)) among its dimensions")
     return allowed_names[dim_name]

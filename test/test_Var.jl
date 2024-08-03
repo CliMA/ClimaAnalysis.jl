@@ -322,24 +322,33 @@ end
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
+    alt = 0.0:2.0 |> collect
 
-    data = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
+    data = reshape(1.0:(3 * 91 * 181 * 11), (3, 11, 181, 91))
 
-    dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
+    dims =
+        OrderedDict(["time" => time, "lon" => long, "lat" => lat, "z" => alt])
     attribs = Dict("short_name" => "bob", "long_name" => "hi")
     dim_attributes = OrderedDict([
         "time" => Dict(),
         "lon" => Dict("b" => 2),
         "lat" => Dict("a" => 1),
+        "z" => Dict(),
     ])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
     @test ClimaAnalysis.time_name(var) == "time"
     @test ClimaAnalysis.longitude_name(var) == "lon"
     @test ClimaAnalysis.latitude_name(var) == "lat"
+    @test ClimaAnalysis.altitude_name(var) == "z"
     @test ClimaAnalysis.times(var) == time
     @test ClimaAnalysis.latitudes(var) == lat
     @test ClimaAnalysis.longitudes(var) == long
+    @test ClimaAnalysis.altitudes(var) == alt
+    @test ClimaAnalysis.has_time(var)
+    @test ClimaAnalysis.has_longitude(var)
+    @test ClimaAnalysis.has_latitude(var)
+    @test ClimaAnalysis.has_altitude(var)
 end
 
 @testset "Interpolation" begin
