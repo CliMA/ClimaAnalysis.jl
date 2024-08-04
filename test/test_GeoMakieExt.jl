@@ -1,11 +1,11 @@
 using Test
 import ClimaAnalysis
-import CairoMakie
+import Makie
 import GeoMakie
 
 using OrderedCollections
 
-@testset "CairoMakieExt" begin
+@testset "MakieExt" begin
     tmp_dir = mktempdir(cleanup = false)
     @info "Tempdir", tmp_dir
 
@@ -26,18 +26,18 @@ using OrderedCollections
     ])
     var2D = ClimaAnalysis.OutputVar(attribs, dims2D, dim_attributes2D, data2D)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
 
     ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig, var2D)
 
     output_name = joinpath(tmp_dir, "test2D_globe.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
-    fig2 = CairoMakie.Figure()
+    fig2 = Makie.Figure()
 
     ClimaAnalysis.Visualize.contour2D_on_globe!(fig2, var2D)
 
     output_name = joinpath(tmp_dir, "test_contours2D_globe.png")
-    CairoMakie.save(output_name, fig2)
+    Makie.save(output_name, fig2)
 
 end

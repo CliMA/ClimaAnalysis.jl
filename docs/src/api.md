@@ -70,7 +70,7 @@ Atmos
 Atmos.to_pressure_coordinates
 ```
 
-## CairoMakie
+## Makie
 
 ```@docs
 Visualize.heatmap2D!

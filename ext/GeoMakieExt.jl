@@ -67,13 +67,13 @@ function _geomakie_plot_on_globe!(
 end
 
 """
-    heatmap2D_on_globe!(fig::CairoMakie.Figure,
+    heatmap2D_on_globe!(fig::Makie.Figure,
                         var::ClimaAnalysis.OutputVar;
                         p_loc = (1,1),
                         plot_coastline = true,
                         plot_colorbar = true,
                         more_kwargs)
-    heatmap2D_on_globe!(grid_layout::CairoMakie.GridLayout,
+    heatmap2D_on_globe!(grid_layout::Makie.GridLayout,
                         var::ClimaAnalysis.OutputVar;
                         p_loc = (1,1),
                         plot_coastline = true,
@@ -131,14 +131,14 @@ function Visualize.heatmap2D_on_globe!(
 end
 
 """
-    contours2D_on_globe!(fig::CairoMakie.Figure,
+    contours2D_on_globe!(fig::Makie.Figure,
                         var::ClimaAnalysis.OutputVar;
                         p_loc = (1,1),
                         plot_coastline = true,
                         plot_colorbar = true,
                         plot_contours = true,
                         more_kwargs)
-    contours2D_on_globe!(grid_layout::CairoMakie.GridLayout,
+    contours2D_on_globe!(grid_layout::Makie.GridLayout,
                         var::ClimaAnalysis.OutputVar;
                         p_loc = (1,1),
                         plot_coastline = true,

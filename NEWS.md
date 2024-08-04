@@ -7,6 +7,7 @@ main
   multilinear interpolation).
 - `average` operations now ignore `NaN`s by default.
 - Add `has_*` methods to query whether a `Var` has a given dimension (e.g., `z`).
+- Support `Makie` backends besides `CairoMakie`.
 
 v0.5.6
 ------

@@ -2,7 +2,7 @@
 
 ## How do I make a line plot with variable on the y axis instead of the x one?
 
-By default, the plotting functions in `CairoMakieExt` place the variable on the
+By default, the plotting functions in `MakieExt` place the variable on the
 x axis. If you want it on the y axis instead (e.g., you are plotting the
 vertical profile of a column), you can pass the `dim_on_y = true` argument to
 the axis.

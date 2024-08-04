@@ -1,17 +1,17 @@
-module CairoMakieExt
+module MakieExt
 
-import CairoMakie
+import Makie
 import ClimaAnalysis
 import ClimaAnalysis: Visualize
 
-MakiePlace = Union{CairoMakie.Figure, CairoMakie.GridLayout}
+MakiePlace = Union{Makie.Figure, Makie.GridLayout}
 
 """
-    heatmap2D!(fig::CairoMakie.Figure,
+    heatmap2D!(fig::Makie.Figure,
                var::ClimaAnalysis.OutputVar;
                p_loc = (1,1),
                more_kwargs)
-    heatmap2D!(grid_layout::CairoMakie.GridLayout,
+    heatmap2D!(grid_layout::Makie.GridLayout,
                var::ClimaAnalysis.OutputVar;
                p_loc = (1,1),
                more_kwargs)
@@ -76,12 +76,12 @@ function Visualize.heatmap2D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    CairoMakie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
 
-    plot = CairoMakie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
+    plot = Makie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
-    CairoMakie.Colorbar(
+    Makie.Colorbar(
         place[p_loc_cb...],
         plot,
         label = colorbar_label;
@@ -132,13 +132,13 @@ function _plot_generic_kwargs(
 end
 
 """
-    sliced_heatmap!(fig::CairoMakie.Figure,
+    sliced_heatmap!(fig::Makie.Figure,
                     var::ClimaAnalysis.OutputVar,
                     cut::Union{Nothing, AbstractDict{String, <: Real}};
                     p_loc = (1,1),
                     more_kwargs,
                     )
-    sliced_heatmap!(grid_layout::CairoMakie.GridLayout,
+    sliced_heatmap!(grid_layout::Makie.GridLayout,
                     var::ClimaAnalysis.OutputVar,
                     cut::Union{Nothing, AbstractDict{String, <: Real}};
                     p_loc = (1,1),
@@ -240,12 +240,12 @@ function Visualize.heatmap!(
 end
 
 """
-    line_plot1D!(place::CairoMakie.Figure,
+    line_plot1D!(place::Makie.Figure,
                  var::ClimaAnalysis.OutputVar;
                  p_loc = (1,1),
                  more_kwargs
                  )
-    line_plot1D!(place::CairoMakie.GridLayout,
+    line_plot1D!(place::Makie.GridLayout,
                  var::ClimaAnalysis.OutputVar;
                  p_loc = (1,1),
                  more_kwargs
@@ -312,18 +312,18 @@ function Visualize.line_plot1D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    CairoMakie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
-    CairoMakie.lines!(x, y; plot_kwargs...)
+    Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    Makie.lines!(x, y; plot_kwargs...)
 end
 
 """
-    sliced_line_plot!(place::CairoMakie.Figure,
+    sliced_line_plot!(place::Makie.Figure,
                       var::ClimaAnalysis.OutputVar,
                       cut::Union{Nothing, AbstractDict{String, <: Real}};
                       p_loc = (1,1),
                       more_kwargs
                       )
-    sliced_line_plot!(place::CairoMakie.GridLayout,
+    sliced_line_plot!(place::Makie.GridLayout,
                       var::ClimaAnalysis.OutputVar,
                       cut::Union{Nothing, AbstractDict{String, <: Real}};
                       p_loc = (1,1),
@@ -379,13 +379,13 @@ function Visualize.sliced_line_plot!(
 end
 
 """
-    line_plot!(place::CairoMakie.Figure,
+    line_plot!(place::Makie.Figure,
                var::ClimaAnalysis.OutputVar;
                p_loc = (1,1),
                more_kwargs,
                kwargs...
                )
-    line_plot!(place::CairoMakie.GridLayout,
+    line_plot!(place::Makie.GridLayout,
                var::ClimaAnalysis.OutputVar;
                p_loc = (1,1),
                more_kwargs,
@@ -428,13 +428,13 @@ function Visualize.line_plot!(
 end
 
 """
-    sliced_plot!(place::CairoMakie.Figure,
+    sliced_plot!(place::Makie.Figure,
                  var::ClimaAnalysis.OutputVar,
                  cut::Union{Nothing, AbstractDict{String, <: Real}};
                  p_loc = (1,1),
                  more_kwargs
                  )
-    sliced_plot!(place::CairoMakie.GridLayout,
+    sliced_plot!(place::Makie.GridLayout,
                  var::ClimaAnalysis.OutputVar,
                  cut::Union{Nothing, AbstractDict{String, <: Real}};
                  p_loc = (1,1),
@@ -496,13 +496,13 @@ end
 
 
 """
-    plot!(place::CairoMakie.Figure,
+    plot!(place::Makie.Figure,
           var::ClimaAnalysis.OutputVar;
           p_loc = (1,1),
           more_kwargs,
           kwargs...
           )
-    plot!(place::CairoMakie.GridLayout,
+    plot!(place::Makie.GridLayout,
           var::ClimaAnalysis.OutputVar;
           p_loc = (1,1),
           more_kwargs,

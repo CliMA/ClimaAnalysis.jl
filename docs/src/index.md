@@ -141,9 +141,9 @@ space). Binary operations do remove some attribute information.
 
 We can directly visualize `OutputVar`s.
 
-If `CairoMakie` is available, `ClimaAnalysis` can be used for plotting.
-Importing `CairoMakie` and `ClimaAnalysis` in the same session automatically
-loads the necessary `ClimaAnalysis` plotting modules.
+If [`Makie`](https://docs.makie.org/stable/) is available, `ClimaAnalysis` can
+be used for plotting. Importing `Makie` and `ClimaAnalysis` in the same session
+automatically loads the necessary `ClimaAnalysis` plotting modules.
 
 If we want to make a heatmap for `ta_max` at time of 100 s at altitude `z` of 30000 meters:
 
@@ -151,7 +151,7 @@ If we want to make a heatmap for `ta_max` at time of 100 s at altitude `z` of 30
 import CairoMakie
 import ClimaAnalysis.Visualize as viz
 
-fig = CairoMakie.Figure(resolution = (400, 600))
+fig = Makie.Figure(resolution = (400, 600))
 
 viz.plot!(
   fig,
@@ -160,7 +160,7 @@ viz.plot!(
   z = 30_000.0
 )
 
-CairoMakie.save("ta_max.png", fig)
+Makie.save("ta_max.png", fig)
 ```
 
 If we want to have a line plot, we can simply add another argument (e.g., `lat =

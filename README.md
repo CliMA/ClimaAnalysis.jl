@@ -18,7 +18,7 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 ## Features
 
 - Read, organize, and process NetCDF files
-- Visualize heatmaps and 1D profiles with `CairoMakie`
+- Visualize heatmaps and 1D profiles with `Makie`
 - Visualize heatmaps on a globe with `GeoMakie`
 - Apply averages and other reductions to the output variables
 - Slice variables along a given value (e.g., take the slice with altitude of 500 meters)
