@@ -17,7 +17,7 @@ import Bonito:
     Centered,
     Button,
     on
-import CairoMakie
+import WGLMakie
 import GeoMakie
 
 include("layouts.jl")

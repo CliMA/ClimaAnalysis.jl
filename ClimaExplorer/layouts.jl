@@ -197,7 +197,7 @@ function sphere_content_layout(var_complete::ClimaAnalysis.OutputVar)
     end
 
     fig = map(var) do sliced_var
-        fig = CairoMakie.Figure(size = (1200, 760), fontsize = 30)
+        fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
         ClimaAnalysis.Visualize.contour2D_on_globe!(fig, sliced_var)
         fig
     end
@@ -242,7 +242,7 @@ function spherical_shell_content_layout(var_complete::ClimaAnalysis.OutputVar)
     end
 
     fig = map(var) do sliced_var
-        fig = CairoMakie.Figure(size = (1200, 760), fontsize = 30)
+        fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
         ClimaAnalysis.Visualize.contour2D_on_globe!(fig, sliced_var)
         fig
     end
