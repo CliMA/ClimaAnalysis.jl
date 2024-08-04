@@ -1,10 +1,11 @@
 using Test
 import ClimaAnalysis
+import Makie
 import CairoMakie
 
 using OrderedCollections
 
-@testset "CairoMakieExt" begin
+@testset "MakieExt" begin
 
     tmp_dir = mktempdir(cleanup = false)
     @info "Tempdir", tmp_dir
@@ -28,7 +29,7 @@ using OrderedCollections
     ])
     var3D = ClimaAnalysis.OutputVar(attribs, dims3D, dim_attributes3D, data3D)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     @test_throws ErrorException ClimaAnalysis.Visualize.heatmap2D!(fig, var3D)
 
     data2D = reshape(1.0:(91 * 181), (181, 91))
@@ -48,19 +49,19 @@ using OrderedCollections
     ClimaAnalysis.Visualize.heatmap2D!(fig, var2D)
 
     output_name = joinpath(tmp_dir, "test2D.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     # Test with a GridLayout
-    fig = CairoMakie.Figure()
-    layout = fig[1, 1] = CairoMakie.GridLayout()
+    fig = Makie.Figure()
+    layout = fig[1, 1] = Makie.GridLayout()
     ClimaAnalysis.Visualize.heatmap2D!(layout, var2D)
 
     output_name = joinpath(tmp_dir, "test2D_gd.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
 
     # New figure
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     @test_throws ErrorException ClimaAnalysis.Visualize.sliced_heatmap!(
         fig,
         var3D,
@@ -69,13 +70,13 @@ using OrderedCollections
     cut = Dict("time" => 1)
     ClimaAnalysis.Visualize.sliced_heatmap!(fig, var3D, cut)
     output_name = joinpath(tmp_dir, "test3D_sliced.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     # New figure
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.heatmap!(fig, var3D; time = 1)
     output_name = joinpath(tmp_dir, "test3D_sliced_kwargs.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     @test_throws ErrorException ClimaAnalysis.Visualize.line_plot1D!(fig, var3D)
 
@@ -90,41 +91,41 @@ using OrderedCollections
     dim_attributes1D = OrderedDict(["lat" => Dict(["units" => "degrees"])])
     var1D = ClimaAnalysis.OutputVar(attribs, dims1D, dim_attributes1D, data1D)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.line_plot1D!(fig, var1D)
     output_name = joinpath(tmp_dir, "test1D.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     cut = Dict("lon" => 30)
     ClimaAnalysis.Visualize.sliced_line_plot!(fig, var2D, cut)
     output_name = joinpath(tmp_dir, "test2D_sliced.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.line_plot!(fig, var2D; lon = 30)
     output_name = joinpath(tmp_dir, "test2D_sliced_kwargs.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     # Test plot!
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.plot!(fig, var2D; lon = 30)
     output_name = joinpath(tmp_dir, "test_plot2D_sliced.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.plot!(fig, var3D; lon = 30, time = 1)
     output_name = joinpath(tmp_dir, "test_plot3D_sliced.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.plot!(fig, var3D; time = 1)
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_once.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     # Test passing more_kwargs
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.plot!(
         fig,
         var3D;
@@ -132,7 +133,7 @@ using OrderedCollections
         more_kwargs = Dict(:cb => [:vertical => :false]),
     )
 
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.plot!(
         fig,
         var3D;
@@ -142,10 +143,10 @@ using OrderedCollections
         ),
     )
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_once.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     # Test dim_on_y
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.plot!(
         fig,
         var3D;
@@ -157,10 +158,10 @@ using OrderedCollections
         ),
     )
     output_name = joinpath(tmp_dir, "test_plot3D_sliced_swapped.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
     # Test overriding title, xlabel, and ylabel
-    fig = CairoMakie.Figure()
+    fig = Makie.Figure()
     ClimaAnalysis.Visualize.heatmap2D!(
         fig,
         var2D,
@@ -174,6 +175,6 @@ using OrderedCollections
     )
 
     output_name = joinpath(tmp_dir, "test2D_title.png")
-    CairoMakie.save(output_name, fig)
+    Makie.save(output_name, fig)
 
 end
