@@ -22,7 +22,7 @@ How to use
 
 Once you installed `ClimaExplorer`, you can start the server with
 ```sh
-julia --project=ClimaAnalysis.jl/climaExplorer ClimaAnalysis.jl/ClimaExplorer/explorer.jl 
+julia --project=ClimaAnalysis.jl/ClimaExplorer ClimaAnalysis.jl/ClimaExplorer/explorer.jl 
 ```
 This might take a while.
 
