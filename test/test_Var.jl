@@ -189,7 +189,7 @@ end
     @test lat_lon_time_avg.data[] == nanmean(data)
 
     @test lat_lon_time_avg.attributes["long_name"] ==
-          "hi averaged over latitudes averaged over longitudes averaged over time"
+          "hi averaged over lat (0.0 to 90.0) averaged over lon (0.0 to 180.0) averaged over time (0.0 to 10.0)"
 end
 
 @testset "Reductions (box dims)" begin
@@ -231,10 +231,10 @@ end
     @test y_x_time_avg.data[] == nanmean(data)
 
     @test y_x_time_avg.attributes["long_name"] ==
-          "hi averaged over y averaged over x averaged over time"
+          "hi averaged over y (0.0 to 90.0) averaged over x (0.0 to 180.0) averaged over time (0.0 to 10.0)"
 
     @test xy_time_avg.attributes["long_name"] ==
-          "hi averaged horizontally averaged over time"
+          "hi averaged horizontally over x (0.0 to 180.0) and y (0.0 to 90.0) averaged over time (0.0 to 10.0)"
 end
 
 @testset "Slicing" begin
@@ -370,4 +370,83 @@ end
     data = reshape(1.0:(11 * 21), (11, 21))
     var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data)
     @test var2d.([[105.0, 10.0], [105.5, 10.5]]) == [116.0, 122]
+end
+
+@testset "Dim of units and range" begin
+    x = 0.0:180.0 |> collect
+    y = 0.0:90.0 |> collect
+    time = 0.0:10.0 |> collect
+    data = collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
+
+    dims = OrderedDict(["time" => time, "x" => x, "y" => y])
+    dim_attributes = OrderedDict([
+        "time" => Dict("units" => "seconds"),
+        "x" => Dict("units" => "km"),
+    ])
+    attribs = Dict("long_name" => "hi")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+
+    @test ClimaAnalysis.dim_units(var, "y") == ""
+    @test ClimaAnalysis.dim_units(var, "x") == "km"
+    @test ClimaAnalysis.range_dim(var, "x") == (0.0, 180.0)
+    @test_throws ErrorException(
+        "Var does not have dimension z, found [\"time\", \"x\", \"y\"]",
+    ) ClimaAnalysis.dim_units(var, "z")
+    @test_throws ErrorException(
+        "Var does not have dimension z, found [\"time\", \"x\", \"y\"]",
+    ) ClimaAnalysis.range_dim(var, "z")
+end
+
+@testset "Long name updates" begin
+    # Setup to test x_avg, y_avg, xy_avg  
+    x = 0.0:180.0 |> collect
+    y = 0.0:90.0 |> collect
+    time = 0.0:10.0 |> collect
+    data = collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
+
+    dims = OrderedDict(["time" => time, "x" => x, "y" => y])
+    dim_attributes = OrderedDict([
+        "time" => Dict("units" => "seconds"),
+        "x" => Dict("units" => "km"),
+        "y" => Dict("units" => "km"),
+    ])
+    attribs = Dict("long_name" => "hi")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+
+    y_avg = ClimaAnalysis.average_y(var)
+    @test y_avg.attributes["long_name"] == "hi averaged over y (0.0 to 90.0km)"
+
+    x_avg = ClimaAnalysis.average_x(var)
+    @test x_avg.attributes["long_name"] == "hi averaged over x (0.0 to 180.0km)"
+
+    xy_avg = ClimaAnalysis.average_xy(var)
+    @test xy_avg.attributes["long_name"] ==
+          "hi averaged horizontally over x (0.0 to 180.0km) and y (0.0 to 90.0km)"
+
+    # Setup to test average_lat and average_lon 
+    long = 0.0:180.0 |> collect
+    lat = 0.0:90.0 |> collect
+    time = 0.0:10.0 |> collect
+
+    data1 = collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
+
+    dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
+    dim_attributes = OrderedDict([
+        "time" => Dict("units" => "seconds"),
+        "lon" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    attribs = Dict("long_name" => "hi")
+    var1 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data1)
+
+    lat_avg = ClimaAnalysis.average_lat(var1)
+    lon_avg = ClimaAnalysis.average_lon(var1)
+    lat_weighted_avg = ClimaAnalysis.weighted_average_lat(var1)
+
+    @test lon_avg.attributes["long_name"] ==
+          "hi averaged over lon (0.0 to 180.0test_units1)"
+    @test lat_avg.attributes["long_name"] ==
+          "hi averaged over lat (0.0 to 90.0test_units2)"
+    @test lat_weighted_avg.attributes["long_name"] ==
+          "hi weighted averaged over lat (0.0 to 90.0test_units2)"
 end

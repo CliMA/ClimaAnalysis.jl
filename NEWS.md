@@ -8,6 +8,7 @@ main
 - `average` operations now ignore `NaN`s by default.
 - Add `has_*` methods to query whether a `Var` has a given dimension (e.g., `z`).
 - Support `Makie` backends besides `CairoMakie`.
+- Add methods to get the range and units of a given dimension in `Var`. 
 
 v0.5.6
 ------
