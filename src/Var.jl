@@ -25,7 +25,9 @@ export OutputVar,
     center_longitude!,
     short_name,
     long_name,
-    units
+    units,
+    dim_units,
+    range_dim
 
 """
     Representing an output variable
@@ -269,10 +271,12 @@ function average_lat(var; ignore_nan = true, weighted = false)
 
     reduced_var =
         _reduce_over(ignore_nan ? nanmean : mean, latitude_name(var), var)
+    weighted &&
+        haskey(var.attributes, "long_name") &&
+        (reduced_var.attributes["long_name"] *= " weighted")
+    _update_long_name_average!(reduced_var, var, latitude_name(var))
 
-    if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged over latitudes"
-    end
+
     return reduced_var
 end
 
@@ -286,6 +290,7 @@ weighted_average_lat(var; ignore_nan = true) =
     average_lat(var; ignore_nan, weighted = true)
 
 """
+
     average_lon(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values on the longitudes are averaged arithmetically.
@@ -293,11 +298,7 @@ Return a new OutputVar where the values on the longitudes are averaged arithmeti
 function average_lon(var; ignore_nan = true)
     reduced_var =
         _reduce_over(ignore_nan ? nanmean : mean, longitude_name(var), var)
-
-    if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged over longitudes"
-    end
-
+    _update_long_name_average!(reduced_var, var, longitude_name(var))
     return reduced_var
 end
 
@@ -308,11 +309,7 @@ Return a new OutputVar where the values along the `x` dimension are averaged ari
 """
 function average_x(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "x", var)
-
-    if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged over x"
-    end
-
+    _update_long_name_average!(reduced_var, var, "x")
     return reduced_var
 end
 
@@ -323,11 +320,7 @@ Return a new OutputVar where the values along the `y` dimension are averaged ari
 """
 function average_y(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "y", var)
-
-    if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged over y"
-    end
-
+    _update_long_name_average!(reduced_var, var, "y")
     return reduced_var
 end
 
@@ -341,8 +334,12 @@ function average_xy(var; ignore_nan = true)
     fn = ignore_nan ? nanmean : mean
     reduced_var = _reduce_over(fn, "x", _reduce_over(fn, "y", var))
 
+    first_x, last_x = range_dim(var, "x")
+    first_y, last_y = range_dim(var, "y")
+    units_x = dim_units(var, "x")
+    units_y = dim_units(var, "y")
     if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged horizontally"
+        reduced_var.attributes["long_name"] *= " averaged horizontally over x ($first_x to $last_x$units_x) and y ($first_y to $last_y$units_y)"
     end
 
     return reduced_var
@@ -355,12 +352,57 @@ Return a new OutputVar where the values are averaged arithmetically in time.
 """
 function average_time(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, time_name(var), var)
+    _update_long_name_average!(reduced_var, var, time_name(var))
+    return reduced_var
+end
+
+"""
+    dim_units(var::OutputVar, dim_name)
+
+Return the `units` of the given `dim_name` in `var`, if available.
+
+If not available, return an empty string.
+"""
+function dim_units(var::OutputVar, dim_name)
+    !haskey(var.dims, dim_name) &&
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    # Double get because var.dim_attributes is a dictionry whose values are dictionaries 
+    get(get(var.dim_attributes, dim_name, Dict()), "units", "")
+end
+
+"""
+    range_dim(var::OutputVar, dim_name)
+
+Return the range of the dimension `dim_name` in `var`. 
+
+Range here is a tuple with the minimum and maximum of `dim_name`.
+"""
+function range_dim(var::OutputVar, dim_name)
+    !haskey(var.dims, dim_name) &&
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    first_elt = first(var.dims[dim_name])
+    last_elt = last(var.dims[dim_name])
+    return first_elt, last_elt
+end
+
+"""
+    _update_long_name_average!(reduced_var::OutputVar, var::OutputVar, dim_name)
+
+Used by averaging functions to update the long name of `reduced_var` by describing what the
+average is being taken over and the associated units. 
+"""
+function _update_long_name_average!(
+    reduced_var::OutputVar,
+    var::OutputVar,
+    dim_name,
+)
+    dim_of_units = dim_units(var, dim_name)
+    first_elt, last_elt = range_dim(var, dim_name)
 
     if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged over time"
+        reduced_var.attributes["long_name"] *= " averaged over $dim_name ($first_elt to $last_elt$dim_of_units)"
     end
-
-    return reduced_var
+    return nothing
 end
 
 """
