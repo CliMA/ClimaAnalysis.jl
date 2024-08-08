@@ -1,3 +1,5 @@
+using WGLMakie # needed for @lift. Maybe this could be somewhere else.
+
 """
     layout(path)
 
@@ -177,6 +179,8 @@ Right column:
 function sphere_content_layout(var_complete::ClimaAnalysis.OutputVar)
     time_slider = Slider(ClimaAnalysis.times(var_complete))
     level_slider = Slider(ClimaAnalysis.altitudes(var_complete))
+	fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
+	ax = GeoMakie.GeoAxis(fig[1, 1]) # note: we can add back dynamic titles later, should be easy
 
     on(time_slider) do _
         # Trigger level_slider
@@ -196,11 +200,7 @@ function sphere_content_layout(var_complete::ClimaAnalysis.OutputVar)
         )
     end
 
-    fig = map(var) do sliced_var
-        fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
-        ClimaAnalysis.Visualize.contour2D_on_globe!(fig, sliced_var)
-        fig
-    end
+	ClimaAnalysis.Visualize.contour2D_on_globe!(fig, var, ax)
 
     controls = Centered(
         Grid(
@@ -236,16 +236,12 @@ Right column:
 """
 function spherical_shell_content_layout(var_complete::ClimaAnalysis.OutputVar)
     time_slider = Slider(ClimaAnalysis.times(var_complete))
-
+    fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
+    ax = GeoMakie.GeoAxis(fig[1, 1])
     var = map(time_slider) do time
         ClimaAnalysis.slice(var_complete; time)
     end
-
-    fig = map(var) do sliced_var
-        fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
-        ClimaAnalysis.Visualize.contour2D_on_globe!(fig, sliced_var)
-        fig
-    end
+	ClimaAnalysis.Visualize.contour2D_on_globe!(fig, var, ax) 
 
     controls = Centered(
         Grid(

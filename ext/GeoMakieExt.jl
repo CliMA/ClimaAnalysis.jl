@@ -4,12 +4,13 @@ import GeoMakie
 import GeoMakie: Makie
 import ClimaAnalysis
 import ClimaAnalysis: Visualize
+using WGLMakie # this is needed for @lift
 
 MakiePlace = Union{Makie.Figure, Makie.GridLayout}
 
 function _geomakie_plot_on_globe!(
     place::MakiePlace,
-    var::ClimaAnalysis.OutputVar;
+    var;
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
@@ -54,6 +55,65 @@ function _geomakie_plot_on_globe!(
 
     plot = plot_fn(lon, lat, var.data; plot_kwargs...)
     plot_coastline && Makie.lines!(GeoMakie.coastlines(); coast_kwargs...)
+
+    if plot_colorbar
+        p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
+        Makie.Colorbar(
+            place[p_loc_cb...],
+            plot,
+            label = colorbar_label;
+            cb_kwargs...,
+        )
+    end
+end
+
+# Method for Observable var
+function _geomakie_plot_on_globe!(
+    place::MakiePlace,
+    var,
+	ax;
+    p_loc = (1, 1),
+    plot_coastline = true,
+    plot_colorbar = true,
+    more_kwargs = Dict(
+        :plot => Dict(),
+        :cb => Dict(),
+        :axis => Dict(),
+        :coast => Dict(:color => :black),
+    ),
+    plot_fn = Makie.surface!,
+)
+    length(var[].dims) == 2 || error("Can only plot 2D variables")
+
+    lon_name = ""
+    lat_name = ""
+
+    for dim in var[].index2dim
+        if dim in ClimaAnalysis.Var.LONGITUDE_NAMES
+            lon_name = dim
+        elseif dim in ClimaAnalysis.Var.LATITUDE_NAMES
+            lat_name = dim
+        else
+            error("$dim is neither longitude nor latitude")
+        end
+    end
+
+    lon = var[].dims[lon_name]
+    lat = var[].dims[lat_name]
+
+    units = var[].attributes["units"]
+    short_name = var[].attributes["short_name"]
+    colorbar_label = "$short_name [$units]"
+
+    axis_kwargs = get(more_kwargs, :axis, Dict())
+    plot_kwargs = get(more_kwargs, :plot, Dict())
+    cb_kwargs = get(more_kwargs, :cb, Dict())
+    coast_kwargs = get(more_kwargs, :coast, Dict(:color => :black))
+
+    title = get(axis_kwargs, :title, var[].attributes["long_name"])
+
+    plot = plot_fn(ax, lon, lat, @lift($var.data); plot_kwargs...)
+    plot_coastline && Makie.lines!(ax, GeoMakie.coastlines(); coast_kwargs...)
 
     if plot_colorbar
         p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
@@ -130,6 +190,33 @@ function Visualize.heatmap2D_on_globe!(
     )
 end
 
+# method for Observable
+function Visualize.heatmap2D_on_globe!(
+    place::MakiePlace,
+    var,
+	ax;
+    p_loc = (1, 1),
+    plot_coastline = true,
+    plot_colorbar = true,
+    more_kwargs = Dict(
+        :plot => Dict(),
+        :cb => Dict(),
+        :axis => Dict(),
+        :coast => Dict(:color => :black),
+    ),
+)
+    return _geomakie_plot_on_globe!(
+        place,
+        var,
+		ax;
+        p_loc,
+        plot_coastline,
+        plot_colorbar,
+        more_kwargs,
+        plot_fn = Makie.surface!,
+    )
+end
+
 """
     contours2D_on_globe!(fig::CairoMakie.Figure,
                         var::ClimaAnalysis.OutputVar;
@@ -188,6 +275,33 @@ function Visualize.contour2D_on_globe!(
     _geomakie_plot_on_globe!(
         place,
         var;
+        p_loc,
+        plot_coastline,
+        plot_colorbar,
+        more_kwargs,
+        plot_fn = Makie.contourf!,
+    )
+end
+
+# Method for Observable
+function Visualize.contour2D_on_globe!(
+    place::MakiePlace,
+    var,
+	ax;
+    p_loc = (1, 1),
+    plot_coastline = true,
+    plot_colorbar = true,
+    more_kwargs = Dict(
+        :plot => Dict(),
+        :cb => Dict(),
+        :axis => Dict(),
+        :coast => Dict(:color => :black),
+    ),
+)
+    _geomakie_plot_on_globe!(
+        place,
+        var,
+		ax;
         p_loc,
         plot_coastline,
         plot_colorbar,
