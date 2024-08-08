@@ -219,7 +219,7 @@ function sphere_content_layout(var_complete::ClimaAnalysis.OutputVar)
     )
 end
 
-
+using WGLMakie
 """
     spherical_shell_content_layout(var::ClimaAnalysis.OutputVar)
 
@@ -236,17 +236,18 @@ Right column:
 """
 function spherical_shell_content_layout(var_complete::ClimaAnalysis.OutputVar)
     time_slider = Slider(ClimaAnalysis.times(var_complete))
+    fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
+    ax = GeoMakie.GeoAxis(fig[1, 1])
+
+    #time = time_slider.value # time is an Observable
+    #var = @lift(ClimaAnalysis.slice(var_complete; $time)) # var is an Observable
 
     var = map(time_slider) do time
         ClimaAnalysis.slice(var_complete; time)
     end
 
-    fig = map(var) do sliced_var
-        fig = WGLMakie.Figure(size = (1200, 760), fontsize = 30)
-        ClimaAnalysis.Visualize.contour2D_on_globe!(fig, sliced_var)
-        fig
-    end
-
+	ClimaAnalysis.Visualize.contour2D_on_globe!(fig, var, ax) 
+ 
     controls = Centered(
         Grid(
             DOM.div("Time:  ", time_slider.value, " $(time_units(var_complete))"),
