@@ -1,0 +1,12 @@
+.container {
+    display: flex;
+}
+.column {
+    padding: 10px;
+}
+.left {
+    flex: 0 1 20%; /* Flex-grow: 0, Flex-shrink: 1, Flex-basis: 20% */
+}
+.right {
+    flex: 1;
+}
