@@ -34,7 +34,7 @@ If everything went correctly, you should see a message like
 Server:
   isrunning: true
   listen_url: http://localhost:8080
-  online_url: http://localhost:9384
+  online_url: http://localhost:8080
   http routes: 1
     / => App
   websocket routes: 0
@@ -53,9 +53,9 @@ your computer.
 To do so, first start the server on the remote cluster (as described above). 
 Next, on your local machine, forward the remote port:
 ```bash
-ssh -f username@host -L 9384:localhost:8080 -N
+ssh -f username@host -L 8080:localhost:8080 -N
 ```
 instead of `username@host`, put your `usarename` and `hostname` (e.g.,
 `pippo@login.hpc.caltech.edu`)
 
-Next, open your browser and access `ClimaExplorer` visiting `localhost:9394`.
+Next, open your browser and access `ClimaExplorer` visiting `localhost:8080`.
