@@ -63,6 +63,7 @@ Utils.squeeze
 Utils.nearest_index
 Utils.kwargs
 Utils.seconds_to_prettystr
+Utils.warp_string
 ```
 
 ## Atmos

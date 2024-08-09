@@ -48,6 +48,9 @@ function _geomakie_plot_on_globe!(
     cb_kwargs = get(more_kwargs, :cb, Dict())
     coast_kwargs = get(more_kwargs, :coast, Dict(:color => :black))
 
+    var.attributes["long_name"] =
+        ClimaAnalysis.Utils.warp_string(var.attributes["long_name"])
+
     title = get(axis_kwargs, :title, var.attributes["long_name"])
 
     GeoMakie.GeoAxis(place[p_loc...]; title, axis_kwargs...)

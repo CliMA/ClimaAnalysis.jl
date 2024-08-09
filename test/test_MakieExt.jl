@@ -17,7 +17,7 @@ using OrderedCollections
     data3D = reshape(1.0:(91 * 181 * 11), (11, 181, 91))
     dims3D = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     attribs = Dict([
-        "long_name" => "My name",
+        "long_name" => "The quick brown fox jumps over the lazy dog. The quick brown fox.",
         "short_name" => "name",
         "units" => "bob",
     ])
@@ -35,7 +35,7 @@ using OrderedCollections
     data2D = reshape(1.0:(91 * 181), (181, 91))
     dims2D = OrderedDict(["lon" => long, "lat" => lat])
     attribs = Dict([
-        "long_name" => "My name",
+        "long_name" => "The quick brown fox jumps over the lazy dog. The quick brown fox.",
         "short_name" => "name",
         "units" => "bob",
     ])
@@ -83,7 +83,7 @@ using OrderedCollections
     data1D = reshape(1.0:(91), (91))
     dims1D = OrderedDict(["lat" => lat])
     attribs = Dict([
-        "long_name" => "My name",
+        "long_name" => "The quick brown fox jumps over the lazy dog. The quick brown fox.",
         "short_name" => "name",
         "units" => "bob",
     ])
@@ -167,7 +167,7 @@ using OrderedCollections
         var2D,
         more_kwargs = Dict(
             :axis => ClimaAnalysis.Utils.kwargs(
-                title = "My title",
+                title = "My title: The quick brown fox jumps over the lazy dog. The quick brown fox.",
                 xlabel = "My xlabel",
                 ylabel = "My ylabel",
             ),
