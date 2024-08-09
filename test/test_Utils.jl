@@ -50,3 +50,20 @@ end
 
     @test Utils.seconds_to_prettystr(24 * 60 * 60 * 365 + 68.5) == "1y 1m 8.5s"
 end
+
+@testset "format_title" begin
+    @test Utils.warp_string("") == ""
+    @test Utils.warp_string("test", max_width = 4) == "test"
+    @test Utils.warp_string("     test   ", max_width = 4) == "test"
+    @test Utils.warp_string("   test") == "test"
+    @test Utils.warp_string("test1", max_width = 4) == "test1"
+    @test Utils.warp_string("     test1   ", max_width = 4) == "test1"
+    @test Utils.warp_string("test blah", max_width = 4) == "test\nblah"
+    @test Utils.warp_string("test1 test2 test3", max_width = 4) ==
+          "test1\ntest2\ntest3"
+    @test Utils.warp_string("abc def", max_width = 3) == "abc\ndef"
+    @test Utils.warp_string("is a test", max_width = 4) == "is a\ntest"
+    @test Utils.warp_string("a b c d", max_width = 2) == "a\nb\nc\nd"
+    @test Utils.warp_string("a b c d e f", max_width = 5) == "a b c\nd e f"
+    @test Utils.warp_string("a\tb\nc\vd\fe\rf", max_width = 11) == "a b c d e f"
+end

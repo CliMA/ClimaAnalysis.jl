@@ -61,6 +61,9 @@ function Visualize.heatmap2D!(
     plot_kwargs = get(more_kwargs, :plot, Dict())
     cb_kwargs = get(more_kwargs, :cb, Dict())
 
+    var.attributes["long_name"] =
+        ClimaAnalysis.Utils.warp_string(var.attributes["long_name"])
+
     title = get(axis_kwargs, :title, var.attributes["long_name"])
     xlabel = get(axis_kwargs, :xlabel, "$dim1_name [$dim1_units]")
     ylabel = get(axis_kwargs, :ylabel, "$dim2_name [$dim2_units]")
@@ -294,6 +297,9 @@ function Visualize.line_plot1D!(
 
     axis_kwargs = get(more_kwargs, :axis, Dict())
     plot_kwargs = get(more_kwargs, :plot, Dict())
+
+    var.attributes["long_name"] =
+        ClimaAnalysis.Utils.warp_string(var.attributes["long_name"])
 
     title = get(axis_kwargs, :title, var.attributes["long_name"])
     xlabel = get(axis_kwargs, :xlabel, "$dim_name [$dim_units]")

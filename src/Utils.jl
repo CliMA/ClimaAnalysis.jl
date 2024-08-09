@@ -1,6 +1,7 @@
 module Utils
 
-export match_nc_filename, squeeze, nearest_index, kwargs, seconds_to_prettystr
+export match_nc_filename,
+    squeeze, nearest_index, kwargs, seconds_to_prettystr, warp_string
 
 """
     match_nc_filename(filename::String)
@@ -195,6 +196,56 @@ function seconds_to_prettystr(seconds::Real)
     seconds > 0 && push!(time, "$(seconds)s")
 
     return join(time, " ")
+end
+
+"""
+    warp_string(str::AbstractString)
+
+Return a string where each line is at most `max_width` characters or less
+or at most one word.
+
+Examples
+=========
+
+```jldoctest
+julia> warp_string("space", max_width = 5)
+"space"
+
+julia> warp_string("space", max_width = 4)
+"space"
+
+julia> warp_string("\\tspace    ", max_width = 4)
+"space"
+
+julia> warp_string("space space", max_width = 5)
+"space\\nspace"
+
+julia> warp_string("space space", max_width = 4)
+"space\\nspace"
+
+julia> warp_string("\\n   space  \\n  space", max_width = 4)
+"space\\nspace"
+```
+"""
+function warp_string(str::AbstractString; max_width = 42)
+    return_str = ""
+    current_width = 0
+    for word in split(str, isspace)
+        word_width = length(word)
+        if word_width + current_width <= max_width
+            return_str *= "$word "
+            current_width += word_width + 1
+        else
+            # Ensure that spaces never precede newlines
+            return_str = rstrip(return_str)
+            return_str *= "\n$word "
+            current_width = word_width + 1
+        end
+    end
+    # Remove new line character when the first word is longer than
+    # `max_width` characters and remove leading and trailing 
+    # whitespace 
+    return strip(lstrip(return_str, '\n'))
 end
 
 end

@@ -15,7 +15,7 @@ using OrderedCollections
     data2D = reshape(1.0:(91 * 181), (181, 91))
     dims2D = OrderedDict(["lon" => long, "lat" => lat])
     attribs = Dict([
-        "long_name" => "My name",
+        "long_name" => "The quick brown fox jumps over the lazy dog. The quick brown fox.",
         "short_name" => "name",
         "units" => "bob",
     ])
