@@ -1,5 +1,6 @@
 using Test
 import ClimaAnalysis: Utils
+import Dates
 
 @testset "Regexp" begin
 
@@ -66,4 +67,31 @@ end
     @test Utils.warp_string("a b c d", max_width = 2) == "a\nb\nc\nd"
     @test Utils.warp_string("a b c d e f", max_width = 5) == "a b c\nd e f"
     @test Utils.warp_string("a\tb\nc\vd\fe\rf", max_width = 11) == "a b c d e f"
+end
+
+@testset "split by season" begin
+    empty_dates = Vector{Dates.DateTime}()
+    @test Utils.split_by_season(empty_dates) == ([], [], [], [])
+
+    date = [Dates.DateTime(2015, 4, 13)]
+    @test Utils.split_by_season(date) ==
+          ([Dates.DateTime(2015, 4, 13)], [], [], [])
+
+    dates = [
+        Dates.DateTime(2015, 1, 13),
+        Dates.DateTime(2018, 2, 13),
+        Dates.DateTime(1981, 7, 6),
+        Dates.DateTime(1993, 11, 19),
+        Dates.DateTime(2040, 4, 1),
+        Dates.DateTime(2000, 8, 18),
+    ]
+
+    expected_dates = (
+        [Dates.DateTime(2040, 4, 1)],
+        [Dates.DateTime(1981, 7, 6), Dates.DateTime(2000, 8, 18)],
+        [Dates.DateTime(1993, 11, 19)],
+        [Dates.DateTime(2015, 1, 13), Dates.DateTime(2018, 2, 13)],
+    )
+
+    @test Utils.split_by_season(dates) == expected_dates
 end
