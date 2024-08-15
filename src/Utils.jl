@@ -1,7 +1,14 @@
 module Utils
 
 export match_nc_filename,
-    squeeze, nearest_index, kwargs, seconds_to_prettystr, warp_string
+    squeeze,
+    nearest_index,
+    kwargs,
+    seconds_to_prettystr,
+    warp_string,
+    split_by_season
+
+import Dates
 
 """
     match_nc_filename(filename::String)
@@ -246,6 +253,47 @@ function warp_string(str::AbstractString; max_width = 42)
     # `max_width` characters and remove leading and trailing 
     # whitespace 
     return strip(lstrip(return_str, '\n'))
+end
+
+"""
+    split_by_season(dates::AbstractArray{<: Dates.DateTime})
+
+Return four vectors with `dates` split by seasons. 
+
+The months of the seasons are March to May, June to August, September to November, and
+December to February. The order of the tuple is MAM, JJA, SON, and DJF.  
+
+Examples
+=========
+
+```jldoctest
+julia> import Dates
+
+julia> dates = [Dates.DateTime(2024, 1, 1), Dates.DateTime(2024, 3, 1), Dates.DateTime(2024, 6, 1), Dates.DateTime(2024, 9, 1)];
+
+julia> split_by_season(dates)
+([Dates.DateTime("2024-03-01T00:00:00")], [Dates.DateTime("2024-06-01T00:00:00")], [Dates.DateTime("2024-09-01T00:00:00")], [Dates.DateTime("2024-01-01T00:00:00")])
+``` 
+"""
+function split_by_season(dates::AbstractArray{<:Dates.DateTime})
+    MAM, JJA, SON, DJF = Vector{Dates.DateTime}(),
+    Vector{Dates.DateTime}(),
+    Vector{Dates.DateTime}(),
+    Vector{Dates.DateTime}()
+
+    for date in dates
+        if Dates.Month(3) <= Dates.Month(date) <= Dates.Month(5)
+            push!(MAM, date)
+        elseif Dates.Month(6) <= Dates.Month(date) <= Dates.Month(8)
+            push!(JJA, date)
+        elseif Dates.Month(9) <= Dates.Month(date) <= Dates.Month(11)
+            push!(SON, date)
+        else
+            push!(DJF, date)
+        end
+    end
+
+    return (MAM, JJA, SON, DJF)
 end
 
 end

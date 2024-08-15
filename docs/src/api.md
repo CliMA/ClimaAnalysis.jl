@@ -64,6 +64,7 @@ Utils.nearest_index
 Utils.kwargs
 Utils.seconds_to_prettystr
 Utils.warp_string
+Utils.split_by_season
 ```
 
 ## Atmos
