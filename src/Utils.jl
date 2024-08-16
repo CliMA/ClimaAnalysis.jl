@@ -206,7 +206,7 @@ function seconds_to_prettystr(seconds::Real)
 end
 
 """
-    warp_string(str::AbstractString)
+    warp_string(str::AbstractString; max_width = 70)
 
 Return a string where each line is at most `max_width` characters or less
 or at most one word.
@@ -234,7 +234,7 @@ julia> warp_string("\\n   space  \\n  space", max_width = 4)
 "space\\nspace"
 ```
 """
-function warp_string(str::AbstractString; max_width = 42)
+function warp_string(str::AbstractString; max_width = 70)
     return_str = ""
     current_width = 0
     for word in split(str, isspace)
