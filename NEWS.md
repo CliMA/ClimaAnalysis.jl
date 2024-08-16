@@ -30,6 +30,47 @@ myfile = OutputVar("my_netcdf_file.nc", "myvar")
 
 [0] Restrictions apply.
 
+### Resampling a `OutputVar` using the dimensions from another `OutputVar`
+
+You can use the `resampled_as(src_var, dest_var)` function where `src_var` is a
+OutputVar with the data you want to resample using the dimensions in another
+OutputVar `dest_var`. If resampling is possible, then a new `OutputVar` is
+returned where the data in `src_var` is resampled using a linear interpolation
+to fit the dimensions in `dest_var`. Resampling is not possible when the
+dimensions in either `OutputVar`s are missing units, the dimensions between the
+`OutputVar`s do not agree, or the data in `src_var` is not defined everywhere on
+the dimensions in `dest_var`.
+
+```julia
+julia> src_var.data
+3×4 Matrix{Float64}:
+ 1.0  4.0  7.0  10.0
+ 2.0  5.0  8.0  11.0
+ 3.0  6.0  9.0  12.0
+
+julia> src_var.dims
+OrderedDict{String, Vector{Float64}} with 2 entries:
+  "lon"      => [0.0, 1.0, 2.0]
+  "latitude" => [0.0, 1.0, 2.0, 3.0]
+
+julia> dest_var.dims # dims that src_var.data should be resampled on
+OrderedDict{String, Vector{Float64}} with 2 entries:
+  "long" => [0.0, 1.0]
+  "lat"  => [0.0, 1.0, 2.0]
+
+julia> resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var);
+
+julia> resampled_var.data
+2×3 Matrix{Float64}:
+ 1.0  4.0  7.0
+ 2.0  5.0  8.0
+
+julia> resampled_var.dims # updated dims that are the same as the dims in dest_var
+OrderedDict{String, Vector{Float64}} with 2 entries:
+  "lon"      => [0.0, 1.0]
+  "latitude" => [0.0, 1.0, 2.0]
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

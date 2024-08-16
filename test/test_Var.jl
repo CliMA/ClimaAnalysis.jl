@@ -357,6 +357,12 @@ end
     @test ClimaAnalysis.has_longitude(var)
     @test ClimaAnalysis.has_latitude(var)
     @test ClimaAnalysis.has_altitude(var)
+    @test ClimaAnalysis.conventional_dim_name("long") == "longitude"
+    @test ClimaAnalysis.conventional_dim_name("latitude") == "latitude"
+    @test ClimaAnalysis.conventional_dim_name("t") == "time"
+    @test ClimaAnalysis.conventional_dim_name("date") == "date"
+    @test ClimaAnalysis.conventional_dim_name("z") == "altitude"
+    @test ClimaAnalysis.conventional_dim_name("hi") == "hi"
 end
 
 @testset "Interpolation" begin
@@ -457,4 +463,148 @@ end
           "hi averaged over lat (0.0 to 90.0test_units2)"
     @test lat_weighted_avg.attributes["long_name"] ==
           "hi weighted averaged over lat (0.0 to 90.0test_units2)"
+end
+
+@testset "Consistent units checking" begin
+    x_long = 0.0:180.0 |> collect
+    x_lat = 0.0:90.0 |> collect
+    x_data = reshape(1.0:(181 * 91), (181, 91))
+    x_dims = OrderedDict(["long" => x_long, "lat" => x_lat])
+    x_attribs = Dict("long_name" => "hi")
+    x_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    x_var = ClimaAnalysis.OutputVar(x_attribs, x_dims, x_dim_attribs, x_data)
+
+    y_lon = 0.0:90.0 |> collect
+    y_lat = 0.0:45.0 |> collect
+    y_data = reshape(1.0:(91 * 46), (91, 46))
+    y_dims = OrderedDict(["lon" => y_lon, "lat" => y_lat])
+    y_attribs = Dict("long_name" => "hi")
+    y_dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    y_var = ClimaAnalysis.OutputVar(y_attribs, y_dims, y_dim_attribs, y_data)
+    @test_nowarn ClimaAnalysis.Var._check_dims_consistent(x_var, y_var)
+
+    # Test if units are consistent between dimensions
+    x_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units2"),
+        "lat" => Dict("units" => "test_units1"),
+    ])
+    x_var = ClimaAnalysis.OutputVar(x_attribs, x_dims, x_dim_attribs, x_data)
+    @test_throws "Units for dimensions [\"long\", \"lat\"] in x is not consistent with units for dimensions [\"lon\", \"lat\"] in y" ClimaAnalysis.Var._check_dims_consistent(
+        x_var,
+        y_var,
+    )
+
+    # Test if units are missing from any of the dimensions
+    x_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units2"),
+        "lat" => Dict("units" => ""),
+    ])
+    x_var = ClimaAnalysis.OutputVar(x_attribs, x_dims, x_dim_attribs, x_data)
+    @test_throws "Units for dimensions [\"lat\"] are missing in x and units for dimensions [\"lat\"] are missing in y" ClimaAnalysis.Var._check_dims_consistent(
+        x_var,
+        x_var,
+    )
+    @test_throws "Units for dimensions [\"lat\"] are missing in x" ClimaAnalysis.Var._check_dims_consistent(
+        x_var,
+        y_var,
+    )
+    @test_throws "Units for dimensions [\"lat\"] are missing in y" ClimaAnalysis.Var._check_dims_consistent(
+        y_var,
+        x_var,
+    )
+
+    # Test if type of dimensions agree
+    x_data = reshape(1.0:(91 * 181), (91, 181))
+    x_dims = OrderedDict(["lat" => x_lat, "long" => x_long])
+    x_dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "test_units1"),
+        "long" => Dict("units" => "test_units2"),
+    ])
+    x_var = ClimaAnalysis.OutputVar(x_attribs, x_dims, x_dim_attribs, x_data)
+    @test_throws "Dimensions do not agree between x ([\"latitude\", \"longitude\"]) and y ([\"longitude\", \"latitude\"])" ClimaAnalysis.Var._check_dims_consistent(
+        x_var,
+        y_var,
+    )
+
+    # Test number of dimensions are the same
+    x_data = reshape(1.0:(181), (181))
+    x_dims = OrderedDict(["long" => x_long])
+    x_attribs = Dict("long_name" => "hi")
+    x_dim_attribs = OrderedDict(["long" => Dict("units" => "test_units1")])
+    x_var = ClimaAnalysis.OutputVar(x_attribs, x_dims, x_dim_attribs, x_data)
+    @test_throws "Number of dimensions do not match between x (1) and y (2)" ClimaAnalysis.Var._check_dims_consistent(
+        x_var,
+        y_var,
+    )
+
+end
+
+@testset "Resampling" begin
+    src_long = 0.0:180.0 |> collect
+    src_lat = 0.0:90.0 |> collect
+    src_data = reshape(1.0:(181 * 91), (181, 91))
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+
+    dest_long = 0.0:90.0 |> collect
+    dest_lat = 0.0:45.0 |> collect
+    dest_data = reshape(1.0:(91 * 46), (91, 46))
+    dest_dims = OrderedDict(["long" => dest_long, "lat" => dest_lat])
+    dest_attribs = Dict("long_name" => "hi")
+    dest_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+
+    @test src_var.data == ClimaAnalysis.resampled_as(src_var, src_var).data
+    resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
+    @test_throws BoundsError ClimaAnalysis.resampled_as(dest_var, src_var)
+
+    # BoundsError check 
+    src_long = 90.0:120.0 |> collect
+    src_lat = 45.0:90.0 |> collect
+    src_data = zeros(length(src_long), length(src_lat))
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+
+    dest_long = 85.0:115.0 |> collect
+    dest_lat = 50.0:85.0 |> collect
+    dest_data = zeros(length(dest_long), length(dest_lat))
+    dest_dims = OrderedDict(["long" => dest_long, "lat" => dest_lat])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+
+    @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
 end
