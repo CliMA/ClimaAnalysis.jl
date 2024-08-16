@@ -1,7 +1,7 @@
 ClimaAnalysis.jl Release Notes
 ===============================
 
-main
+v0.5.7
 ------
 - Add support for evaluating `OutputVar`s onto arbitrary target points (with
   multilinear interpolation).
