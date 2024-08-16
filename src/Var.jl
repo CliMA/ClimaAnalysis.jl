@@ -27,7 +27,8 @@ export OutputVar,
     long_name,
     units,
     dim_units,
-    range_dim
+    range_dim,
+    resampled_as
 
 """
     Representing an output variable
@@ -597,6 +598,85 @@ We also *do not* check units for `data`.
 """
 function arecompatible(x::OutputVar, y::OutputVar)
     return (x.dims == y.dims) && (x.dim_attributes == y.dim_attributes)
+end
+
+"""
+    _check_dims_consistent(x::OutputVar, y::OutputVar)
+
+Check if the number, name, and unit of dimensions in `x` and `y` are consistent.
+
+If the unit for a dimension is missing, then the unit is not consistent for that dimension.
+"""
+function _check_dims_consistent(x::OutputVar, y::OutputVar)
+    # Check if the number of dimensions is the same
+    x_num_dims = length(x.dims)
+    y_num_dims = length(y.dims)
+    x_num_dims != y_num_dims && error(
+        "Number of dimensions do not match between x ($x_num_dims) and y ($y_num_dims)",
+    )
+
+    # Check if the dimensions agree with each other
+    conventional_dim_name_x = conventional_dim_name.(keys(x.dims))
+    conventional_dim_name_y = conventional_dim_name.(keys(y.dims))
+    mismatch_conventional_dim_name =
+        conventional_dim_name_x .!= conventional_dim_name_y
+    any(mismatch_conventional_dim_name) && error(
+        "Dimensions do not agree between x ($conventional_dim_name_x) and y ($conventional_dim_name_y)",
+    )
+
+    x_dims = collect(keys(x.dims))
+    y_dims = collect(keys(y.dims))
+    x_units = [dim_units(x, dim_name) for dim_name in x_dims]
+    y_units = [dim_units(y, dim_name) for dim_name in y_dims]
+
+    # Check for any missing units (missing units are represented with an empty string)
+    missing_x = (x_units .== "")
+    missing_y = (y_units .== "")
+    (any(missing_x) && any(missing_y)) && error(
+        "Units for dimensions $(x_dims[missing_x]) are missing in x and units for dimensions $(y_dims[missing_y]) are missing in y",
+    )
+    any(missing_x) &&
+        error("Units for dimensions $(x_dims[missing_x]) are missing in x")
+    any(missing_y) &&
+        error("Units for dimensions $(x_dims[missing_y]) are missing in y")
+
+    # Check if units match between dimensions
+    not_consistent_units = (x_units .!= y_units)
+    any(not_consistent_units) && error(
+        "Units for dimensions $(x_dims[not_consistent_units]) in x is not consistent with units for dimensions $(y_dims[not_consistent_units]) in y",
+    )
+    return nothing
+end
+
+"""
+    resampled_as(src_var::OutputVar, dest_var::OutputVar)
+
+Resample `data` in `src_var` to `dims` in `dest_var`.
+
+The resampling performed here is a 1st-order linear resampling.
+"""
+function resampled_as(src_var::OutputVar, dest_var::OutputVar)
+    _check_dims_consistent(src_var, dest_var)
+
+    src_resampled_data =
+        [src_var(pt) for pt in Base.product(values(dest_var.dims)...)]
+
+    # Construct new OutputVar to return
+    src_var_ret_dims = empty(src_var.dims)
+
+    # Loop because names could be different in src_var compared to dest_var
+    # (e.g., `long` in one and `lon` in the other)
+    for (dim_name, dim_data) in zip(keys(src_var.dims), values(dest_var.dims))
+        src_var_ret_dims[dim_name] = copy(dim_data)
+    end
+    scr_var_ret_attribs = deepcopy(src_var.attributes)
+    scr_var_ret_dim_attribs = deepcopy(src_var.dim_attributes)
+    return OutputVar(
+        scr_var_ret_attribs,
+        src_var_ret_dims,
+        scr_var_ret_dim_attribs,
+        src_resampled_data,
+    )
 end
 
 """

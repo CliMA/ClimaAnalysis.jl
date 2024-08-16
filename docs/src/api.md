@@ -49,8 +49,10 @@ Var.has_date
 Var.has_longitude
 Var.has_latitude
 Var.has_altitude
+Var.conventional_dim_name
 Var.dim_units
 Var.range_dim
+Var.resampled_as
 ```
 
 ## Utilities

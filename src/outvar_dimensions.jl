@@ -19,7 +19,8 @@ export times,
     has_date,
     has_longitude,
     has_latitude,
-    has_altitude
+    has_altitude,
+    conventional_dim_name
 
 """
     _dim_name(dim_names, allowed_names)
@@ -167,3 +168,18 @@ altitude_name(var::OutputVar) = find_dim_name(keys(var.dims), ALTITUDE_NAMES)
 Return the `altitude` dimension in `var`.
 """
 altitudes(var::OutputVar) = var.dims[altitude_name(var)]
+
+"""
+    conventional_dim_name(dim_name::AbstractString)
+
+Return the type of dimension as a string from longitude, latitude, time, date, or altitude
+if possible or `dim_name` as a string otherwise.
+"""
+function conventional_dim_name(dim_name::AbstractString)
+    dim_name in LONGITUDE_NAMES && return "longitude"
+    dim_name in LATITUDE_NAMES && return "latitude"
+    dim_name in TIME_NAMES && return "time"
+    dim_name in DATE_NAMES && return "date"
+    dim_name in ALTITUDE_NAMES && return "altitude"
+    return dim_name
+end
