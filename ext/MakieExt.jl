@@ -551,4 +551,76 @@ function Visualize.plot!(
     )
 end
 
+"""
+    _to_unitrange(x::Number, lo::Number, hi::Number)
+
+Linearly transform x ∈ [lo, hi] to [0, 1]. 
+"""
+_to_unitrange(x::Number, lo::Number, hi::Number) = (x - lo) / (hi - lo)
+
+"""
+    _constrained_cmap(cols::Vector, lo, hi; mid = 0, categorical = false, rev = false)
+    _constrained_cmap(cols::Makie.ColorScheme, lo, hi; mid = 0, categorical = false, rev = false)
+
+Constrain a colormap to a given range.
+
+Given a colormap implicitly defined in `± maximum(abs, (lo, hi))`, constrain it to the range
+[lo, hi]. This is useful to ensure that a colormap which is desired to diverge
+symmetrically around zero maps the same color intensity to the same magnitude.
+
+# Arguments
+- `cols`: a vector of colors, or a ColorScheme
+- `lo`: lower bound of the range
+- `hi`: upper bound of the range
+
+# Keyword Arguments
+- `mid`: midpoint of the range  # TODO: test `mid` better
+- `categorical`: flag for whether returned colormap should be categorical or continuous
+- `rev`: flag for whether to reverse the colormap before constraining cmap
+
+# Returns
+- `cmap::Makie.ColorGradient`: a colormap
+"""
+function _constrained_cmap(
+    cols::Vector,
+    lo,
+    hi;
+    mid = 0,
+    categorical = false,
+    rev = false,
+)
+    _constrained_cmap(Makie.ColorScheme(cols), lo, hi; mid, categorical, rev)
+end
+
+function _constrained_cmap(
+    cols::Makie.ColorScheme,
+    lo,
+    hi;
+    mid = 0,
+    categorical = false,
+    rev = false,
+)
+    # Reverse colorscheme if requested, don't reverse below in `cgrad`
+    rev && (cols = reverse(cols))
+    absmax = maximum(abs, (lo, hi) .- mid)
+
+    # Map lo, hi ∈ [-absmax, absmax] onto [0,1] to sample their corresponding colors
+    lo_m, hi_m = _to_unitrange.((lo, hi) .- mid, -absmax, absmax)
+
+    # Values on [0,1] where each color in cols is defined
+    colsvals = range(0, 1; length = length(cols))
+
+    # Filter colsvals, keep only values in [lo_m, hi_m] + the endpoints lo_m and hi_m
+    filter_colsvals =
+        filter(x -> lo_m <= x <= hi_m, unique([lo_m; colsvals; hi_m]))
+
+    # Select colors in filtered range; interpolate new low and hi colors
+    newcols = Makie.get(cols, filter_colsvals)
+
+    # Values on [0,1] where the new colors are defined
+    new_colsvals = _to_unitrange.(filter_colsvals, lo_m, hi_m)
+    cmap = Makie.cgrad(newcols, new_colsvals; categorical, rev = false)
+    return cmap
+end
+
 end
