@@ -3,6 +3,7 @@ import ClimaAnalysis
 
 import Interpolations as Intp
 import NaNStatistics: nanmean
+import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
 
 @testset "General" begin
@@ -13,6 +14,13 @@ import OrderedCollections: OrderedDict
     longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
 
     @test longvar.dims["long"] == long
+
+    # Reading directly from file
+    ncpath = joinpath(@__DIR__, "topo_drag.res.nc")
+    file_var = ClimaAnalysis.OutputVar(ncpath, "t11")
+    NCDataset(ncpath) do nc
+        @test nc["t11"][:, :, :] == file_var.data
+    end
 
     # center_longitude!
     #

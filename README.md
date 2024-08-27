@@ -11,7 +11,7 @@ ClimaAnalysis.jl
 [![codecov](https://codecov.io/gh/CliMA/ClimaAnalysis.jl/graph/badge.svg?token=tXO3LzS8v9)](https://codecov.io/gh/CliMA/ClimaAnalysis.jl)
 
 `ClimaAnalysis.jl` is a Julia library to post-process and visualize `ClimaAtmos`
-simulations.
+simulations (and, more generally, NetCDF files).
 
 Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more information and tutorials.
 

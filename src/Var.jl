@@ -99,15 +99,28 @@ function OutputVar(attribs, dims, dim_attribs, data)
     )
 end
 
-
 function OutputVar(dims, data)
     return OutputVar(Dict{String, Any}(), dims, Dict{String, Any}(), data)
 end
 
 """
-    read_var(path::String)
+    OutputVar(path, short_name = nothing)
 
-Read a variable in the given NetCDF file.
+Read the NetCDF file in `path` as an `OutputVar`.
+
+If `short_name` is `nothing`, automatically find the name.
+"""
+function OutputVar(path::String, short_name = nothing)
+    return read_var(path; short_name)
+end
+
+"""
+    read_var(path::String; short_name = nothing)
+
+Read the `short_name` variable in the given NetCDF file.
+
+When `short_name` is `nothing`, automatically identify the name of the variable. If multiple
+variables are present, the last one in alphabetical order is chosen.
 
 Example
 =========
@@ -115,26 +128,31 @@ Example
 ```julia
 simdir = SimDir("my_output")
 read_var(simdir.variable_paths["hu"]["inst"])
+
+read_var("my_netcdf_file.nc", short_name = "ts")
 ```
 """
-function read_var(path::String)
+function read_var(path::String; short_name = nothing)
     NCDatasets.NCDataset(path) do nc
-        # First, we have to identify the name of the variable by finding what is
-        # not a dimension
+        # First, if short_name is nothing, we have to identify the name of the variable by
+        # finding what is not a dimension
         unordered_dims = NCDatasets.dimnames(nc)
-        var_name = pop!(setdiff(keys(nc), unordered_dims))
-        dims = map(NCDatasets.dimnames(nc[var_name])) do dim_name
-            return dim_name => Array(nc[dim_name])
-        end |> OrderedDict
-        attribs = Dict(k => v for (k, v) in nc[var_name].attrib)
+        isnothing(short_name) &&
+            (short_name = pop!(setdiff(keys(nc), unordered_dims)))
+
+        dims =
+            map(NCDatasets.dimnames(nc[short_name])) do dim_name
+                return dim_name => Array(nc[dim_name])
+            end |> OrderedDict
+        attribs = Dict(k => v for (k, v) in nc[short_name].attrib)
         dim_attribs = OrderedDict(
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
         )
-        data = Array(nc[var_name])
+        data = Array(nc[short_name])
+
         return OutputVar(attribs, dims, dim_attribs, data)
     end
 end
-
 
 """
     short_name(var::OutputVar)
