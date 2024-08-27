@@ -250,18 +250,18 @@ function warp_string(str::AbstractString; max_width = 70)
         end
     end
     # Remove new line character when the first word is longer than
-    # `max_width` characters and remove leading and trailing 
-    # whitespace 
+    # `max_width` characters and remove leading and trailing
+    # whitespace
     return strip(lstrip(return_str, '\n'))
 end
 
 """
     split_by_season(dates::AbstractArray{<: Dates.DateTime})
 
-Return four vectors with `dates` split by seasons. 
+Return four vectors with `dates` split by seasons.
 
 The months of the seasons are March to May, June to August, September to November, and
-December to February. The order of the tuple is MAM, JJA, SON, and DJF.  
+December to February. The order of the tuple is MAM, JJA, SON, and DJF.
 
 Examples
 =========
@@ -273,7 +273,7 @@ julia> dates = [Dates.DateTime(2024, 1, 1), Dates.DateTime(2024, 3, 1), Dates.Da
 
 julia> split_by_season(dates)
 ([Dates.DateTime("2024-03-01T00:00:00")], [Dates.DateTime("2024-06-01T00:00:00")], [Dates.DateTime("2024-09-01T00:00:00")], [Dates.DateTime("2024-01-01T00:00:00")])
-``` 
+```
 """
 function split_by_season(dates::AbstractArray{<:Dates.DateTime})
     MAM, JJA, SON, DJF = Vector{Dates.DateTime}(),
