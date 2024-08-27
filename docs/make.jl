@@ -28,6 +28,7 @@ makedocs(;
     checkdocs = :exports,
     pages = [
         "Home" => "index.md",
+        "OutputVars" => "var.md",
         "APIs" => "api.md",
         "How do I?" => "howdoi.md",
     ],
