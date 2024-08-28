@@ -209,6 +209,14 @@ function units(var::OutputVar)
     string(get(var.attributes, "units", ""))
 end
 
+"""
+    has_units(var::OutputVar)
+
+Return whether the given `var` has `units` or not.
+"""
+function has_units(var::OutputVar)
+    return haskey(var.attributes, "units")
+end
 
 # Implemented in ClimaAnalysisUnitfulExt
 function _maybe_convert_to_unitful end
@@ -285,10 +293,9 @@ In this case, `dims["z"]` is essentially a map that identifies the physical alti
 given point.
 """
 function is_z_1D(var::OutputVar)
-    haskey(var.dims, "z") ||
-        error("Variable does not have an altitude dimension")
+    has_altitude(var) || error("Variable does not have an altitude dimension")
 
-    return length(size(var.dims["z"])) == 1
+    return length(size(altitudes(var))) == 1
 end
 
 function Base.copy(var::OutputVar)
