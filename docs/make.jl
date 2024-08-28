@@ -16,8 +16,8 @@ DocMeta.setdocmeta!(
 makedocs(;
     modules = [
         ClimaAnalysis,
-        Base.get_extension(ClimaAnalysis, :MakieExt),
-        Base.get_extension(ClimaAnalysis, :GeoMakieExt),
+        Base.get_extension(ClimaAnalysis, :ClimaAnalysisMakieExt),
+        Base.get_extension(ClimaAnalysis, :ClimaAnalysisGeoMakieExt),
     ],
     authors = "Climate Modelling Alliance",
     sitename = "ClimaAnalysis.jl",

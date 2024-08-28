@@ -1,4 +1,4 @@
-module MakieExt
+module ClimaAnalysisMakieExt
 
 import Makie
 import ClimaAnalysis
@@ -554,7 +554,7 @@ end
 """
     _to_unitrange(x::Number, lo::Number, hi::Number)
 
-Linearly transform x ∈ [lo, hi] to [0, 1]. 
+Linearly transform x ∈ [lo, hi] to [0, 1].
 """
 _to_unitrange(x::Number, lo::Number, hi::Number) = (x - lo) / (hi - lo)
 
@@ -581,7 +581,7 @@ symmetrically around zero maps the same color intensity to the same magnitude.
 # Returns
 - `cmap::Makie.ColorGradient`: a colormap
 """
-function _constrained_cmap(
+function Visualize._constrained_cmap(
     cols::Vector,
     lo,
     hi;
@@ -589,10 +589,17 @@ function _constrained_cmap(
     categorical = false,
     rev = false,
 )
-    _constrained_cmap(Makie.ColorScheme(cols), lo, hi; mid, categorical, rev)
+    Visualize._constrained_cmap(
+        Makie.ColorScheme(cols),
+        lo,
+        hi;
+        mid,
+        categorical,
+        rev,
+    )
 end
 
-function _constrained_cmap(
+function Visualize._constrained_cmap(
     cols::Makie.ColorScheme,
     lo,
     hi;

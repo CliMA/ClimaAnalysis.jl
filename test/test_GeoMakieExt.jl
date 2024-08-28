@@ -1,6 +1,7 @@
 using Test
 import ClimaAnalysis
 import Makie
+import CairoMakie
 import GeoMakie
 
 using OrderedCollections
@@ -39,17 +40,15 @@ using OrderedCollections
         fig2,
         var2D,
         more_kwargs = Dict(
-            :plot =>
-                ClimaAnalysis.Utils.kwargs(colormap = Makie.colorschemes[:vik]),
+            :plot => ClimaAnalysis.Utils.kwargs(colormap = :vik),
         ),
     )
 
     output_name = joinpath(tmp_dir, "test_contours2D_globe.png")
     Makie.save(output_name, fig2)
 
-    # Test cmap 
-    MakieExt = Base.get_extension(ClimaAnalysis, :MakieExt)
-    test_cmap = MakieExt._constrained_cmap(
+    # Test cmap
+    test_cmap = ClimaAnalysis.Visualize._constrained_cmap(
         Makie.colorschemes[:vik],
         0.0,
         15000.0 + (5000.0 / 3.0),
@@ -70,7 +69,7 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "test_contours2D_globe_with_test_cmap.png")
     Makie.save(output_name, fig3)
 
-    test_cmap = MakieExt._constrained_cmap(
+    test_cmap = ClimaAnalysis.Visualize._constrained_cmap(
         range(Makie.colorant"red", stop = Makie.colorant"green", length = 15),
         0.0,
         15000.0 + (5000.0 / 3.0),
