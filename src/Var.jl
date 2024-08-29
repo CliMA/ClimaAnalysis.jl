@@ -28,7 +28,9 @@ export OutputVar,
     units,
     dim_units,
     range_dim,
-    resampled_as
+    resampled_as,
+    has_units,
+    convert_units
 
 """
     Representing an output variable
@@ -89,6 +91,18 @@ function OutputVar(attribs, dims, dim_attribs, data)
         )
     end
 
+    function _maybe_process_key_value(k, v)
+        k != "units" && return k => v
+        return k => _maybe_convert_to_unitful(v)
+    end
+
+    # Recreating an object to ensure that the type is correct
+    if !isempty(attribs)
+        attribs = Dict(_maybe_process_key_value(k, v) for (k, v) in attribs)
+    end
+
+    # TODO: Support units for dimensions too
+
     return OutputVar(
         attribs,
         OrderedDict(dims),
@@ -123,6 +137,12 @@ Read the `short_name` variable in the given NetCDF file.
 When `short_name` is `nothing`, automatically identify the name of the variable. If multiple
 variables are present, the last one in alphabetical order is chosen.
 
+When `units` is among the attributes, try to parse it and convert it into an
+[`Unitful`](https://painterqubits.github.io/Unitful.jl) object. `OutputVar`s with `Unitful`
+support automatic unit conversions.
+
+If you want to access `units` as a string, look at [`units`](@ref) function.
+
 Example
 =========
 
@@ -146,6 +166,7 @@ function read_var(path::String; short_name = nothing)
                 return dim_name => Array(nc[dim_name])
             end |> OrderedDict
         attribs = Dict(k => v for (k, v) in nc[short_name].attrib)
+
         dim_attribs = OrderedDict(
             dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
         )
@@ -185,8 +206,73 @@ Return the `units` of the given `var`, if available.
 If not available, return an empty string.
 """
 function units(var::OutputVar)
-    get(var.attributes, "units", "")
+    string(get(var.attributes, "units", ""))
 end
+
+
+# Implemented in ClimaAnalysisUnitfulExt
+function _maybe_convert_to_unitful end
+
+
+"""
+    Var.convert_units(var, new_units; conversion_function = nothing)
+
+Return a new `OutputVar` with converted physical units of `var` to `new_units`, if possible.
+
+Automatic conversion happens when the units for `var` and `new_units` are both parseable.
+When `var` does not have units (see also [`Var.has_units`](@ref)) or has no parseable units,
+a conversion function `conversion_function` is required.
+
+`conversion_function` has to be a function that takes one data point and returns the
+transformed value.
+
+Being parseable means that `Unitful.uparse` can parse the expression. Please, refer to the
+documentation for [Unitful.jl](https://painterqubits.github.io/Unitful.jl/stable/) for more
+information.
+
+Examples
+=======
+
+Let us set up a trivial 1D `OutputVar` with units of meters per second and automatically
+convert it to centimeters per second.
+
+```jldoctest example1
+julia> values = 0:100.0 |> collect;
+
+julia> data = copy(values);
+
+julia> attribs = Dict("long_name" => "speed", "units" => "m/s");
+
+julia> dim_attribs = Dict{String, Any}();
+
+julia> var = ClimaAnalysis.OutputVar(attribs, Dict("distance" => values), dim_attribs, data);
+
+julia> ClimaAnalysis.has_units(var)
+true
+
+julia> var_cms = ClimaAnalysis.convert_units(var, "cm/s");
+
+julia> extrema(var_cms.data)
+(0.0, 10000.0)
+```
+
+Not all the units can be properly parsed, for example, assuming `bob=5lol`
+
+```jldoctest example1
+julia> attribs = Dict("long_name" => "speed", "units" => "bob/s");
+
+julia> var_bob = ClimaAnalysis.OutputVar(attribs, Dict("distance" => values), dim_attribs, data);
+
+julia> var_lols = ClimaAnalysis.convert_units(var, "lol/s", conversion_function = (x) -> 5x);
+
+julia> extrema(var_lols.data)
+(0.0, 500.0)
+```
+
+Failure to specify the `conversion_function` will produce an error.
+"""
+function convert_units end
+
 
 """
     is_z_1D(var::OutputVar)
