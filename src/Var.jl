@@ -477,14 +477,14 @@ If not available, return an empty string.
 function dim_units(var::OutputVar, dim_name)
     !haskey(var.dims, dim_name) &&
         error("Var does not have dimension $dim_name, found $(keys(var.dims))")
-    # Double get because var.dim_attributes is a dictionry whose values are dictionaries 
+    # Double get because var.dim_attributes is a dictionry whose values are dictionaries
     get(get(var.dim_attributes, dim_name, Dict()), "units", "")
 end
 
 """
     range_dim(var::OutputVar, dim_name)
 
-Return the range of the dimension `dim_name` in `var`. 
+Return the range of the dimension `dim_name` in `var`.
 
 Range here is a tuple with the minimum and maximum of `dim_name`.
 """
@@ -500,7 +500,7 @@ end
     _update_long_name_average!(reduced_var::OutputVar, var::OutputVar, dim_name)
 
 Used by averaging functions to update the long name of `reduced_var` by describing what the
-average is being taken over and the associated units. 
+average is being taken over and the associated units.
 """
 function _update_long_name_average!(
     reduced_var::OutputVar,
