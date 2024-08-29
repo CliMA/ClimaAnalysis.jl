@@ -71,6 +71,29 @@ OrderedDict{String, Vector{Float64}} with 2 entries:
   "latitude" => [0.0, 1.0, 2.0]
 ```
 
+### Add support for converting units
+
+`ClimaAnalysis` now uses
+[Unitful](https://painterqubits.github.io/Unitful.jl/stable) to handle variable
+units, when possible.
+
+When a `OutputVar` has `units` among its `attributes`, `ClimaAnalysis` will try
+to use `Unitful` to parse it. If successful, `OutputVar` can be directly
+converted to other compatible units. For example, if `var` has units of `m/s`,
+```julia-repl
+julia> ClimaAnalysis.convert_units(var, "cm/s")
+```
+will convert to `cm/s`.
+
+Some units are not recognized by `Unitful`. Please, open an issue about that:
+we can add more units.
+
+In those cases, or when units are incompatible, you can also pass a
+`conversion_function` that specify how to transform units.
+```julia-repl
+julia> ClimaAnalysis.convert_units(var, "kg/s", conversion_function = (x) - 1000x)
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

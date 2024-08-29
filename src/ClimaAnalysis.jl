@@ -14,4 +14,7 @@ include("Visualize.jl")
 
 include("Atmos.jl")
 
+# In case we want to turn Unitful into an extension
+include("../ext/ClimaAnalysisUnitfulExt.jl")
+
 end # module ClimaAnalysis

@@ -58,7 +58,7 @@ end
     ta_max = get(simdir, short_name = "ta", reduction = "max", period = "4.0h")
     ts_max = get(simdir, short_name = "ts", reduction = "max", period = "1.0h")
 
-    @test ta_max.attributes["units"] == "K"
+    @test ClimaAnalysis.units(ta_max) == "K"
 
     @test collect(keys(ta_max.dims)) == Array(["time", "lon", "lat", "z"])
 

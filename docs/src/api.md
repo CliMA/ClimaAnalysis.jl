@@ -23,6 +23,7 @@ Var.is_z_1D
 Var.short_name
 Var.long_name
 Var.units
+Var.has_units
 Var.slice
 Var.average_lat
 Var.weighted_average_lat
@@ -53,6 +54,7 @@ Var.conventional_dim_name
 Var.dim_units
 Var.range_dim
 Var.resampled_as
+Var.convert_units
 ```
 
 ## Utilities

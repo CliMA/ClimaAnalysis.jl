@@ -5,6 +5,7 @@ import Interpolations as Intp
 import NaNStatistics: nanmean
 import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
+import Unitful: @u_str
 
 @testset "General" begin
     # Add test for short constructor
@@ -14,6 +15,32 @@ import OrderedCollections: OrderedDict
     longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
 
     @test longvar.dims["long"] == long
+
+    # Unitful
+    attribs = Dict("long_name" => "hi", "units" => "m/s")
+    dim_attributes = OrderedDict(["long" => Dict("units" => "m")])
+
+    var_with_unitful = ClimaAnalysis.OutputVar(
+        attribs,
+        Dict("long" => long),
+        dim_attributes,
+        data,
+    )
+
+    @test ClimaAnalysis.units(var_with_unitful) == "m s^-1"
+    @test var_with_unitful.attributes["units"] == u"m" / u"s"
+
+    # Unparsable unit
+    attribs = Dict("long_name" => "hi", "units" => "bob")
+    var_without_unitful = ClimaAnalysis.OutputVar(
+        attribs,
+        Dict("long" => long),
+        dim_attributes,
+        data,
+    )
+
+    @test ClimaAnalysis.units(var_without_unitful) == "bob"
+    @test var_without_unitful.attributes["units"] == "bob"
 
     # Reading directly from file
     ncpath = joinpath(@__DIR__, "topo_drag.res.nc")
@@ -583,7 +610,7 @@ end
     @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
     @test_throws BoundsError ClimaAnalysis.resampled_as(dest_var, src_var)
 
-    # BoundsError check 
+    # BoundsError check
     src_long = 90.0:120.0 |> collect
     src_lat = 45.0:90.0 |> collect
     src_data = zeros(length(src_long), length(src_lat))
@@ -607,4 +634,56 @@ end
     )
 
     @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
+end
+
+@testset "Units" begin
+    long = -180.0:180.0 |> collect
+    data = copy(long)
+
+    # Unitful
+    attribs = Dict("long_name" => "hi", "units" => "m/s")
+    dim_attributes = OrderedDict(["long" => Dict("units" => "m")])
+
+    var_with_unitful = ClimaAnalysis.OutputVar(
+        attribs,
+        Dict("long" => long),
+        dim_attributes,
+        data,
+    )
+    var_without_unitful = ClimaAnalysis.OutputVar(
+        Dict{String, Any}(),
+        Dict("long" => long),
+        dim_attributes,
+        data,
+    )
+
+    @test ClimaAnalysis.has_units(var_with_unitful)
+
+    # Convert to cm/s
+    var_unitful_in_cms = ClimaAnalysis.convert_units(var_with_unitful, "cm/s")
+
+    @test var_unitful_in_cms.data == 100 .* var_with_unitful.data
+
+    # Unparsable because of new units
+    @test_throws ErrorException ClimaAnalysis.convert_units(
+        var_with_unitful,
+        "bob",
+    )
+
+    # New units, using conversion function
+    var_notunitful = ClimaAnalysis.convert_units(
+        var_with_unitful,
+        "bob",
+        conversion_function = (data) -> 2 * data,
+    )
+
+    @test var_notunitful.data == 2 .* var_with_unitful.data
+
+    # New units parsaeble, but with conversion function
+    @test_logs (:warn, "Ignoring conversion_function, units are parseable.") ClimaAnalysis.convert_units(
+        var_with_unitful,
+        "cm/s",
+        conversion_function = (data) -> 2 * data,
+    )
+
 end

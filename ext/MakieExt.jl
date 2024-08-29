@@ -51,7 +51,7 @@ function Visualize.heatmap2D!(
     dim1 = var.dims[dim1_name]
     dim2 = var.dims[dim2_name]
 
-    units = var.attributes["units"]
+    units = ClimaAnalysis.units(var)
     short_name = var.attributes["short_name"]
     colorbar_label = "$short_name [$units]"
     dim1_units = var.dim_attributes[dim1_name]["units"]
@@ -290,7 +290,7 @@ function Visualize.line_plot1D!(
     dim_name = var.index2dim[]
     dim = var.dims[dim_name]
 
-    units = var.attributes["units"]
+    units = ClimaAnalysis.units(var)
     short_name = var.attributes["short_name"]
 
     dim_units = var.dim_attributes[dim_name]["units"]
