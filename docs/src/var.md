@@ -29,7 +29,7 @@ When possible, `ClimaAnalysis` uses
 [Unitful](https://painterqubits.github.io/Unitful.jl/stable) to handle units.
 This enables automatic unit conversion for `OutputVar`s.
 
-Consider the following example: 
+Consider the following example:
 ```julia
 import ClimaAnalysis
 values = 0:100.0 |> collect

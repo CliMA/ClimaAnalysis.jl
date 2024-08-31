@@ -88,4 +88,16 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "test_contours2D_globe_with_test_cmap2.png")
     Makie.save(output_name, fig4)
 
+    # Test with oceanmask
+    fig5 = Makie.Figure()
+
+    ClimaAnalysis.Visualize.heatmap2D_on_globe!(
+        fig5,
+        var2D,
+        mask = ClimaAnalysis.Visualize.oceanmask(),
+        more_kwargs = Dict(:mask => ClimaAnalysis.Utils.kwargs(color = :blue)),
+    )
+
+    output_name = joinpath(tmp_dir, "test_contours2D_globe_with_oceanmask.png")
+    Makie.save(output_name, fig5)
 end

@@ -94,9 +94,46 @@ In those cases, or when units are incompatible, you can also pass a
 julia> ClimaAnalysis.convert_units(var, "kg/s", conversion_function = (x) - 1000x)
 ```
 
+### Applying a land/sea mask to `GeoMakie` plots
+
+When plotting with `GeoMakie` (ie, using the `contour2D_on_globe!` and
+`heatmap2D_on_globe!` function), it is now possible to mask out a portion of the
+output. The most common use cases are to hide the ocean or the continents.
+
+To hide the ocean, you can now pass `mask = ClimaAnalysis.Visualize.oceanmask()`
+to the globe plotting functions. You can customize how the mask is plotted by
+passing the `:mask` extra keywords. For example:
+```julia
+import ClimaAnalysis.Visualize: contour2D_on_globe!, oceanmask
+import ClimaAnalysis.Utils: kwargs as ca_kwargs
+import GeoMakie
+import CairoMakie
+
+fig = CairoMakie.Figure()
+
+contour2D_on_globe!(fig,
+                    var,
+                    mask = oceanmask(),
+                    more_kwargs = Dict(:mask => ca_kwargs(color = :blue)),
+                   )
+
+CairoMakie.save("myfigure.pdf", fig)
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
+
+## New compat requirements
+
+`ClimaAnalysis` 0.5.8 drops support for versions of `GeoMakie` prior to `0.7.3`.
+This change is required to acquire land-sea mask data from `GeoMakie`. Version
+`0.7.3` specifically is also required because it fixes a precompilation bug in
+`GeoMakie`. As a result, the minimum version of `Makie` is now `0.21.5`.
+
+- `GeoMakie` >= 0.7.3
+- `Makie` >= 0.21.5
+- `CairoMakie` >= 0.12.0
 
 v0.5.7
 ------
