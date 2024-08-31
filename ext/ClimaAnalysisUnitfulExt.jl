@@ -14,6 +14,7 @@ import ClimaAnalysis: Var
 Try converting `value` to a `Uniftul` object. If unsuccessful, just return it.
 """
 function Var._maybe_convert_to_unitful(value)
+    value isa Unitful.Units && return value
     # This function in inherently type-unstable
     try
         return Unitful.uparse(value)
