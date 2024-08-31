@@ -4,6 +4,10 @@ export plot!
 
 function _constrained_cmap end
 
+function oceanmask end
+
+function landmask end
+
 function heatmap2D! end
 
 function sliced_heatmap! end

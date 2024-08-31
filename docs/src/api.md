@@ -93,6 +93,8 @@ Visualize.plot!
 ## GeoMakie
 
 ```@docs
+Visualize.oceanmask
+Visualize.landmask
 Visualize.contour2D_on_globe!
 Visualize.heatmap2D_on_globe!
 ```

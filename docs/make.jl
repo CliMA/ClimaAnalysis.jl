@@ -29,6 +29,7 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "OutputVars" => "var.md",
+        "Visualizing OutputVars" => "visualize.md",
         "APIs" => "api.md",
         "How do I?" => "howdoi.md",
     ],
