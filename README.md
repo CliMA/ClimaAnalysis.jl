@@ -7,7 +7,7 @@ ClimaAnalysis.jl
 </p>
 
 [![CI](https://github.com/CliMA/ClimaAnalysis.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/CliMA/ClimaAnalysis.jl/actions/workflows/CI.yml)
-[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://CliMA.github.io/ClimaAnalysis.jl)
+[![Docs](https://img.shields.io/badge/docs_are_here-click_me!-blue.svg)](https://clima.github.io/ClimaAnalysis.jl/dev/)
 [![codecov](https://codecov.io/gh/CliMA/ClimaAnalysis.jl/graph/badge.svg?token=tXO3LzS8v9)](https://codecov.io/gh/CliMA/ClimaAnalysis.jl)
 
 `ClimaAnalysis.jl` is a Julia library to post-process and visualize `ClimaAtmos`
