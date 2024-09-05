@@ -120,6 +120,50 @@ contour2D_on_globe!(fig,
 CairoMakie.save("myfigure.pdf", fig)
 ```
 
+## Integrating `OutputVar` with respect to longitude or latitude
+
+You can use the `integrate_lon(var)`, `integrate_lat(var)`, or `integrate_lonlat(var)`
+functions for integrating along longitude, latitude, or both respectively. The bounds of
+integration are determined by the range of the dimensions longitude and latitude in `var`.
+The unit of both longitude and latitude should be degree.
+
+If the points are equispaced, it is assumed that each point correspond to the midpoint of a
+cell which results in rectangular integration using the midpoint rule. Otherwise, the
+integration being done is rectangular integration using the left endpoints for integrating
+longitude and latitude. See the example of integrating over a sphere where the data is all
+ones to find the surface area of a sphere.
+
+```@julia integrate_lonlat
+julia> lon = collect(range(-179.5, 179.5, 360));
+
+julia> lat = collect(range(-89.5, 89.5, 180));
+
+julia> data = ones(length(lon), length(lat));
+
+julia> dims = OrderedDict(["lon" => lon, "lat" => lat]);
+
+julia> dim_attribs = OrderedDict([
+           "lon" => Dict("units" => "degrees_east"),
+           "lat" => Dict("units" => "degrees_north"),
+       ]);
+
+julia> attribs = Dict("long_name" => "f");
+
+julia> var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
+
+julia> integrated_var = integrate_lonlat(var);
+
+julia> integrated_var.dims # no dimensions since longitude and latitude are integrated out
+OrderedDict{String, Vector{Float64}}()
+
+julia> integrated_var.data # approximately 4π (the surface area of a sphere)
+0-dimensional Array{Float64, 0}:
+12.566530113084296
+
+julia> long_name(integrated_var) # updated long name to reflect the data being integrated
+"f integrated over lon (-179.5 to 179.5degrees_east) and integrated over lat (-89.5 to 89.5degrees_north)"
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

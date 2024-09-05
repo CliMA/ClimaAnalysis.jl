@@ -55,6 +55,9 @@ Var.dim_units
 Var.range_dim
 Var.resampled_as
 Var.convert_units
+Var.integrate_lonlat
+Var.integrate_lat
+Var.integrate_lon
 ```
 
 ## Utilities

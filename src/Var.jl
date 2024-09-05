@@ -7,6 +7,7 @@ import Interpolations as Intp
 import Statistics: mean
 import NaNStatistics: nanmean
 
+import ..Numerics
 import ..Utils: nearest_index, seconds_to_prettystr, squeeze
 
 export OutputVar,
@@ -30,7 +31,10 @@ export OutputVar,
     range_dim,
     resampled_as,
     has_units,
-    convert_units
+    convert_units,
+    integrate_lonlat,
+    integrate_lon,
+    integrate_lat
 
 """
     Representing an output variable
@@ -512,8 +516,8 @@ end
     operation_name,
 )
 
-Used by reducing functions to update the long name of `reduced_var` by describing the
-operation being used to reduce the data and the associated units.
+Used by reductions (e.g., average) to update the long name of `reduced_var` by describing
+the operation being used to reduce the data and the associated units.
 """
 function _update_long_name_generic!(
     reduced_var::OutputVar,
@@ -783,6 +787,103 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
         scr_var_ret_dim_attribs,
         src_resampled_data,
     )
+end
+
+"""
+    integrate_lonlat(var::OutputVar)
+
+Integrate `data` in `var` on longitude and latitude with a first-order scheme. `data` has to
+be discretized on longitude and latitude.
+
+If the points are equispaced, it is assumed that each point correspond to the midpoint of a
+cell which results in rectangular integration using the midpoint rule. Otherwise, the
+integration being done is rectangular integration using the left endpoints for integrating
+longitude and latitude. The units for longitude and latitude should be degrees.
+"""
+function integrate_lonlat(var::OutputVar)
+    var_integrate_lon = var |> integrate_lon
+    # Update long name so that we get "...integrated over lat... and integrated over lon..."
+    # instead of "...integrated over lat... integrated over lon..."
+    if haskey(var_integrate_lon.attributes, "long_name")
+        var_integrate_lon.attributes["long_name"] *= " and"
+    end
+    return var_integrate_lon |> integrate_lat
+end
+
+"""
+    integrate_lon(var::OutputVar)
+
+Integrate `data` in `var` on longitude with a first-order scheme. `data` has to be
+discretized on longitude.
+
+If the points are equispaced, it is assumed that each point correspond to the midpoint of a
+cell which results in rectangular integration using the midpoint rule. Otherwise, the
+integration being done is rectangular integration using the left endpoints. The unit for
+longitude should be degrees.
+"""
+function integrate_lon(var::OutputVar)
+    has_longitude(var) || error("var does not has longitude as a dimension")
+    lon_name = longitude_name(var)
+    return _integrate_over_angle(var, Numerics._integrate_lon, lon_name)
+end
+
+"""
+    integrate_lat(var::OutputVar)
+
+Integrate `data` in `var` on latitude with a first-order scheme. `data` has to be
+discretized on latitude.
+
+If the points are equispaced, it is assumed that each point correspond to the midpoint of a
+cell which results in rectangular integration using the midpoint rule. Otherwise, the
+integration being done is rectangular integration using the left endpoints. The unit for
+latitude should be degrees.
+"""
+function integrate_lat(var::OutputVar)
+    has_latitude(var) || error("var does not has latitude as a dimension")
+    lat_name = latitude_name(var)
+    return _integrate_over_angle(var, Numerics._integrate_lat, lat_name)
+end
+
+"""
+    _integrate_over_angle(var::OutputVar, integrate_on, angle_dim_name)
+
+Integrate `data` in `var` on `angle_dim_name` with a first-order scheme. `data` has to be
+discretized on `angle_dim_name`.
+
+`angle_dim_name` is the name of the angle that is being integrated over. `integrate_on` is a
+function that compute the integration for data over `angle_dim_name`.
+"""
+function _integrate_over_angle(var::OutputVar, integrate_on, angle_dim_name)
+    # Enforce constraint that unit is degree because we compute integration weights assuming
+    # degrees (see functions _integration_weights_lon_left and
+    # _integration_weights_lon_equispaced for examples in Numerics.jl)
+    deg_unit_names = [
+        "degrees",
+        "degree",
+        "deg",
+        "degs",
+        "°",
+        "degrees_north",
+        "degrees_east",
+    ]
+    angle_dim_unit = dim_units(var, angle_dim_name)
+    lowercase(angle_dim_unit) in deg_unit_names ||
+        error("The unit for $angle_dim_name is missing or is not degree")
+
+    integrated_var = _reduce_over(
+        integrate_on,
+        angle_dim_name,
+        var,
+        var.dims[angle_dim_name],
+    )
+
+    _update_long_name_generic!(
+        integrated_var,
+        var,
+        angle_dim_name,
+        "integrated",
+    )
+    return integrated_var
 end
 
 """

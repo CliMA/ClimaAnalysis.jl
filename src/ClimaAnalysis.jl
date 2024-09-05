@@ -4,6 +4,8 @@ import Reexport: @reexport
 include("Utils.jl")
 import .Utils
 
+include("Numerics.jl")
+
 include("Var.jl")
 @reexport using .Var
 include("Sim.jl")
