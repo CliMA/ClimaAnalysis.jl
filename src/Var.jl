@@ -306,7 +306,7 @@ function Base.copy(var::OutputVar)
 end
 
 """
-    _reduce_over(reduction::F, dim::String, var::OutputVar)
+    _reduce_over(reduction::F, dim::String, var::OutputVar, args...; kwargs...)
 
 Apply the given reduction over the given dimension.
 
@@ -340,7 +340,10 @@ function _reduce_over(
     dim_index = var.dim2index[dim]
 
     # squeeze removes the unnecessary singleton dimension
-    data = squeeze(reduction(var.data, dims = dim_index), dims = (dim_index,))
+    data = squeeze(
+        reduction(var.data, args..., dims = dim_index, kwargs...),
+        dims = (dim_index,),
+    )
 
     # If we reduce over a dimension, we have to remove it
     dims = copy(var.dims)
