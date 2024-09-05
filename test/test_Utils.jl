@@ -95,3 +95,11 @@ end
 
     @test Utils.split_by_season(dates) == expected_dates
 end
+
+@testset "equispaced" begin
+    equispaced = Utils._isequispaced([1.0, 2.0, 3.0])
+    @test equispaced == true
+
+    equispaced = Utils._isequispaced([0.0, 2.0, 3.0])
+    @test equispaced == false
+end

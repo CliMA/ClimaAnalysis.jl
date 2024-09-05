@@ -296,4 +296,24 @@ function split_by_season(dates::AbstractArray{<:Dates.DateTime})
     return (MAM, JJA, SON, DJF)
 end
 
+"""
+    _isequispaced(arr::Vector)
+
+Return whether the array is equispaced or not.
+
+Examples
+=========
+
+```jldoctest
+julia> Utils._isequispaced([1.0, 2.0, 3.0])
+true
+
+julia> Utils._isequispaced([0.0, 2.0, 3.0])
+false
+```
+"""
+function _isequispaced(arr::Vector)
+    return all(diff(arr) .≈ arr[begin + 1] - arr[begin])
+end
+
 end

@@ -687,3 +687,137 @@ end
     )
 
 end
+
+@testset "Integrating on lat and lon" begin
+    # Tests for integrate_lon
+    lon = collect(range(-179.5, 179.5, 360))
+    lon_data = ones(length(lon))
+    lon_dims = OrderedDict(["lon" => lon])
+    lon_attribs = Dict("long_name" => "hi")
+    lon_dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(
+        lon_attribs,
+        lon_dims,
+        lon_dim_attribs,
+        lon_data,
+    )
+    var_integrated_lon = ClimaAnalysis.Var.integrate_lon(var)
+
+    @test isapprox(var_integrated_lon.data[1], 2.0 * π, atol = 0.01)
+    @test var_integrated_lon.dims == OrderedDict()
+    @test var_integrated_lon.dim_attributes == OrderedDict()
+    @test "hi integrated over lon (-179.5 to 179.5deg)" ==
+          var_integrated_lon.attributes["long_name"]
+    @test_throws "var does not has latitude as a dimension" ClimaAnalysis.Var.integrate_lat(
+        var,
+    )
+
+    # Tests for integrate_lat
+    lat = collect(range(-89.5, 89.5, 180))
+    lat_data = ones(length(lat))
+    lat_dims = OrderedDict(["lat" => lat])
+    lat_attribs = Dict("long_name" => "hi")
+    lat_dim_attribs = OrderedDict(["lat" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(
+        lat_attribs,
+        lat_dims,
+        lat_dim_attribs,
+        lat_data,
+    )
+    var_integrated_lat = ClimaAnalysis.Var.integrate_lat(var)
+
+    @test isapprox(var_integrated_lat.data[1], 2.0, atol = 0.01)
+    @test var_integrated_lat.dims == OrderedDict()
+    @test var_integrated_lat.dim_attributes == OrderedDict()
+    @test "hi integrated over lat (-89.5 to 89.5deg)" ==
+          var_integrated_lat.attributes["long_name"]
+    @test_throws "var does not has longitude as a dimension" ClimaAnalysis.Var.integrate_lon(
+        var,
+    )
+
+    # Unit checking
+    dim_attribs_no_units = OrderedDict([
+        "lon" => Dict("units" => ""),
+        "lat" => Dict("units" => ""),
+    ])
+    var_lon_no_units = ClimaAnalysis.OutputVar(
+        lon_attribs,
+        lon_dims,
+        dim_attribs_no_units,
+        lon_data,
+    )
+    @test_throws ErrorException ClimaAnalysis.Var.integrate_lon(
+        var_lon_no_units,
+    )
+
+    var_lat_no_units = ClimaAnalysis.OutputVar(
+        lat_attribs,
+        lat_dims,
+        dim_attribs_no_units,
+        lat_data,
+    )
+    @test_throws ErrorException ClimaAnalysis.Var.integrate_lat(
+        var_lat_no_units,
+    )
+end
+
+@testset "Integrating on sphere" begin
+    # Integrate out all dimensions (lat and lon) from OutputVar
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    integrated_var = ClimaAnalysis.Var.integrate_lonlat(var)
+    @test isapprox(integrated_var.data[1], 4 * π, atol = 0.1)
+    @test integrated_var.dims == OrderedDict()
+    @test integrated_var.dim_attributes == OrderedDict()
+
+    # Integrating out lon and lat to get time series data
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    time = collect(range(0.0, 10.0, 10))
+    data = ones(length(lat), length(time), length(lon))
+    dims = OrderedDict(["lat" => lat, "time" => time, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "days"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    integrated_var = ClimaAnalysis.Var.integrate_lonlat(var)
+
+    @test all(
+        isapprox.(integrated_var.data, [4 * π for _ in 1:10], atol = 0.01),
+    )
+    @test integrated_var.dims == OrderedDict(["time" => time])
+    @test integrated_var.dim_attributes ==
+          OrderedDict(["time" => Dict("units" => "days")])
+    @test "hi integrated over lon (-179.5 to 179.5deg) and integrated over lat (-89.5 to 89.5deg)" ==
+          integrated_var.attributes["long_name"]
+
+    # Unit checking
+    dim_attribs_no_lon = OrderedDict([
+        "time" => Dict("units" => "days"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs_no_lon, data)
+    @test_throws "The unit for lon is missing or is not degree" ClimaAnalysis.Var.integrate_lonlat(
+        var,
+    )
+
+    dim_attribs_no_lat = OrderedDict([
+        "time" => Dict("units" => "days"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs_no_lat, data)
+    @test_throws "The unit for lat is missing or is not degree" ClimaAnalysis.Var.integrate_lonlat(
+        var,
+    )
+end
