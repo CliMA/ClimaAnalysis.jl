@@ -388,7 +388,7 @@ function average_lat(var; ignore_nan = true, weighted = false)
     weighted &&
         haskey(var.attributes, "long_name") &&
         (reduced_var.attributes["long_name"] *= " weighted")
-    _update_long_name_average!(reduced_var, var, latitude_name(var))
+    _update_long_name_generic!(reduced_var, var, latitude_name(var), "averaged")
 
 
     return reduced_var
@@ -412,7 +412,12 @@ Return a new OutputVar where the values on the longitudes are averaged arithmeti
 function average_lon(var; ignore_nan = true)
     reduced_var =
         _reduce_over(ignore_nan ? nanmean : mean, longitude_name(var), var)
-    _update_long_name_average!(reduced_var, var, longitude_name(var))
+    _update_long_name_generic!(
+        reduced_var,
+        var,
+        longitude_name(var),
+        "averaged",
+    )
     return reduced_var
 end
 
@@ -423,7 +428,7 @@ Return a new OutputVar where the values along the `x` dimension are averaged ari
 """
 function average_x(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "x", var)
-    _update_long_name_average!(reduced_var, var, "x")
+    _update_long_name_generic!(reduced_var, var, "x", "averaged")
     return reduced_var
 end
 
@@ -434,7 +439,7 @@ Return a new OutputVar where the values along the `y` dimension are averaged ari
 """
 function average_y(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "y", var)
-    _update_long_name_average!(reduced_var, var, "y")
+    _update_long_name_generic!(reduced_var, var, "y", "averaged")
     return reduced_var
 end
 
@@ -466,7 +471,7 @@ Return a new OutputVar where the values are averaged arithmetically in time.
 """
 function average_time(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, time_name(var), var)
-    _update_long_name_average!(reduced_var, var, time_name(var))
+    _update_long_name_generic!(reduced_var, var, time_name(var), "averaged")
     return reduced_var
 end
 
@@ -500,21 +505,27 @@ function range_dim(var::OutputVar, dim_name)
 end
 
 """
-    _update_long_name_average!(reduced_var::OutputVar, var::OutputVar, dim_name)
-
-Used by averaging functions to update the long name of `reduced_var` by describing what the
-average is being taken over and the associated units.
-"""
-function _update_long_name_average!(
+    _update_long_name_generic!(
     reduced_var::OutputVar,
     var::OutputVar,
     dim_name,
+    operation_name,
+)
+
+Used by reducing functions to update the long name of `reduced_var` by describing the
+operation being used to reduce the data and the associated units.
+"""
+function _update_long_name_generic!(
+    reduced_var::OutputVar,
+    var::OutputVar,
+    dim_name,
+    operation_name,
 )
     dim_of_units = dim_units(var, dim_name)
     first_elt, last_elt = range_dim(var, dim_name)
 
     if haskey(var.attributes, "long_name")
-        reduced_var.attributes["long_name"] *= " averaged over $dim_name ($first_elt to $last_elt$dim_of_units)"
+        reduced_var.attributes["long_name"] *= " $operation_name over $dim_name ($first_elt to $last_elt$dim_of_units)"
     end
     return nothing
 end
