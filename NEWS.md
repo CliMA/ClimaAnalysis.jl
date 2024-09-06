@@ -120,7 +120,7 @@ contour2D_on_globe!(fig,
 CairoMakie.save("myfigure.pdf", fig)
 ```
 
-## Integrating `OutputVar` with respect to longitude or latitude
+### Integrating `OutputVar` with respect to longitude or latitude
 
 You can use the `integrate_lon(var)`, `integrate_lat(var)`, or `integrate_lonlat(var)`
 functions for integrating along longitude, latitude, or both respectively. The bounds of
