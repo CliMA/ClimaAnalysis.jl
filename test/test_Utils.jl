@@ -103,3 +103,16 @@ end
     equispaced = Utils._isequispaced([0.0, 2.0, 3.0])
     @test equispaced == false
 end
+
+@testset "data_at_dim_vals" begin
+    data = [[1, 2, 3] [4, 5, 6] [7, 8, 9]]
+    dim_arr = [2.0, 3.0, 4.0]
+    dim_idx = 2
+
+    @test Utils._data_at_dim_vals(data, dim_arr, dim_idx, []) ==
+          reshape([], 3, 0)
+    @test Utils._data_at_dim_vals(data, dim_arr, dim_idx, [2.1]) ==
+          reshape([1; 2; 3], 3, 1)
+    @test Utils._data_at_dim_vals(data, dim_arr, dim_idx, [2.1, 2.9, 4.0]) ==
+          data
+end
