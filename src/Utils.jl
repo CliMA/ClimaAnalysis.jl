@@ -316,4 +316,34 @@ function _isequispaced(arr::Vector)
     return all(diff(arr) .≈ arr[begin + 1] - arr[begin])
 end
 
+"""
+    _data_at_dim_vals(data, dim_arr, dim_idx, vals)
+
+Return a view of `data` by slicing along `dim_idx`. The slices are indexed by the indices
+corresponding to values in `dim_arr` closest to the values in `vals`.
+
+Examples
+=========
+
+```jldoctest
+julia> data = [[1, 4, 7]  [2, 5, 8]  [3, 6, 9]];
+
+julia> dim_arr = [1.0, 2.0, 4.0];
+
+julia> dim_idx = 2;
+
+julia> vals = [1.1, 4.0];
+
+julia> Utils._data_at_dim_vals(data, dim_arr, dim_idx, vals)
+3×2 view(::Matrix{Int64}, :, [1, 3]) with eltype Int64:
+ 1  3
+ 4  6
+ 7  9
+```
+"""
+function _data_at_dim_vals(data, dim_arr, dim_idx, vals)
+    nearest_indices = map(val -> nearest_index(dim_arr, val), vals)
+    return selectdim(data, dim_idx, nearest_indices)
+end
+
 end
