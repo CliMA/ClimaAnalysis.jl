@@ -1,12 +1,7 @@
 module Utils
 
 export match_nc_filename,
-    squeeze,
-    nearest_index,
-    kwargs,
-    seconds_to_prettystr,
-    warp_string,
-    split_by_season
+    squeeze, nearest_index, kwargs, seconds_to_prettystr, warp_string
 
 import Dates
 
