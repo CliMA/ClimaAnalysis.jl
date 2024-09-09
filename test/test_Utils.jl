@@ -104,6 +104,36 @@ end
     @test equispaced == false
 end
 
+@testset "Date and time conversion" begin
+    reference_date = Dates.DateTime(2013, 7, 1, 12)
+    date_one_day = Dates.DateTime(2013, 7, 2, 12)
+    date_one_hour = Dates.DateTime(2013, 7, 1, 13)
+    date_one_min = Dates.DateTime(2013, 7, 1, 12, 1)
+    date_one_sec = Dates.DateTime(2013, 7, 1, 12, 0, 1)
+
+    # Test time_to_date
+    @test Utils.time_to_date(reference_date, 86400.0) == date_one_day
+    @test Utils.time_to_date(reference_date, 3600.0) == date_one_hour
+    @test Utils.time_to_date(reference_date, 60.0) == date_one_min
+    @test Utils.time_to_date(reference_date, 1.0) == date_one_sec
+
+    # Test date_to_time
+    @test Utils.date_to_time(reference_date, date_one_day) == 86400.0
+    @test Utils.date_to_time(reference_date, date_one_hour) == 3600.0
+    @test Utils.date_to_time(reference_date, date_one_min) == 60.0
+    @test Utils.date_to_time(reference_date, date_one_sec) == 1.0
+
+    # Test period_to_seconds_float
+    @test Utils.period_to_seconds_float(Dates.Millisecond(1)) == 0.001
+    @test Utils.period_to_seconds_float(Dates.Second(1)) == 1.0
+    @test Utils.period_to_seconds_float(Dates.Minute(1)) == 60.0
+    @test Utils.period_to_seconds_float(Dates.Hour(1)) == 3600.0
+    @test Utils.period_to_seconds_float(Dates.Day(1)) == 86400.0
+    @test Utils.period_to_seconds_float(Dates.Week(1)) == 604800.0
+    @test Utils.period_to_seconds_float(Dates.Month(1)) == 2.629746e6
+    @test Utils.period_to_seconds_float(Dates.Year(1)) == 3.1556952e7
+end
+
 @testset "data_at_dim_vals" begin
     data = [[1, 2, 3] [4, 5, 6] [7, 8, 9]]
     dim_arr = [2.0, 3.0, 4.0]

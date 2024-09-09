@@ -317,6 +317,111 @@ function _isequispaced(arr::Vector)
 end
 
 """
+    time_to_date(start_date::Dates.DateTime, time::AbstractFloat)
+
+Convert the given time to a calendar date starting from `start_date`.
+
+Examples
+=========
+
+```jldoctest
+julia> import Dates
+
+julia> Utils.time_to_date(Dates.DateTime(2013, 7, 1, 12), 86400.0)
+2013-07-02T12:00:00
+
+julia> Utils.time_to_date(Dates.DateTime(2013, 7, 1, 12), 3600.0)
+2013-07-01T13:00:00
+
+julia> Utils.time_to_date(Dates.DateTime(2013, 7, 1, 12), 60.0)
+2013-07-01T12:01:00
+
+julia> Utils.time_to_date(Dates.DateTime(2013, 7, 1, 12), 1.0)
+2013-07-01T12:00:01
+```
+"""
+function time_to_date(start_date::Dates.DateTime, time::AbstractFloat)
+    # We go through milliseconds to allow fractions of a second (otherwise, Second(0.8)
+    # would fail). Milliseconds is the level of resolution that one gets when taking the
+    # difference between two DateTimes. In addition to this, we add a round to account for
+    # floating point errors. If the floating point error is small enough, round will correct
+    # it.
+    milliseconds = Dates.Millisecond.(round.(1_000 * time))
+    return start_date + milliseconds
+end
+
+"""
+    date_to_time(reference_date::Dates.DateTime, date::Dates.DateTime)
+
+Convert the given calendar date to a time (in seconds) where t=0 is `reference_date`.
+
+Examples
+=========
+
+```jldoctest
+julia> import Dates
+
+julia> Utils.date_to_time(Dates.DateTime(2013, 7, 1, 12), Dates.DateTime(2013, 7, 2, 12))
+86400.0
+
+julia> Utils.date_to_time(Dates.DateTime(2013, 7, 1, 12), Dates.DateTime(2013, 7, 1, 13))
+3600.0
+
+julia> Utils.date_to_time(Dates.DateTime(2013, 7, 1, 12), Dates.DateTime(2013, 7, 1, 12, 1))
+60.0
+
+julia> Utils.date_to_time(Dates.DateTime(2013, 7, 1, 12), Dates.DateTime(2013, 7, 1, 12, 0, 1))
+1.0
+```
+"""
+function date_to_time(reference_date::Dates.DateTime, date::Dates.DateTime)
+    return period_to_seconds_float(date - reference_date)
+end
+
+"""
+    period_to_seconds_float(period::Dates.Period)
+
+Convert the given `period` to seconds in Float64.
+
+Examples
+=========
+
+```jldoctest
+julia> import Dates
+
+julia> Utils.period_to_seconds_float(Dates.Millisecond(1))
+0.001
+
+julia> Utils.period_to_seconds_float(Dates.Second(1))
+1.0
+
+julia> Utils.period_to_seconds_float(Dates.Minute(1))
+60.0
+
+julia> Utils.period_to_seconds_float(Dates.Hour(1))
+3600.0
+
+julia> Utils.period_to_seconds_float(Dates.Day(1))
+86400.0
+
+julia> Utils.period_to_seconds_float(Dates.Week(1))
+604800.0
+
+julia> Utils.period_to_seconds_float(Dates.Month(1))
+2.629746e6
+
+julia> Utils.period_to_seconds_float(Dates.Year(1))
+3.1556952e7
+```
+"""
+function period_to_seconds_float(period::Dates.Period)
+    # See https://github.com/JuliaLang/julia/issues/55406
+    period isa Dates.OtherPeriod &&
+        (period = Dates.Second(Dates.Day(1)) * Dates.days(period))
+    return period / Dates.Second(1)
+end
+
+"""
     _data_at_dim_vals(data, dim_arr, dim_idx, vals)
 
 Return a view of `data` by slicing along `dim_idx`. The slices are indexed by the indices
