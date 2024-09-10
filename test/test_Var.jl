@@ -85,6 +85,26 @@ import Unitful: @u_str
     )
 end
 
+@testset "empty" begin
+    dims = OrderedDict{String, Vector{Float64}}()
+    data = Float64[]
+    empty_var = ClimaAnalysis.OutputVar(dims, data)
+    @test ClimaAnalysis.isempty(empty_var)
+
+    dims = OrderedDict{String, Vector{Float64}}()
+    data = fill(1.0)
+    empty_var = ClimaAnalysis.OutputVar(dims, data)
+    @test !ClimaAnalysis.isempty(empty_var)
+
+    long = 0.0:180.0 |> collect
+    dims = OrderedDict(["long" => long])
+    data = ones(size(long))
+    dim_attributes = OrderedDict(["lon" => Dict("b" => 2)])
+    attribs = Dict("short_name" => "bob", "long_name" => "hi")
+    not_empty_var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+    @test !ClimaAnalysis.isempty(not_empty_var)
+end
+
 @testset "Arithmetic operations" begin
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect

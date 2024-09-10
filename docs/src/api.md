@@ -20,6 +20,7 @@ Sim.available_periods
 Var.OutputVar
 Var.read_var
 Var.is_z_1D
+Base.isempty(var::OutputVar)
 Var.short_name
 Var.long_name
 Var.units
