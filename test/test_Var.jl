@@ -154,6 +154,13 @@ end
     @test var1plusvar3.data == data1 .+ data3
     @test ClimaAnalysis.short_name(var1plusvar3) == "bob + bula"
     @test ClimaAnalysis.long_name(var1plusvar3) == "hi + bob"
+
+    # Test for element wise multiplication and division between OutputVars
+    var_times = var1 * var3
+    @test var_times.data == var1.data .* var3.data
+
+    var_divide = var1 / var3
+    @test var_divide.data == var1.data ./ var3.data
 end
 
 @testset "Reductions (sphere dims)" begin
