@@ -142,12 +142,14 @@ end
     @test var1plus10.data == data1 .+ 10
     @test ClimaAnalysis.short_name(var1plus10) == "bob + 10"
     @test ClimaAnalysis.long_name(var1plus10) == "hi + 10"
+    @test var1plus10((0.0, 0.0, 0.0)) == var1((0.0, 0.0, 0.0)) + 10
 
     tenplusvar1 = 10 + var1
 
     @test tenplusvar1.data == data1 .+ 10
     @test ClimaAnalysis.short_name(tenplusvar1) == "10 + bob"
     @test ClimaAnalysis.long_name(tenplusvar1) == "10 + hi"
+    @test tenplusvar1((0.0, 0.0, 0.0)) == 10 + var1((0.0, 0.0, 0.0))
 
     var1plusvar3 = var1 + var3
 

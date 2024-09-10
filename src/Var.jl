@@ -1007,36 +1007,52 @@ macro overload_binary_op(op)
             )
         end
         function Base.$op(x::OutputVar, y::Real)
-            ret_var = copy(x)
-            @. ret_var.data = $op(x.data, y)
-            empty!(ret_var.attributes)
+            ret_attributes = empty(x.attributes)
 
             specific_attributes = ("short_name", "long_name")
 
             for attr in specific_attributes
                 if haskey(x.attributes, attr)
-                    ret_var.attributes[attr] =
+                    ret_attributes[attr] =
                         string(x.attributes[attr], " ", string($op), " ", y)
                 end
             end
 
-            return ret_var
+            ret_dims = deepcopy(x.dims)
+            ret_dim_attributes = deepcopy(x.dim_attributes)
+
+            ret_data = @. $op(x.data, y)
+
+            return OutputVar(
+                ret_attributes,
+                ret_dims,
+                ret_dim_attributes,
+                ret_data,
+            )
         end
         function Base.$op(x::Real, y::OutputVar)
-            ret_var = copy(y)
-            @. ret_var.data = $op(x, y.data)
-            empty!(ret_var.attributes)
+            ret_attributes = empty(y.attributes)
 
             specific_attributes = ("short_name", "long_name")
 
             for attr in specific_attributes
                 if haskey(y.attributes, attr)
-                    ret_var.attributes[attr] =
+                    ret_attributes[attr] =
                         string(x, " ", string($op), " ", y.attributes[attr])
                 end
             end
 
-            return ret_var
+            ret_dims = deepcopy(y.dims)
+            ret_dim_attributes = deepcopy(y.dim_attributes)
+
+            ret_data = @. $op(x, y.data)
+
+            return OutputVar(
+                ret_attributes,
+                ret_dims,
+                ret_dim_attributes,
+                ret_data,
+            )
         end
     end
 end
