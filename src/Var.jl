@@ -997,7 +997,7 @@ macro overload_binary_op(op)
             ret_dims = x.dims
             ret_dim_attributes = x.dim_attributes
 
-            ret_data = $op(x.data, y.data)
+            ret_data = @. $op(x.data, y.data)
 
             return OutputVar(
                 ret_attributes,
