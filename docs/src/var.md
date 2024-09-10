@@ -100,3 +100,43 @@ julia> integrated_var.data # approximately 4π (the surface area of a sphere)
 julia> long_name(integrated_var) # updated long name to reflect the data being integrated
 "f integrated over lon (-179.5 to 179.5degrees_east) and integrated over lat (-89.5 to 89.5degrees_north)"
 ```
+
+## Split by season
+`OutputVar`s can be split by seasons using `split_by_season(var)` provided that a start date
+can be found in `var.attributes["start_date"]` and time is a dimension in the `OutputVar`.
+The unit of time is expected to be second. The function `split_by_season(var)` returns a
+vector of four `OutputVar`s with each `OutputVar` corresponding to a season. The months of
+the seasons are March to May, June to August, September to November, and December to
+February. The order of the vector is MAM, JJA, SON, and DJF. If there are no dates found for
+a season, then the `OutputVar` for that season will be an empty `OutputVar`.
+
+```@julia split_by_season
+julia> attribs = Dict("start_date" => "2024-1-1");
+
+julia> time = [0.0, 5_184_000.0, 13_132_800.0]; # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+
+julia> dims = OrderedDict(["time" => time]);
+
+julia> dim_attribs = OrderedDict(["time" => Dict("units" => "s")]); # unit is second
+
+julia> data = [1.0, 2.0, 3.0];
+
+julia> var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
+
+julia> MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
+
+julia> ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
+true
+
+julia> [MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
+3-element Vector{Vector{Float64}}:
+ [5.184e6]
+ [1.31328e7]
+ [0.0]
+
+julia> [MAM.data, JJA.data, DJF.data]
+3-element Vector{Vector{Float64}}:
+ [2.0]
+ [3.0]
+ [1.0]
+```

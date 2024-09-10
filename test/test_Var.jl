@@ -841,3 +841,66 @@ end
         var,
     )
 end
+
+@testset "split_by_season" begin
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    time = [0.0]
+    push!(time, 5_184_000.0) # correspond to 2024-3-1
+    push!(time, 5_184_001.0)
+    push!(time, 13_132_800.0) # correspond to 2024-6-1
+    push!(time, 13_132_802.0)
+    push!(time, 13_132_803.0)
+    data = ones(length(lat), length(time), length(lon))
+    dims = OrderedDict(["lat" => lat, "time" => time, "lon" => lon])
+    attribs = Dict("long_name" => "hi", "start_date" => "2024-1-1")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "s"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var)
+
+    # Check size of data
+    @test size(MAM.data) == (length(lat), 2, length(lon))
+    @test size(JJA.data) == (length(lat), 3, length(lon))
+    @test size(SON.data) == (0,)
+    @test size(DJF.data) == (length(lat), 1, length(lon))
+
+    # Check times are correct in OutputVars
+    @test MAM.dims["time"] == [5_184_000.0, 5_184_001.0]
+    @test JJA.dims["time"] == [13_132_800.0, 13_132_802.0, 13_132_803.0]
+    @test DJF.dims["time"] == [0.0]
+
+    # Check start date
+    MAM.attributes["start_date"] == "2024-1-1"
+    JJA.attributes["start_date"] == "2024-1-1"
+    DJF.attributes["start_date"] == "2024-1-1"
+
+    # Check empty OutputVar
+    @test isempty(SON)
+
+    # Check error handling
+    attribs_no_start_date = Dict("long_name" => "hi")
+    var =
+        ClimaAnalysis.OutputVar(attribs_no_start_date, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.split_by_season(var)
+
+    dim_attribs_no_sec = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "min"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs_no_sec, data)
+    @test_throws ErrorException ClimaAnalysis.split_by_season(var)
+
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lon))
+    dims = OrderedDict(["lon" => lon])
+    attribs = Dict("long_name" => "hi", "start_date" => "2024-1-1")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.split_by_season(var)
+end
