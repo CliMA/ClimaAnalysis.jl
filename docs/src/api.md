@@ -59,6 +59,7 @@ Var.convert_units
 Var.integrate_lonlat
 Var.integrate_lat
 Var.integrate_lon
+Var.split_by_season(var::OutputVar)
 ```
 
 ## Utilities

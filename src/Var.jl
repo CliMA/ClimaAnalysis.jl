@@ -1,5 +1,6 @@
 module Var
 
+import Dates
 import NCDatasets
 import OrderedCollections: OrderedDict
 
@@ -8,7 +9,14 @@ import Statistics: mean
 import NaNStatistics: nanmean
 
 import ..Numerics
-import ..Utils: nearest_index, seconds_to_prettystr, squeeze
+import ..Utils:
+    nearest_index,
+    seconds_to_prettystr,
+    squeeze,
+    split_by_season,
+    time_to_date,
+    date_to_time,
+    _data_at_dim_vals
 
 export OutputVar,
     read_var,
@@ -35,7 +43,8 @@ export OutputVar,
     integrate_lonlat,
     integrate_lon,
     integrate_lat,
-    isempty
+    isempty,
+    split_by_season
 
 """
     Representing an output variable
@@ -899,6 +908,62 @@ function _integrate_over_angle(var::OutputVar, integrate_on, angle_dim_name)
         "integrated",
     )
     return integrated_var
+end
+
+
+"""
+    split_by_season(var::OutputVar)
+
+Return a vector of four `OutputVar`s split by season.
+
+The months of the seasons are March to May, June to August, September to November, and
+December to February. The order of the vector is MAM, JJA, SON, and DJF. If there are no
+dates found for a season, then the `OutputVar` for that season will be an empty `OutputVar`.
+
+The function will use the start date in `var.attributes["start_date"]`. The unit of time is
+expected to be second. Also, the interpolations will be inaccurate in time intervals
+outside of their respective season for the returned `OutputVar`s.
+"""
+function split_by_season(var::OutputVar)
+    # Check time exists and unit is second
+    has_time(var) || error("Time is not a dimension in var")
+    dim_units(var, time_name(var)) == "s" ||
+        error("Unit for time is not second")
+
+    # Check start date exists
+    haskey(var.attributes, "start_date") ?
+    start_date = Dates.DateTime(var.attributes["start_date"]) :
+    error("Start date is not found in var")
+
+    season_dates = split_by_season(time_to_date.(start_date, times(var)))
+    season_times =
+        (date_to_time.(start_date, season) for season in season_dates)
+
+    # Split data according to seasons
+    season_data = (
+        collect(
+            _data_at_dim_vals(
+                var.data,
+                times(var),
+                var.dim2index[time_name(var)],
+                season_time,
+            ),
+        ) for season_time in season_times
+    )
+
+    # Construct an OutputVar for each season
+    return map(season_times, season_data) do time, data
+        if isempty(time)
+            dims = empty(var.dims)
+            data = similar(var.data, 0)
+            return OutputVar(dims, data)
+        end
+        ret_dims = deepcopy(var.dims)
+        ret_attribs = deepcopy(var.attributes)
+        ret_dim_attribs = deepcopy(var.dim_attributes)
+        ret_dims[time_name(var)] = time
+        OutputVar(ret_attribs, ret_dims, ret_dim_attribs, data)
+    end
 end
 
 """
