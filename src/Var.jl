@@ -34,7 +34,8 @@ export OutputVar,
     convert_units,
     integrate_lonlat,
     integrate_lon,
-    integrate_lat
+    integrate_lat,
+    isempty
 
 """
     Representing an output variable
@@ -300,6 +301,20 @@ function is_z_1D(var::OutputVar)
     has_altitude(var) || error("Variable does not have an altitude dimension")
 
     return length(size(altitudes(var))) == 1
+end
+
+"""
+    isempty(var::OutputVar)
+
+Determine whether an OutputVar is empty.
+"""
+function Base.isempty(var::OutputVar)
+    # Do not include :interpolant because var.interpolant is Nothing if data is
+    # zero dimensional and empty and isempty(Nothing) throws an error
+    return map(
+        fieldname -> isempty(getproperty(var, fieldname)),
+        filter(x -> x != :interpolant, fieldnames(OutputVar)),
+    ) |> all
 end
 
 function Base.copy(var::OutputVar)
