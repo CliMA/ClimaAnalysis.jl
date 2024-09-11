@@ -44,7 +44,12 @@ export OutputVar,
     integrate_lon,
     integrate_lat,
     isempty,
-    split_by_season
+    split_by_season,
+    bias,
+    global_bias,
+    squared_error,
+    global_mse,
+    global_rmse
 
 """
     Representing an output variable
@@ -966,6 +971,215 @@ function split_by_season(var::OutputVar)
     end
 end
 
+"""
+    _check_sim_obs_units_consistent(sim::OutputVar, obs::OutputVar)
+
+Check if the number of dimensions are two, the `data` in `sim` and `obs` is missing units or
+not, and if the units of data are the same in `sim` and `obs`.
+
+This function does not check if the dimensions are longitude and latitude in `sim` and `obs`
+because `integrate_lonlat` (in `bias` and `squared_error`) handles that. The function also
+does not check if the units of dimensions in `sim` and `obs` are the same because
+`resampled_as` (in `bias` and `squared_error`) handles that.
+"""
+function _check_sim_obs_units_consistent(sim::OutputVar, obs::OutputVar)
+    # Check number of dimensions
+    sim_num_dims = length(sim.dims)
+    obs_num_dims = length(obs.dims)
+    ((sim_num_dims != 2) || (obs_num_dims != 2)) && error(
+        "There are not only two dimensions in sim ($sim_num_dims) or obs ($obs_num_dims).",
+    )
+
+    # Check units for data is not missing
+    sim_data_units = units(sim)
+    obs_data_units = units(obs)
+    sim_data_units == "" && error("Unit is missing in data for sim")
+    obs_data_units == "" && error("Unit is missing in data for obs")
+
+    # Check if units of data match between sim and obs
+    sim_data_units == obs_data_units || error(
+        "Units do not match between the data in sim ($sim_data_units) and obs ($obs_data_units)",
+    )
+    return nothing
+end
+
+"""
+    bias(sim::OutputVar, obs::OutputVar)
+
+Return a `OutputVar` whose data is the bias (`sim.data - obs.data`) and compute the global
+bias of `data` in `sim` and `obs` over longitude and latitude. The result is stored in
+`var.attributes["global_bias"]`.
+
+This function is currently implemented for `OutputVar`s with only the dimensions longitude
+and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
+for longitude and latitude should be degrees. Resampling is done automatically by resampling
+`obs` on `sim`. Attributes in `sim` and `obs` will be thrown away. The long name and short
+name of the returned `OutputVar` will be updated to reflect that a bias is computed.
+
+See also [`global_bias`](@ref), [`squared_error`](@ref), [`global_mse`](@ref),
+[`global_rmse`](@ref).
+"""
+function bias(sim::OutputVar, obs::OutputVar)
+    _check_sim_obs_units_consistent(sim, obs)
+
+    # Resample obs on sim to ensure the size of data in sim and obs are the same and the
+    # dims are the same
+    obs_resampled = resampled_as(obs, sim)
+
+    # Compute bias
+    bias = sim - obs_resampled
+
+    # Do this because we do not want to store global bias as a string and unit could be Unitful
+    ret_attributes = Dict{keytype(bias.attributes), Any}(bias.attributes)
+
+    # Add units back for bias
+    ret_attributes["units"] = units(sim)
+
+    # Add short and long name
+    ret_attributes["short_name"] = "sim-obs"
+    ret_attributes["long_name"] = "SIM - OBS"
+    if !isempty(short_name(sim))
+        ret_attributes["short_name"] *= "_" * short_name(sim)
+        ret_attributes["long_name"] *= " " * short_name(sim)
+    end
+
+    # Compute global bias and store it as an attribute
+    integrated_bias = integrate_lonlat(bias).data
+    normalization =
+        integrate_lonlat(
+            OutputVar(
+                bias.attributes,
+                bias.dims,
+                bias.dim_attributes,
+                ones(size(bias.data)),
+            ),
+        ).data
+    # Do ./ instead of / because we are dividing between zero dimensional arrays
+    global_bias = integrated_bias ./ normalization
+    ret_attributes["global_bias"] = global_bias
+    return OutputVar(ret_attributes, bias.dims, bias.dim_attributes, bias.data)
+end
+
+"""
+    global_bias(sim::OutputVar, obs::OutputVar)
+
+Return the global bias of `data` in `sim` and `obs` over longitude and latitude.
+
+This function is currently only implemented for `OutputVar`s with only the dimensions
+longitude and latitude. Units must be supplied for data and dimensions in `sim` and `obs`.
+The units for longitude and latitude should be degrees. Resampling is done automatically by
+resampling `obs` on `sim`.
+
+See also [`bias`](@ref), [`squared_error`](@ref), [`global_mse`](@ref),
+[`global_rmse`](@ref).
+"""
+function global_bias(sim::OutputVar, obs::OutputVar)
+    bias_var = bias(sim, obs)
+    return bias_var.attributes["global_bias"]
+end
+
+"""
+    squared_error(sim::OutputVar, obs::OutputVar)
+
+Return a `OutputVar` whose data is the squared error (`(sim.data - obs.data)^2`) and compute
+the global mean squared error (MSE) and global root mean squared error (RMSE) of `data` in
+`sim` and `obs` over longitude and latitude. The result is stored in `var.attributes["mse"]`
+and `var.attributes["rmse"]`.
+
+This function is currently implemented for `OutputVar`s with only the dimensions longitude
+and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
+for longitude and latitude should be degrees. Resampling is done automatically by resampling
+`obs` on `sim`. Attributes in `sim` and `obs` will be thrown away. The long name and short
+name of the returned `OutputVar` will be updated to reflect that a squared error is computed.
+
+See also [`global_mse`](@ref), [`global_rmse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
+"""
+function squared_error(sim::OutputVar, obs::OutputVar)
+    _check_sim_obs_units_consistent(sim, obs)
+
+    # Resample obs on sim to ensure the size of data in sim and obs are the same and the
+    # dims are the same
+    obs_resampled = resampled_as(obs, sim)
+
+    # Compute squared error
+    # Do not use ^ since ^ is not defined between a OutputVar and Real
+    squared_error = (sim - obs_resampled) * (sim - obs_resampled)
+
+    # Do this because we do not want to store global mse and rmse as strings
+    ret_attributes = Dict{String, Any}(squared_error.attributes)
+
+    # Add units back for bias
+    # Always treat as a string since the string representation of something type Unitful is
+    # not always parseable as a Unitful.Unit (see:
+    # https://github.com/PainterQubits/Unitful.jl/issues/412)
+    ret_attributes["units"] = "($(units(sim)))^2"
+
+    # Add short and long name
+    ret_attributes["short_name"] = "(sim-obs)^2"
+    ret_attributes["long_name"] = "(SIM - OBS)^2"
+    if !isempty(short_name(sim))
+        ret_attributes["short_name"] *= "_" * short_name(sim)
+        ret_attributes["long_name"] *= " " * short_name(sim)
+    end
+
+    # Compute global mse and global rmse and store it as an attribute
+    integrated_squared_error = integrate_lonlat(squared_error).data
+    normalization =
+        integrate_lonlat(
+            OutputVar(
+                squared_error.attributes,
+                squared_error.dims,
+                squared_error.dim_attributes,
+                ones(size(squared_error.data)),
+            ),
+        ).data
+    # Do ./ instead of / because we are dividing between zero dimensional arrays
+    mse = integrated_squared_error ./ normalization
+    ret_attributes["global_mse"] = mse
+    ret_attributes["global_rmse"] = sqrt(mse)
+    return OutputVar(
+        ret_attributes,
+        squared_error.dims,
+        squared_error.dim_attributes,
+        squared_error.data,
+    )
+end
+
+"""
+    global_mse(sim::OutputVar, obs::OutputVar)
+
+Return the global mean squared error (MSE) of `data` in `sim` and `obs` over longitude and
+latitude.
+
+This function is currently implemented for `OutputVar`s with only the dimensions longitude
+and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
+for longitude and latitude should be degrees. Resampling is done automatically by resampling
+`obs` on `sim`.
+
+See also [`squared_error`](@ref), [`global_rmse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
+"""
+function global_mse(sim::OutputVar, obs::OutputVar)
+    squared_error_var = squared_error(sim, obs)
+    return squared_error_var.attributes["global_mse"]
+end
+
+"""
+    global_rmse(sim::OutputVar, obs::OutputVar)
+
+Return the global root mean squared error (RMSE) of `data` in `sim` and `obs` over longitude
+and latitude.
+
+This function is currently implemented for `OutputVar`s with only the dimensions longitude
+and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
+for longitude and latitude should be degrees. Resampling is done automatically by resampling
+`obs` on `sim`.
+
+See also [`squared_error`](@ref), [`global_mse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
+"""
+function global_rmse(sim::OutputVar, obs::OutputVar)
+    squared_error_var = squared_error(sim, obs)
+    return squared_error_var.attributes["global_rmse"]
+end
 """
     overload_binary_op(op)
 

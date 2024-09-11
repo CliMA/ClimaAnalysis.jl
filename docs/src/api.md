@@ -60,6 +60,11 @@ Var.integrate_lonlat
 Var.integrate_lat
 Var.integrate_lon
 Var.split_by_season(var::OutputVar)
+Var.bias
+Var.global_bias
+Var.squared_error
+Var.global_mse
+Var.global_rmse
 ```
 
 ## Utilities

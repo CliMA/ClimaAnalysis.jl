@@ -204,6 +204,55 @@ julia> [MAM.data, JJA.data, DJF.data]
  [1.0]
 ```
 
+### Bias and squared error
+Bias and squared error can be computed from simulation data and observational data in
+`OutputVar`s using `bias(sim, obs)` and `squared_error(sim, obs)`. The function `bias(sim,
+obs)` returns a `OutputVar` whose data is the bias (`sim.data - obs.data`) and computes the
+ global bias of `data` in `sim` and `obs` over longitude and latitude. The result is stored
+in `var.attributes["global_bias"]`. The function `squared_error(sim, obs)` returns a
+`OutputVar` whose data is the squared error (`(sim.data - obs.data)^2`) and computes the
+global mean squared error (MSE) and the global root mean squared error (RMSE) of `data` in
+`sim` and `obs` over longitude and latitude. The result is stored in
+`var.attributes["global_mse"]` and `var.attributes["global_rmse"]`. Resampling is
+automatically done by resampling `obs` on `sim`. If you are only interested in computing
+global bias, MSE, or RMSE, you can use `global_bias(sim, obs)`, `global_mse(sim, obs)`, or
+`global_rmse(sim, obs)`.
+
+As of now, these functions are implemented for `OutputVar`s with only the dimensions
+longitude and latitude. Furthermore, units must be supplied for data and dimensions in `sim`
+and `obs` and the units for longitude and latitude should be degrees.
+
+Consider the following example, where we compute the bias and RMSE between our simulation
+and some observations stored in "ta\_1d\_average.nc".
+
+```@julia bias_and_mse
+julia> obs_var = OutputVar("ta_1d_average.nc"); # load in observational data
+
+julia> sim_var = get(simdir("simulation_output"), "ta"); # load in simulation data
+
+julia> ClimaAnalysis.short_name(sim_var)
+"ta"
+
+julia> bias_var = ClimaAnalysis.bias(sim_var, obs_var); # bias_var is a OutputVar that can be plotted
+
+julia> global_bias(sim, obs)
+2.0
+
+julia> units(bias_var)
+"K"
+
+julia> se_var = ClimaAnalysis.squared_error(sim_var, obs_var); # can also be plotted
+
+julia> global_mse(sim, obs)
+4.0
+
+julia> global_rmse(sim, obs)
+2.0
+
+julia> units(se_var)
+"K^2"
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
