@@ -913,3 +913,261 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test_throws ErrorException ClimaAnalysis.split_by_season(var)
 end
+
+@testset "Compute bias" begin
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_ones = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
+
+    data_twos = ones(length(lon), length(lat)) .* 2.0
+    var_twos = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_twos)
+
+    bias_var = ClimaAnalysis.bias(var_ones, var_twos)
+    global_bias = ClimaAnalysis.global_bias(var_ones, var_twos)
+
+    # Check global bias computation, short_name, long_name, and units
+    @test bias_var.attributes["global_bias"] == -1.0
+    @test global_bias == -1.0
+    @test bias_var.data == ones(length(lon), length(lat)) * -1.0
+    @test ClimaAnalysis.short_name(bias_var) == "sim-obs_short"
+    @test ClimaAnalysis.long_name(bias_var) == "SIM - OBS short"
+    @test ClimaAnalysis.units(bias_var) == "kg"
+
+    # Flip order in bias and check computations
+    bias_var = ClimaAnalysis.bias(var_twos, var_ones)
+    global_bias = ClimaAnalysis.global_bias(var_twos, var_ones)
+    @test bias_var.attributes["global_bias"] == 1.0
+    @test global_bias == 1.0
+    @test bias_var.data == ones(length(lon), length(lat)) * 1.0
+end
+
+@testset "Compute mse" begin
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_ones = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
+
+    data_threes = ones(length(lon), length(lat)) .* 3.0
+    var_threes =
+        ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_threes)
+
+    squared_error_var = ClimaAnalysis.squared_error(var_ones, var_threes)
+    global_mse = ClimaAnalysis.global_mse(var_ones, var_threes)
+    global_rmse = ClimaAnalysis.global_rmse(var_ones, var_threes)
+
+    # Check global bias computation, short_name, long_name, and units
+    @test squared_error_var.attributes["global_mse"] == (1.0 - 3.0)^2
+    @test squared_error_var.attributes["global_rmse"] == 2.0
+    @test global_mse == (1.0 - 3.0)^2
+    @test global_rmse == 2.0
+    @test squared_error_var.data == (data_ones - data_threes) .^ 2
+    @test ClimaAnalysis.short_name(squared_error_var) == "(sim-obs)^2_short"
+    @test ClimaAnalysis.long_name(squared_error_var) == "(SIM - OBS)^2 short"
+    @test ClimaAnalysis.units(squared_error_var) == "kg^2"
+
+    # Flip order in squared_error and check computations
+    squared_error_var = ClimaAnalysis.squared_error(var_threes, var_ones)
+    global_mse = ClimaAnalysis.global_mse(var_threes, var_ones)
+    global_rmse = ClimaAnalysis.global_rmse(var_threes, var_ones)
+    @test squared_error_var.attributes["global_mse"] == (3.0 - 1.0)^2
+    @test squared_error_var.attributes["global_rmse"] == 2.0
+    @test global_mse == (3.0 - 1.0)^2
+    @test global_rmse == 2.0
+    @test squared_error_var.data == (data_threes - data_ones) .^ 2
+
+    # Check unit handling
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs_unitful =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg^2/m")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_unitful =
+        ClimaAnalysis.OutputVar(attribs_unitful, dims, dim_attribs, data_ones)
+
+    attribs_not_unitful = Dict(
+        "long_name" => "idk",
+        "short_name" => "short",
+        "units" => "wacky/weird^2",
+    )
+    var_not_unitful = ClimaAnalysis.OutputVar(
+        attribs_not_unitful,
+        dims,
+        dim_attribs,
+        data_ones,
+    )
+
+    var_unitful = ClimaAnalysis.squared_error(var_unitful, var_unitful)
+    var_not_unitful =
+        ClimaAnalysis.squared_error(var_not_unitful, var_not_unitful)
+    @test ClimaAnalysis.units(var_unitful) == "(kg^2 m^-1)^2"
+    @test ClimaAnalysis.units(var_not_unitful) == "(wacky/weird^2)^2"
+end
+
+@testset "Units and dims check for error functions" begin
+    # Missing units for data
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs_missing_data_units =
+        Dict("long_name" => "idk", "short_name" => "short")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "rad"),
+        "lat" => Dict("units" => "rad"),
+    ])
+    var_missing_data_units = ClimaAnalysis.OutputVar(
+        attribs_missing_data_units,
+        dims,
+        dim_attribs,
+        data_ones,
+    )
+    @test_throws ErrorException ClimaAnalysis.bias(
+        var_missing_data_units,
+        var_missing_data_units,
+    )
+    @test_throws ErrorException ClimaAnalysis.squared_error(
+        var_missing_data_units,
+        var_missing_data_units,
+    )
+
+    # Mismatch units for data
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs_kg =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    attribs_g =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "g")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_kg = ClimaAnalysis.OutputVar(attribs_kg, dims, dim_attribs, data_ones)
+    var_g = ClimaAnalysis.OutputVar(attribs_g, dims, dim_attribs, data_ones)
+    @test_throws ErrorException ClimaAnalysis.bias(var_kg, var_g)
+    @test_throws ErrorException ClimaAnalysis.squared_error(var_kg, var_g)
+
+    # Mismatch units for dims
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs_rad = OrderedDict([
+        "lon" => Dict("units" => "rad"),
+        "lat" => Dict("units" => "rad"),
+    ])
+    dim_attribs_deg = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_rad = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs_rad, data_ones)
+    var_deg = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs_deg, data_ones)
+    @test_throws ErrorException ClimaAnalysis.bias(var_rad, var_deg)
+    @test_throws ErrorException ClimaAnalysis.squared_error(var_rad, var_deg)
+
+    # Missing units for dims
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var_missing_dim_units =
+        ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
+    @test_throws ErrorException ClimaAnalysis.bias(
+        var_missing_dim_units,
+        var_missing_dim_units,
+    )
+    @test_throws ErrorException ClimaAnalysis.squared_error(
+        var_missing_dim_units,
+        var_missing_dim_units,
+    )
+
+    # Mismatch in ordering of dims
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_lonlat = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data_ones = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var_latlon = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
+    @test_throws ErrorException ClimaAnalysis.bias(var_lonlat, var_latlon)
+    @test_throws ErrorException ClimaAnalysis.squared_error(
+        var_lonlat,
+        var_latlon,
+    )
+
+    # Missing dims
+    lon = collect(range(-179.5, 179.5, 360))
+    data_missing_dim = ones(length(lon))
+    dims_missing_dim = OrderedDict(["lon" => lon])
+    dim_attribs_missing_dim = OrderedDict(["lon" => Dict("units" => "deg")])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var_missing = ClimaAnalysis.OutputVar(
+        attribs,
+        dims_missing_dim,
+        dim_attribs_missing_dim,
+        data_missing_dim,
+    )
+    @test_throws ErrorException ClimaAnalysis.bias(var_missing, var_missing)
+    @test_throws ErrorException ClimaAnalysis.squared_error(
+        var_missing,
+        var_missing,
+    )
+
+    # Dimensions should be lon and lat
+    lon = collect(range(-179.5, 179.5, 360))
+    tal = collect(range(-89.5, 89.5, 180))
+    data_tal = ones(length(lon), length(tal))
+    dims_tal = OrderedDict(["lon" => lon, "tal" => tal])
+    dim_attribs_tal = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "tal" => Dict("units" => "deg"),
+    ])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var_tal =
+        ClimaAnalysis.OutputVar(attribs, dims_tal, dim_attribs_tal, data_tal)
+    @test_throws ErrorException ClimaAnalysis.bias(var_tal, var_tal)
+    @test_throws ErrorException ClimaAnalysis.squared_error(var_tal, var_tal)
+end
