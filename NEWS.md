@@ -207,6 +207,8 @@ julia> [MAM.data, JJA.data, DJF.data]
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
+- Binary operation between Real and OutputVar now update the interpolation of the resulting
+  OutputVar
 
 ## New compat requirements
 
