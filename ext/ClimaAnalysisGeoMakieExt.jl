@@ -254,4 +254,125 @@ function Visualize.contour2D_on_globe!(
     )
 end
 
+"""
+    plot_bias_on_globe!(fig::Makie.Figure,
+                        sim::ClimaAnalysis.OutputVar,
+                        obs::ClimaAnalysis.OutputVar;
+                        cmap_extrema = extrema(ClimaAnalysis.bias(sim, obs).data),
+                        p_loc = (1, 1),
+                        plot_coastline = true,
+                        plot_colorbar = true,
+                        mask = nothing,
+                        more_kwargs)
+    plot_bias_on_globe!(grid_layout::Makie.GridLayout,
+                        sim::ClimaAnalysis.OutputVar,
+                        obs::ClimaAnalysis.OutputVar;
+                        cmap_extrema = extrema(ClimaAnalysis.bias(sim, obs).data),
+                        p_loc = (1, 1),
+                        plot_coastline = true,
+                        plot_colorbar = true,
+                        mask = nothing,
+                        more_kwargs)
+
+
+Plot the bias (`sim.data - var.data`) on a projected geoid. The gloal bias and root mean
+squared error (RMSE) are computed and can be found in the title of the plot. This function
+plots the returned `OutputVar` of `ClimaAnalysis.bias(sim, obs)`. See also
+[`ClimaAnalysis.bias`](@ref).
+
+The plot comes with labels, units, and a colorbar. This function uses a constrained colormap
+based on the values of `cmap_extrema`.
+
+The dimensions have to be longitude and latitude.
+
+`mask` has to be an object that can be plotted by `Makie.poly`. `ClimaAnalysis` comes with
+predefined masks, check out [`Visualize.oceanmask`](@ref) and [`Visualize.landmask`](@ref).
+
+!!! note
+    Masking does not affect the colorbar. If you have values defined beneath the map, they
+    can still affect the colorbar.
+
+Additional arguments to the plotting and axis functions
+=======================================================
+
+`more_kwargs` can be a dictionary that maps symbols to additional options for:
+- the axis (`:axis`)
+- the plotting function (`:plot`)
+- the colorbar (`:cb`)
+- the coastline (`:coast`)
+- the mask (`:mask`)
+
+The coastline is plotted from `GeoMakie.coastline` using the `lines!` plotting function.
+
+The values are splatted in the relevant functions. Populate them with a
+Dictionary of `Symbol`s => values to pass additional options.
+"""
+function Visualize.plot_bias_on_globe!(
+    place::MakiePlace,
+    sim::ClimaAnalysis.OutputVar,
+    obs::ClimaAnalysis.OutputVar;
+    cmap_extrema = extrema(ClimaAnalysis.bias(sim, obs).data),
+    p_loc = (1, 1),
+    plot_coastline = true,
+    plot_colorbar = true,
+    mask = nothing,
+    more_kwargs = Dict(
+        :plot => Dict(),
+        :cb => Dict(),
+        :axis => Dict(),
+        :coast => Dict(:color => :black),
+        :mask => Dict(),
+    ),
+)
+    bias_var = ClimaAnalysis.bias(sim, obs)
+    global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
+    rmse = round(ClimaAnalysis.global_rmse(sim, obs), sigdigits = 3)
+    units = ClimaAnalysis.units(bias_var)
+
+    bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
+    min_level, max_level = cmap_extrema
+
+    # Make sure that 0 is at the center
+    cmap = Visualize._constrained_cmap(
+        Makie.cgrad(:vik).colors,
+        min_level,
+        max_level;
+        categorical = true,
+    )
+    nlevels = 11
+    # Offset so that it covers 0
+    levels = collect(range(min_level, max_level, length = nlevels))
+    offset = levels[argmin(abs.(levels))]
+    levels = levels .- offset
+    ticklabels = map(x -> string(round(x; digits = 0)), levels)
+    ticks = (levels, ticklabels)
+
+    default_kwargs = Dict(
+        :plot => Dict(
+            :colormap => cmap,
+            :levels => levels,
+            :extendhigh => :auto,
+            :extendlow => :auto,
+        ),
+        :cb => Dict(:ticks => ticks),
+    )
+
+    # Function for recursively merging two dictionaries if the values of the dictionaries
+    # are dictionaries and the values of those are also dictionaries and so on
+    # See: https://discourse.julialang.org/t/multi-layer-dict-merge/27261/6
+    recursive_merge(x::AbstractDict...) = merge(recursive_merge, x...)
+    recursive_merge(x...) = x[end]
+    default_and_more_kwargs = recursive_merge(default_kwargs, more_kwargs)
+
+    return Visualize.contour2D_on_globe!(
+        place,
+        bias_var;
+        p_loc = p_loc,
+        plot_coastline = plot_coastline,
+        plot_colorbar = plot_colorbar,
+        mask = mask,
+        more_kwargs = default_and_more_kwargs,
+    )
+end
+
 end
