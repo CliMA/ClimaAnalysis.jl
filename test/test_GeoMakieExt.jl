@@ -100,4 +100,40 @@ using OrderedCollections
 
     output_name = joinpath(tmp_dir, "test_contours2D_globe_with_oceanmask.png")
     Makie.save(output_name, fig5)
+
+    # Test plot_bias
+    fig6 = Makie.Figure()
+
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = collect(reshape(-32400:32399, (360, 180))) ./ (32399.0 / 5.0)
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    data_zero = zeros(length(lon), length(lat))
+    var_zero = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_zero)
+
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(fig6, var, var_zero)
+    output_name = joinpath(tmp_dir, "plot_bias.png")
+    Makie.save(output_name, fig6)
+
+    # Test plot bias with keyword arguments
+    fig7 = Makie.Figure()
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(
+        fig7,
+        var,
+        var_zero,
+        more_kwargs = Dict(
+            :axis => Dict(:title => "no title"),
+            :plot => Dict(:extendhigh => nothing),
+        ),
+    )
+    output_name = joinpath(tmp_dir, "plot_bias_kwargs.png")
+    Makie.save(output_name, fig7)
 end

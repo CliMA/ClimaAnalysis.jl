@@ -253,6 +253,29 @@ julia> units(se_var)
 "K^2"
 ```
 
+### Plotting bias
+
+Building upon the other features introduced in this release, you can now directly plot bias
+and root mean squared error between two variables with the `plot_bias_on_globe!` function.
+Typically, this is done to compare simulated data against observations.
+
+In the example below, we plot the bias between our simulation and some observations stored
+in `ta_1d_average.nc`.
+
+```julia
+import ClimaAnalysis
+import ClimaAnalysis.Visualize: plot_bias_on_globe!
+import GeoMakie
+import CairoMakie
+
+obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
+sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
+
+fig = CairoMakie.Figure()
+plot_bias_on_globe!(fig, sim_var, obs_var)
+CairoMakie.save("myfigure.pdf", fig)
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

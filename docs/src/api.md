@@ -106,4 +106,5 @@ Visualize.oceanmask
 Visualize.landmask
 Visualize.contour2D_on_globe!
 Visualize.heatmap2D_on_globe!
+Visualize.plot_bias_on_globe!
 ```
