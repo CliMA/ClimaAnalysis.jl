@@ -28,6 +28,4 @@ function contour2D_on_globe! end
 
 function heatmap2D_on_globe! end
 
-function plot_bias_on_globe! end
-
 end

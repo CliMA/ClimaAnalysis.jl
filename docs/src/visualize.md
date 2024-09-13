@@ -45,29 +45,3 @@ more easily.
 The output might look something like:
 
 ![oceanmask](./assets/oceanmask.png)
-
-### Plotting bias
-
-After [computing the bias](@ref bias) between observational and simulation data, you may
-want to plot the bias and display information such as the root mean squared error (RMSE) and
-the global bias in the plot. To do this, you use the function [`plot_bias_on_globe!(fig, sim,
-obs)`](@ref Visualize.plot_bias_on_globe!). In the example below, we plot the bias between our
-simulation and some observations stored in `ta_1d_average.nc`.
-
-```julia
-import ClimaAnalysis
-import ClimaAnalysis.Visualize: plot_bias_on_globe!
-import GeoMakie
-import CairoMakie
-
-obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
-sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
-
-fig = CairoMakie.Figure()
-plot_bias_on_globe!(fig, sim_var, obs_var)
-CairoMakie.save("myfigure.pdf", fig)
-```
-
-The output produces something like:
-
-![biasplot](./assets/bias_plot.png)
