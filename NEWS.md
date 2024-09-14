@@ -6,6 +6,10 @@ v0.5.8
 
 ## Features
 
+`ClimaAnalysis` 0.5.8 comes with several new features:
+- [Add support for directly reading NetCDF
+  files as `OutputVar`s](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#add-support-for-directly-reading-netcdf-files)
+
 ### Add support for directly reading NetCDF files
 
 Starting version 0.5.8, `ClimaAnalysis` now supports NetCDF files that were not
@@ -279,8 +283,8 @@ CairoMakie.save("myfigure.pdf", fig)
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
-- Binary operation between Real and OutputVar now update the interpolation of the resulting
-  OutputVar
+- Binary operations between `Real`s and `OutputVar`s now update the
+  interpolation of the resulting `OutputVar`.
 
 ## New compat requirements
 
