@@ -129,9 +129,23 @@ ClimaAnalysis.add_unit!(rmse_var, "CliMA", "K")
 ClimaAnalysis.add_unit!(rmse_var, Dict("CliMA" => "K")) # for adding multiple units
 ```
 
+## Summary statistics
+
+`ClimaAnalysis` provides several functions to compute summary statistics. As of now,
+`ClimaAnalysis` provides methods for find the best single model, the worst single model,
+and the median model.
+
+The functions `find_best_single_model` and `find_worst_single_model` default to the category
+"ANN" (corresponding to the annual mean), but any category can be considered using the
+parameter `category_name`. Furthermore, the model's root mean squared errors (RMSEs) and the
+model's name are returned. The function `median` only returns the median model's RMSEs.
+
+Any `NaN` that appears in the data is ignored when computing the summary statistics.
+
+See the example below using this functionality.
+
 ```@repl rmse_var
-ClimaAnalysis.category_names(rmse_var2)
-ClimaAnalysis.model_names(rmse_var)
-ClimaAnalysis.rmse_units(rmse_var)
-rmse_var[:,:]
+ClimaAnalysis.find_best_single_model(rmse_var, category_name = "DJF")
+ClimaAnalysis.find_worst_single_model(rmse_var, category_name = "DJF")
+ClimaAnalysis.median(rmse_var)
 ```
