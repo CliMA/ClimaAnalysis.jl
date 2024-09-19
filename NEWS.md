@@ -343,6 +343,18 @@ rmse_var = ClimaAnalysis.read_rmses(
 )
 ```
 
+#### Indexing
+`RMSEVariable` supports indexing by integer or string. See the example for indexing into
+a `RMSEVariable`.
+
+```julia
+rmse_var["ACCESS-CM2"]
+rmse_var[:, "MAM"]
+rmse_var["ACCESS-CM2", ["ANN", "DJF", "MAM"]]
+rmse_var[2,5] = 11.2
+rmse_var[:, :]
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

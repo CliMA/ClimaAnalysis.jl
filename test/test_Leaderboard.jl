@@ -155,3 +155,36 @@ end
     @test ClimaAnalysis.rmse_units(rmse_var) ==
           Dict("ACCESS-CM2" => "m", "ACCESS-ESM1-5" => "m")
 end
+
+@testset "Indexing" begin
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+
+    rmse_var[1, 1] = 100.0
+    @test rmse_var.RMSEs[1, 1] == 100.0
+
+    rmse_var[1, 1:3] = [100.0, 110.0, 120.0]
+    @test rmse_var.RMSEs[1, 1:3] == [100.0, 110.0, 120.0]
+
+    rmse_var[1:2, 1] = [100.0, 110.0]'
+    @test rmse_var.RMSEs[1:2, 1] == [100.0, 110.0]
+
+    rmse_var["ACCESS-ESM1-5", "DJF"] = 200.0
+    @test rmse_var["ACCESS-ESM1-5", "DJF"] == 200.0
+
+    rmse_var["ACCESS-ESM1-5", ["DJF", "MAM", "ANN"]] = [200.0, 210.0, 220.0]
+    @test rmse_var["ACCESS-ESM1-5", [1, 2, 5]] == [200.0, 210.0, 220.0]
+
+    rmse_var["ACCESS-ESM1-5"] = [120.0, 130.0, 140.0, 150.0, 160.0]
+    @test rmse_var["ACCESS-ESM1-5"] == [120.0, 130.0, 140.0, 150.0, 160.0]
+
+    # Check error handling
+    @test_throws ErrorException rmse_var[5, 5] = 100.0
+    @test_throws ErrorException rmse_var["do not exist"] = 100.0
+    @test_throws ErrorException rmse_var["do not exist", "test"] = 100.0
+    @test_throws ErrorException rmse_var["ACCESS-ESM1-5", "test"] = 100.0
+    @test_throws ErrorException rmse_var["model1", "ANN"] = 100.0
+    @test_throws DimensionMismatch rmse_var["ACCESS-ESM1-5"] =
+        [120.0, 130.0, 140.0]
+    @test_throws DimensionMismatch rmse_var[1, :] = [120.0, 130.0, 140.0]
+end

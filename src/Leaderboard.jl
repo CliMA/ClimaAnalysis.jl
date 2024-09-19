@@ -7,7 +7,9 @@ export RMSEVariable,
     model_names,
     category_names,
     rmse_units,
-    read_rmses
+    read_rmses,
+    getindex,
+    setindex!
 
 """
     Holding root mean squared errors over multiple categories and models for a single
@@ -302,6 +304,122 @@ function read_rmses(csv_file::String, short_name::String; units = nothing)
         model_rmses,
         units,
     )
+end
+
+"""
+    function _index_convert(key2index, key::Colon)
+
+Convert the symbol colon into an index for indexing.
+"""
+function _index_convert(key2index, key::Colon)
+    return collect(values(key2index))
+end
+
+"""
+    function _index_convert(key2index,
+                            indices::AbstractVector{I})
+                            where {I <: Integer}
+
+Convert a string into an index for indexing.
+"""
+function _index_convert(key2index, key::AbstractString)
+    !haskey(key2index, key) &&
+        error("Key ($key) is not present in ($(keys(key2index)))")
+    return key2index[key]
+end
+
+"""
+    function _index_convert(key2index,
+                            keys::AbstractVector{S})
+                            where {S <: AbstractString}
+
+Convert a vector of strings to indices for indexing.
+"""
+function _index_convert(
+    key2index,
+    keys::AbstractVector{S},
+) where {S <: AbstractString}
+    for key in keys
+        !haskey(key2index, key) &&
+            error("Key ($key) is not present in ($(keys(key2index)))")
+    end
+    return [key2index[key] for key in keys]
+end
+
+"""
+    function _index_convert(key2index,
+                            indices::AbstractVector{I})
+                            where {I <: Integer}
+
+Convert an integer to an index for indexing.
+"""
+function _index_convert(key2index, index::Integer)
+    !(index in values(key2index)) &&
+        error("Index ($index) is not present in ($(values(key2index)))")
+    return index
+end
+
+"""
+    function _index_convert(key2index,
+                            indices::AbstractVector{I})
+                            where {I <: Integer}
+
+Convert a vector of integers to indices for indexing.
+"""
+function _index_convert(
+    key2index,
+    indices::AbstractVector{I},
+) where {I <: Integer}
+    for index in indices
+        !(index in values(key2index)) &&
+            error("Index ($index) is not present in ($(values(key2index)))")
+    end
+    return indices
+end
+
+"""
+    Base.getindex(rmse_var::RMSEVariable, model_name, category)
+
+Return a subset of the array holding the root mean square errors as specified by
+`model_name` and `category`. Support indexing by `String` and `Int`.
+"""
+function Base.getindex(rmse_var::RMSEVariable, model_name, category)
+    model_idx = _index_convert(rmse_var.model2index, model_name)
+    cat_idx = _index_convert(rmse_var.category2index, category)
+    return rmse_var.RMSEs[model_idx, cat_idx]
+end
+
+"""
+    Base.getindex(rmse_var::RMSEVariable, model_name::String)
+
+Return a subset of the array holding the root mean square errors as specified by
+`model_name`. Support indexing by `String`. Do not support linear indexing.
+"""
+function Base.getindex(rmse_var::RMSEVariable, model_name::String)
+    return rmse_var[model_name, :]
+end
+
+"""
+    Base.setindex!(rmse_var::RMSEVariable, rmse, model_name, category)
+
+Store a value or values from an array in the array of root mean squared errors in
+`rmse_var`. Support indexing by `String` and `Int`.
+"""
+function Base.setindex!(rmse_var::RMSEVariable, rmse, model_name, category)
+    model_idx = _index_convert(rmse_var.model2index, model_name)
+    cat_idx = _index_convert(rmse_var.category2index, category)
+    rmse_var.RMSEs[model_idx, cat_idx] = rmse
+end
+
+"""
+    Base.setindex!(rmse_var::RMSEVariable, rmse, model_name::String)
+
+Store a value or values from an array into the array of root mean squared errors in
+`rmse_var`. Support indexing by `String`. Do not support linear indexing.
+"""
+function Base.setindex!(rmse_var::RMSEVariable, rmse, model_name::String)
+    model_idx = _index_convert(rmse_var.model2index, model_name)
+    rmse_var.RMSEs[model_idx, :] = rmse
 end
 
 end
