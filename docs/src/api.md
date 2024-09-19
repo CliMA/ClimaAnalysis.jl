@@ -80,6 +80,7 @@ Leaderboard.RMSEVariable(short_name::String, model_names::Vector{String}, catego
 Leaderboard.model_names
 Leaderboard.category_names
 Leaderboard.rmse_units
+Leaderboard.read_rmses
 ```
 
 ## Utilities

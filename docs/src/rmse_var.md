@@ -64,3 +64,33 @@ ClimaAnalysis.model_names(rmse_var)
 ClimaAnalysis.category_names(rmse_var)
 ClimaAnalysis.rmse_units(rmse_var)
 ```
+
+## Reading RMSEs from CSV file
+
+Typically, the root mean squared errors (RMSEs) of different models across different
+categories are stored in a different file and need to be loaded in. `ClimaAnalysis` can load
+this information from a CSV file and store it in a `RMSEVariable`. The format of the CSV
+file should have a header consisting of the entry "model_name" (or any other text as it is
+ignored by the function) and rest of the entries should be the category names. Each row
+after the header should start with the model name and the root mean squared errors for each
+category for that model. The entries of the CSV file should be separated by commas.
+
+See the example below using `read_rmses` where data is loaded from `test_csv.csv` and a
+short name of `ta` is provided. One can also pass in a dictionary mapping model names to
+units for `units` or a string if the units are the same for all the models.
+
+```@example rmse_var
+rmse_var = ClimaAnalysis.read_rmses("./data/test_csv.csv", "ta")
+rmse_var = ClimaAnalysis.read_rmses(
+    "./data/test_csv.csv",
+    "ta",
+    units = Dict("ACCESS-CM2" => "K", "ACCESS-ESM1-5" => "K"), # passing units as a dictionary
+)
+rmse_var = ClimaAnalysis.read_rmses(
+    "./data/test_csv.csv",
+    "ta",
+    units = "K", # passing units as a string
+)
+
+nothing # hide
+```

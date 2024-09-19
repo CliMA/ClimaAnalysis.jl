@@ -323,6 +323,26 @@ rmse_var = ClimaAnalysis.RMSEVariable(
 A `RMSEVariable` can be inspected using `model_names`, `category_names`, and `rmse_units`
 which provide the model names, the category names, and the units respectively.
 
+#### Reading RMSEs from CSV file
+
+A CSV file containing model names in the first column and root mean squared errors in the
+subsequent columns with a header describing each category (i.e. seasons) can be read into
+a `RMSEVariable`. See the example below on how to use this functionality.
+
+```julia
+rmse_var = ClimaAnalysis.read_rmses("./data/test_csv.csv", "ta")
+rmse_var = ClimaAnalysis.read_rmses(
+    "./data/test_csv.csv",
+    "ta",
+    units = Dict("ACCESS-CM2" => "K", "ACCESS-ESM1-5" => "K"), # passing units as a dictionary
+)
+rmse_var = ClimaAnalysis.read_rmses(
+    "./data/test_csv.csv",
+    "ta",
+    units = "K", # passing units as a string
+)
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
