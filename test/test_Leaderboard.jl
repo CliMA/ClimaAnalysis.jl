@@ -127,3 +127,31 @@ import ClimaAnalysis
         Dict("model1" => ""),
     )
 end
+
+@testset "Reading RMSEs from CSV file" begin
+    # Testing constructor using CSV file
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    @test ClimaAnalysis.model_names(rmse_var) == ["ACCESS-CM2", "ACCESS-ESM1-5"]
+    @test ClimaAnalysis.category_names(rmse_var) ==
+          ["DJF", "MAM", "JJA", "SON", "ANN"]
+    @test ClimaAnalysis.rmse_units(rmse_var) ==
+          Dict("ACCESS-CM2" => "", "ACCESS-ESM1-5" => "")
+    @test rmse_var.short_name == "ta"
+    @test rmse_var.RMSEs[1, 1] == 11.941
+    @test isnan(rmse_var.RMSEs[2, 5])
+
+    # Testing constructor using CSV file with units provided
+    rmse_var = ClimaAnalysis.read_rmses(
+        csv_file_path,
+        "ta",
+        units = Dict("ACCESS-ESM1-5" => "m", "wacky" => "weird"),
+    )
+    @test ClimaAnalysis.rmse_units(rmse_var) ==
+          Dict("ACCESS-CM2" => "", "ACCESS-ESM1-5" => "m")
+
+    # Testing constructor using CSV file with units being a string
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta", units = "m")
+    @test ClimaAnalysis.rmse_units(rmse_var) ==
+          Dict("ACCESS-CM2" => "m", "ACCESS-ESM1-5" => "m")
+end

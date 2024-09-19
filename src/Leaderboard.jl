@@ -6,7 +6,8 @@ import NaNStatistics: nanmedian
 export RMSEVariable,
     model_names,
     category_names,
-    rmse_units
+    rmse_units,
+    read_rmses
 
 """
     Holding root mean squared errors over multiple categories and models for a single
@@ -235,5 +236,72 @@ category_names(rmse_var::RMSEVariable) =
 Return all the unit of the models in `rmse_var`.
 """
 rmse_units(rmse_var::RMSEVariable) = rmse_var.units
+
+"""
+    read_rmses(csv_file::String, short_name::String; units = nothing)
+
+Read a CSV file and create a RMSEVariable with the `short_name` of the variable.
+
+The format of the CSV file should have a header consisting of the entry "model_name" (or any
+other text as it is ignored by the function) and rest of the entries should be the category
+names. Each row after the header should start with the model name and the root mean squared
+errors for each category for that model. The entries of the CSV file should be separated by
+commas.
+
+The parameter `units` can be a dictionary mapping model name to unit or a string. If `units`
+is a string, then units will be the same across all models. If units is `nothing`, then the
+unit is missing for each model which is denoted by an empty string.
+"""
+function read_rmses(csv_file::String, short_name::String; units = nothing)
+    # Intialize variables we need to construct RMSEVariable
+    model_names = Vector{String}()
+    model_rmse_vec = []
+    category_names = nothing
+    open(csv_file, "r") do io
+        header = readline(io)
+        # Get categories (e.g. DJF, MAM, JJA, SON, ANN)
+        category_names = String.(split(header, ','))
+
+        # get rid of the first column name which is the column named "model_name"
+        category_names |> popfirst!
+
+        # Process each line
+        for (line_num, line) in enumerate(eachline(io))
+            # Split the line by comma
+            fields = split(line, ',')
+
+            # Check if any entry is missing in the CSV file
+            length(fields) != (length(category_names) + 1) &&
+                error("Missing RMSEs for line $(line_num + 1) in CSV file")
+
+            # Grab model name
+            model_name = fields[1]
+
+            # the rest of the row is the rmse for each category
+            model_rmse = map(x -> parse(Float64, x), fields[2:end])
+
+            push!(model_names, model_name)
+            push!(model_rmse_vec, model_rmse)
+        end
+    end
+    model_rmses = stack(model_rmse_vec, dims = 1)
+    isnothing(units) && (
+        units = Dict{valtype(model_names), String}([
+            (model_name, "") for model_name in model_names
+        ])
+    )
+    units isa String && (
+        units = Dict{valtype(model_names), String}([
+            model_name => units for model_name in model_names
+        ])
+    )
+    return RMSEVariable(
+        short_name,
+        model_names,
+        category_names,
+        model_rmses,
+        units,
+    )
+end
 
 end
