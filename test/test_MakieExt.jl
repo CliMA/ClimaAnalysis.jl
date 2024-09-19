@@ -177,4 +177,173 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "test2D_title.png")
     Makie.save(output_name, fig)
 
+    # Plotting box plot
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA")
+    rmse_var["CliMA", :] = [12.0, 12.0, 11.0, 14.0, 6.0]
+    ClimaAnalysis.add_unit!(
+        rmse_var,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "CliMA" => "units",
+        ),
+    )
+    rmse_var[2, 5] = 4.0
+    fig = Makie.Figure(; size = (800, 300 * 3 + 400), fontsize = 20)
+    ClimaAnalysis.Visualize.plot_boxplot!(
+        fig,
+        rmse_var,
+        model_names = ["CliMA"],
+        best_and_worst_category_name = "ANN",
+    )
+    ClimaAnalysis.Visualize.plot_boxplot!(
+        fig,
+        rmse_var,
+        model_names = ["CliMA"],
+        ploc = (2, 1),
+        best_and_worst_category_name = "ANN",
+    )
+    ClimaAnalysis.Visualize.plot_boxplot!(
+        fig,
+        rmse_var,
+        model_names = ["CliMA", "ACCESS-ESM1-5"],
+        ploc = (3, 1),
+        best_and_worst_category_name = "ANN",
+    )
+    output_name = joinpath(tmp_dir, "test_boxplots.png")
+    Makie.save(output_name, fig)
+
+    # Plotting leaderboard
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA")
+    rmse_var[:, :] = [
+        [10.0 11.0 12.0 13.0 14.0]
+        [36.0 37.0 38.0 39.0 30.0]
+        [11.0 12.0 13.0 14.0 15.0]
+    ]
+    ClimaAnalysis.add_unit!(
+        rmse_var,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "CliMA" => "units",
+        ),
+    )
+
+    rmse_var1 = ClimaAnalysis.read_rmses(csv_file_path, "ta1")
+    rmse_var1 = ClimaAnalysis.add_model(rmse_var1, "CliMA")
+    rmse_var1[:, :] = [
+        [6.0 7.0 8.0 9.0 10.0]
+        [11.0 12.0 13.0 14.0 15.0]
+        [1.0 2.0 3.0 4.0 5.0]
+    ]
+    ClimaAnalysis.add_unit!(
+        rmse_var1,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "CliMA" => "units",
+        ),
+    )
+
+    rmse_var2 = ClimaAnalysis.read_rmses(csv_file_path, "ta2")
+    rmse_var2 = ClimaAnalysis.add_model(rmse_var2, "CliMA")
+    rmse_var2[:, :] = [
+        [0.5 1.0 1.5 2.0 2.5]
+        [6.0 7.0 8.0 9.0 10.0]
+        [11.0 12.0 13.0 14.0 15.0]
+    ]
+    ClimaAnalysis.add_unit!(
+        rmse_var2,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "CliMA" => "units",
+        ),
+    )
+
+
+    # Normalized RMSEs should improve going from ta to ta1 to ta2 for CliMA model
+    # Colors for ta of both models should be similar (close to 1)
+    # Colors for ta2 of best model should be greener (improve) from ta1 to ta2
+    # for CliMA, the normalized RMSEs from greatest to least should be ta1, ta, and ta2
+    fig = Makie.Figure(; fontsize = 20)
+    ClimaAnalysis.Visualize.plot_leaderboard!(
+        fig,
+        rmse_var,
+        rmse_var1,
+        rmse_var2,
+        best_category_name = "ANN",
+    )
+    output_name = joinpath(tmp_dir, "test_leaderboard.png")
+    Makie.save(output_name, fig)
+
+    # Plot box plots and leaderboard in one plot
+    rmse_vars = (rmse_var, rmse_var1, rmse_var2)
+    fig = Makie.Figure(; size = (800, 300 * 3 + 400), fontsize = 20)
+    for i in 1:3
+        ClimaAnalysis.Visualize.plot_boxplot!(
+            fig,
+            rmse_vars[i],
+            ploc = (i, 1),
+            best_and_worst_category_name = "ANN",
+        )
+    end
+    ClimaAnalysis.Visualize.plot_leaderboard!(
+        fig,
+        rmse_vars...,
+        best_category_name = "ANN",
+        ploc = (4, 1),
+    )
+    output_name = joinpath(tmp_dir, "test_boxplot_and_leaderboard.png")
+    Makie.save(output_name, fig)
+
+    # Plotting box plot with NaN
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA")
+    ClimaAnalysis.add_unit!(
+        rmse_var,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "CliMA" => "units",
+        ),
+    )
+    rmse_var[2, 5] = 10.0
+    fig = Makie.Figure(; fontsize = 20)
+    ClimaAnalysis.Visualize.plot_boxplot!(
+        fig,
+        rmse_var,
+        model_names = ["CliMA"],
+        best_and_worst_category_name = "ANN",
+    )
+    output_name = joinpath(tmp_dir, "test_boxplot_nan.png")
+    Makie.save(output_name, fig)
+
+    fig = Makie.Figure(; fontsize = 20)
+    ClimaAnalysis.Visualize.plot_leaderboard!(
+        fig,
+        rmse_var,
+        model_names = ["CliMA"],
+        best_category_name = "ANN",
+    )
+    output_name = joinpath(tmp_dir, "test_leaderboard_nan.png")
+    Makie.save(output_name, fig)
+
+    # Test error handling for plot_leaderboard
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var1 = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var1 = ClimaAnalysis.add_category(rmse_var1, "hi")
+    rmse_var2 = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var2 = ClimaAnalysis.add_category(rmse_var2, "hello")
+    @test_throws ErrorException ClimaAnalysis.Visualize.plot_leaderboard!(
+        fig,
+        rmse_var1,
+        rmse_var2,
+        model_names = ["CliMA"],
+        best_category_name = "ANN",
+    )
 end

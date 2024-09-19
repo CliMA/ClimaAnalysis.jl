@@ -31,6 +31,7 @@ makedocs(;
         "OutputVars" => "var.md",
         "Visualizing OutputVars" => "visualize.md",
         "RMSEVariables" => "rmse_var.md",
+        "Visualizing RMSEVariables" => "visualize_rmse_var.md",
         "APIs" => "api.md",
         "How do I?" => "howdoi.md",
     ],
