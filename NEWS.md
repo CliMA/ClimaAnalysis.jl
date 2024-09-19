@@ -276,6 +276,53 @@ plot_bias_on_globe!(fig, sim_var, obs_var)
 CairoMakie.save("myfigure.pdf", fig)
 ```
 
+### RMSEVariable
+
+To facilitate analysis of root mean squared errors (RMSEs) over different models and
+categories (e.g., seasons) for a single variable of interest, `RMSEVariable` is introduced in
+this release. See the examples below of constructing a `RMSEVariable` using a short name, a
+vector of model names, a vector of categories, and a dictionary mapping model names to units
+or a string of the name of the unit.
+
+```julia
+import ClimaAnalysis
+
+rmse_var = ClimaAnalysis.RMSEVariable("ta", ["ACCESS-CM2", "ACCESS-ESM1-5"])
+rmse_var = ClimaAnalysis.RMSEVariable(
+    "ta",
+    ["ACCESS-CM2", "ACCESS-ESM1-5"],
+    Dict("ACCESS-CM2" => "K", "ACCESS-ESM1-5" => "K"),
+)
+rmse_var = ClimaAnalysis.RMSEVariable(
+    "ta",
+    ["ACCESS-CM2", "ACCESS-ESM1-5"],
+    ["DJF", "MAM", "JJA", "SON", "ANN"],
+    Dict("ACCESS-CM2" => "K", "ACCESS-ESM1-5" => "K"),
+)
+# Convenience functions if models all share the same unit
+rmse_var = ClimaAnalysis.RMSEVariable(
+    "ta",
+    ["ACCESS-CM2", "ACCESS-ESM1-5"],
+    "K",
+)
+rmse_var = ClimaAnalysis.RMSEVariable(
+    "ta",
+    ["ACCESS-CM2", "ACCESS-ESM1-5"],
+    ["DJF", "MAM", "JJA", "SON", "ANN"],
+    "K",
+)
+rmse_var = ClimaAnalysis.RMSEVariable(
+    "ta",
+    ["ACCESS-CM2", "ACCESS-ESM1-5"],
+    ["DJF", "MAM", "JJA", "SON", "ANN"],
+    ones(2, 5),
+    "K",
+)
+```
+
+A `RMSEVariable` can be inspected using `model_names`, `category_names`, and `rmse_units`
+which provide the model names, the category names, and the units respectively.
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
