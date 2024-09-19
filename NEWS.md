@@ -383,6 +383,17 @@ ClimaAnalysis.find_worst_single_model(rmse_var, category_name = "DJF")
 ClimaAnalysis.median(rmse_var)
 ```
 
+#### Plotting RMSEVariable
+`RMSEVariable` can be visualized as a box plot or heat map using `plot_boxplot!` and
+`plot_leaderboard!`. The function `plot_boxplot!(fig, rmse_var::ClimaAnalysis.RMSEVariable;
+model_names = ["CliMA"], ploc = (1, 1), best_and_worst_category_name = "ANN")` makes a box
+plot for each category in the `RMSEVariable` and plots any other models as specified by
+`model_names`. The function `plot_leaderboard!(fig,
+rmse_vars::ClimaAnalysis.RMSEVariable...; ploc = (1, 1), model_names = ["CliMA"],
+best_category_name = "ANN")` makes a heatmap of the RMSEs between the variables of interest
+and the categories. The values of the heatmap are normalized by dividing over the median
+model's RMSEs for each variable.
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

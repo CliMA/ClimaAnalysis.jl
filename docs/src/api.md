@@ -123,6 +123,8 @@ Visualize.line_plot1D!
 Visualize.sliced_line_plot!
 Visualize.sliced_plot!
 Visualize.plot!
+Visualize.plot_boxplot!
+Visualize.plot_leaderboard!
 ```
 
 ## GeoMakie

@@ -630,4 +630,240 @@ function Visualize._constrained_cmap(
     return cmap
 end
 
+"""
+    Visualize.plot_boxplot!(fig,
+                            rmse_var::ClimaAnalysis.RMSEVariable;
+                            model_names = ["CliMA"],
+                            ploc = (1, 1),
+                            best_and_worst_category_name = "ANN")
+
+Plot a Tukey style boxplot for each category in `rmse_var`.
+
+The best and worst single models are found for the category `best_and_worst_category_name`
+and are plotted on the boxplot. Additionally, any model in `model_names` will also be
+plotted on the boxplot.
+
+The parameter `ploc` determines where to place the plot on the figure.
+"""
+function Visualize.plot_boxplot!(
+    fig,
+    rmse_var::ClimaAnalysis.RMSEVariable;
+    model_names = ["CliMA"],
+    ploc = (1, 1),
+    best_and_worst_category_name = "ANN",
+)
+    # Unit checking
+    ClimaAnalysis.Leaderboard._unit_check(rmse_var)
+
+    num_cats = length(rmse_var.category2index)
+    units = values(rmse_var.units) |> collect |> first
+
+    # Title and labels for x-axis and y-axis
+    ax = Makie.Axis(
+        fig[ploc...],
+        ylabel = "$(rmse_var.short_name) [$units]",
+        xticks = (1:num_cats, ClimaAnalysis.category_names(rmse_var)),
+        title = "Global RMSE $(rmse_var.short_name) [$units]",
+    )
+
+    # Set up for box plot
+    cats = reduce(
+        vcat,
+        [
+            fill(cat_val, length(rmse_var.model2index)) for
+            cat_val in 1:length(rmse_var.category2index)
+        ],
+    )
+    vals = reduce(vcat, rmse_var.RMSEs)
+
+    # Filter out NaNs because we can't plot with NaNs
+    not_nan_idices = findall(!isnan, vals)
+    cats = cats[not_nan_idices]
+    vals = vals[not_nan_idices]
+
+    # Add box plot
+    Makie.boxplot!(
+        ax,
+        cats,
+        vals,
+        whiskerwidth = 1,
+        width = 0.35,
+        mediancolor = :black,
+        color = :gray,
+        whiskerlinewidth = 1,
+    )
+
+    # Plotting best and worst model
+    absolute_worst_values, absolute_worst_model_name =
+        ClimaAnalysis.find_worst_single_model(
+            rmse_var,
+            category_name = best_and_worst_category_name,
+        )
+    absolute_best_values, absolute_best_model_name =
+        ClimaAnalysis.find_best_single_model(
+            rmse_var,
+            category_name = best_and_worst_category_name,
+        )
+    Makie.scatter!(
+        ax,
+        1:num_cats,
+        absolute_worst_values,
+        label = absolute_worst_model_name,
+    )
+    Makie.scatter!(
+        ax,
+        1:num_cats,
+        absolute_best_values,
+        label = absolute_best_model_name,
+    )
+
+    # Plotting the median model
+    Makie.scatter!(
+        ax,
+        1:num_cats,
+        ClimaAnalysis.median(rmse_var),
+        label = "Median",
+        color = :black,
+        marker = :hline,
+        markersize = 10,
+        visible = false,
+    )
+
+    # Plot CliMA model and other models
+    for model_name in model_names
+        ClimaAnalysis.Leaderboard._model_name_check(rmse_var, model_name)
+        if model_name == "CliMA"
+            Makie.scatter!(
+                ax,
+                1:num_cats,
+                rmse_var[model_name],
+                label = model_name,
+                marker = :star5,
+                markersize = 20,
+                color = :green,
+            )
+        else
+            Makie.scatter!(
+                ax,
+                1:num_cats,
+                rmse_var[model_name],
+                label = model_name,
+                markersize = 20,
+                color = :red,
+            )
+        end
+    end
+
+    # Hack to make legend appear better
+    Makie.axislegend()
+    Makie.scatter!(ax, [num_cats + 2.5], [0.1], markersize = 0.01)
+end
+
+"""
+    Visualize.plot_leaderboard!(fig,
+                                rmse_vars::ClimaAnalysis.RMSEVariable...;
+                                ploc = (1, 1),
+                                model_names = ["CliMA"],
+                                best_category_name = "ANN")
+
+Plot a heatmap over the categories and models. The models that appear is the best model
+as found for the category `best_category_name` and any other models in `model_names`. The
+root mean squared errors for each variable of interest is normalized by dividing over the
+median root mean squared error of each variable.
+
+The parameter `ploc` determines where to place the plot on the figure.
+"""
+function Visualize.plot_leaderboard!(
+    fig,
+    rmse_vars::ClimaAnalysis.RMSEVariable...;
+    ploc = (1, 1),
+    model_names = ["CliMA"],
+    best_category_name = "ANN",
+)
+    # Check if rmse_model_vars all have the same categories
+    categories_names = ClimaAnalysis.category_names.(rmse_vars)
+    categories_same = length(unique(categories_names)) == 1
+    categories_same ||
+        error("Categories are not all the same across the RMSEVariable")
+
+    rmse_var = first(rmse_vars)
+    categ_names = ClimaAnalysis.category_names(rmse_var)
+    num_variables = length(rmse_vars)
+    num_boxes = length(categ_names) # number of categories
+    num_models = 1 + length(model_names)  # best model plus the other models in model_names
+
+    # Initialize variables we need for storing RMSEs for plotting and short names for axis
+    rmse_normalized_arr = zeros(num_boxes * num_models, num_variables)
+    short_names = String[]
+
+    for (idx, var) in enumerate(reverse(rmse_vars))
+        # Get all the short name of the rmse_vars
+        push!(short_names, var.short_name)
+
+        # Compute median and best values for RMSE
+        med_vals = ClimaAnalysis.median(var)
+        best_vals, _ = ClimaAnalysis.find_best_single_model(
+            var,
+            category_name = best_category_name,
+        )
+
+        # Find normalized values for the models we are interested in and the normalized best
+        # value and store them
+        normalized_vals = [var[model] ./ med_vals for model in model_names]
+        normalized_vals = reduce(vcat, normalized_vals)
+        rmse_normalized_arr[:, idx] =
+            vcat(normalized_vals, best_vals ./ med_vals)'
+    end
+
+    # Finding the midpoint for placing labels
+    start_x_tick = div(num_boxes, 2, RoundUp)
+
+    ax_bottom_and_left = Makie.Axis(
+        fig[ploc...],
+        yticks = (1:length(short_names), short_names),
+        xticks = (
+            [start_x_tick, start_x_tick + num_boxes],
+            vcat(model_names, ["Best model"]),
+        ),
+        aspect = num_boxes * num_models,
+        xgridvisible = false,
+        ygridvisible = false,
+    )
+    ax_top = Makie.Axis(
+        fig[ploc...],
+        xaxisposition = :top,
+        xticks = (0.5:1.0:length(categ_names), categ_names),
+        aspect = num_boxes * num_models,
+        xgridvisible = false,
+        ygridvisible = false,
+    )
+    Makie.hidespines!(ax_top)
+    Makie.hideydecorations!(ax_top)
+
+    colormap = Makie.Reverse(:RdYlGn)
+
+    # Filter out NaNs here because we need to take the maximum and extrema for the
+    # colorrange and limits
+    rmse_no_nan_vec = rmse_normalized_arr |> vec |> filter(!isnan)
+    Makie.heatmap!(
+        ax_bottom_and_left,
+        rmse_normalized_arr,
+        colormap = colormap,
+        # Trick to exclude the zeros
+        lowclip = :white,
+        colorrange = (1e-10, maximum(rmse_no_nan_vec)),
+    )
+    for idx in eachindex(model_names)
+        Makie.vlines!(ax_top, num_boxes * idx, color = :black, linewidth = 3.0)
+    end
+    row, col = ploc
+    col += 1
+    Makie.Colorbar(
+        fig[row, col],
+        limits = extrema(rmse_no_nan_vec),
+        label = "RMSE/median(RMSE)",
+        colormap = colormap,
+    )
+end
+
 end
