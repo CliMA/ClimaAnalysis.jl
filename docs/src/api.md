@@ -81,6 +81,10 @@ Leaderboard.model_names
 Leaderboard.category_names
 Leaderboard.rmse_units
 Leaderboard.read_rmses
+Base.getindex(rmse_var::RMSEVariable, model_name, category)
+Base.getindex(rmse_var::RMSEVariable, model_name::String)
+Base.setindex!(rmse_var::RMSEVariable, rmse, model_name, category)
+Base.setindex!(rmse_var::RMSEVariable, rmse, model_name::String)
 ```
 
 ## Utilities
