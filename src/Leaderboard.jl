@@ -9,7 +9,10 @@ export RMSEVariable,
     rmse_units,
     read_rmses,
     getindex,
-    setindex!
+    setindex!,
+    add_category,
+    add_model,
+    add_unit!
 
 """
     Holding root mean squared errors over multiple categories and models for a single
@@ -420,6 +423,99 @@ Store a value or values from an array into the array of root mean squared errors
 function Base.setindex!(rmse_var::RMSEVariable, rmse, model_name::String)
     model_idx = _index_convert(rmse_var.model2index, model_name)
     rmse_var.RMSEs[model_idx, :] = rmse
+end
+
+"""
+    add_category(rmse_var::RMSEVariable, categories::String...)
+
+Add one or more categories named `categories` to `rmse_var`.
+"""
+function add_category(rmse_var::RMSEVariable, categories::String...)
+    # Add new category
+    categ_names = category_names(rmse_var)
+    push!(categ_names, categories...)
+
+    # Add new column
+    mdl_names = model_names(rmse_var)
+    num_mdl_names = length(mdl_names)
+    nan_vecs = (fill(NaN, num_mdl_names) for _ in categories)
+    rmses = hcat(rmse_var.RMSEs, nan_vecs...)
+    return RMSEVariable(
+        rmse_var.short_name,
+        mdl_names,
+        categ_names,
+        rmses,
+        rmse_var.units |> deepcopy,
+    )
+end
+
+"""
+    add_model(rmse_var::RMSEVariable, models::String...)
+
+Add one or more models named `models` to `rmse_var`.
+"""
+function add_model(rmse_var::RMSEVariable, models::String...)
+    # Add new model name
+    mdl_names = model_names(rmse_var)
+    push!(mdl_names, models...)
+
+    # Add new row
+    categ_names = category_names(rmse_var)
+    num_categ_names = length(categ_names)
+    nan_vecs = (fill(NaN, num_categ_names)' for _ in models)
+    rmses = vcat(rmse_var.RMSEs, nan_vecs...)
+
+    # Add missing units for model
+    units = rmse_var.units |> deepcopy
+    for name in models
+        units[name] = ""
+    end
+    return RMSEVariable(
+        rmse_var.short_name,
+        mdl_names,
+        categ_names,
+        rmses,
+        units,
+    )
+end
+
+"""
+    _model_name_check(rmse_var::RMSEVariable, model_name)
+
+Check if `model_name` is present in the model names of `rmse_var`.
+
+Return nothing if `model_name` is present in the model names of `rmse_var`. Otherwise,
+return an error.
+"""
+function _model_name_check(rmse_var::RMSEVariable, model_name)
+    mdl_names = model_names(rmse_var)
+    (model_name in mdl_names) ||
+        error("Model name ($model_name) is not in $mdl_names")
+    return nothing
+end
+
+"""
+    add_unit!(rmse_var::RMSEVariable, model_name, unit)
+
+Add a unit named `unit` to a model named `model_name` in `rmse_var`.
+"""
+function add_unit!(rmse_var::RMSEVariable, model_name, unit)
+    _model_name_check(rmse_var, model_name)
+    rmse_var.units[model_name] = unit
+    return nothing
+end
+
+"""
+    add_unit!(rmse_var::RMSEVariable, model_name2unit::Dict)
+
+Add all model name and unit pairs in the dictionary `model_name2unit` to `rmse_var`.
+"""
+function add_unit!(rmse_var::RMSEVariable, model_name2unit::Dict)
+    for (model_name, unit) in model_name2unit
+        _model_name_check(rmse_var, model_name)
+        rmse_var.units[model_name] = unit
+    end
+    return nothing
 end
 
 end
