@@ -10,6 +10,8 @@ include("Var.jl")
 @reexport using .Var
 include("Sim.jl")
 @reexport using .Sim
+include("Leaderboard.jl")
+@reexport using .Leaderboard
 
 include("Visualize.jl")
 @reexport using .Visualize

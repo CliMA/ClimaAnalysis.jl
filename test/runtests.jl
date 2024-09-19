@@ -10,6 +10,7 @@ using Test
 @safetestset "Numerics" begin @time include("test_Numerics.jl") end
 @safetestset "SimDir" begin @time include("test_Sim.jl") end
 @safetestset "Atmos" begin @time include("test_Atmos.jl") end
+@safetestset "Leaderboard" begin @time include("test_Leaderboard.jl") end
 @safetestset "OutputVar" begin @time include("test_Var.jl") end
 @safetestset "MakieExt" begin @time include("test_MakieExt.jl") end
 @safetestset "GeoMakieExt" begin @time include("test_GeoMakieExt.jl") end

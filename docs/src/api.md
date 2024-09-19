@@ -67,6 +67,21 @@ Var.global_mse
 Var.global_rmse
 ```
 
+## Leaderboard
+```@docs
+Leaderboard.RMSEVariable
+Leaderboard.RMSEVariable(short_name, model_names::Vector{String})
+Leaderboard.RMSEVariable(short_name, model_names::Vector{String}, units::Dict)
+Leaderboard.RMSEVariable(short_name, model_names::Vector{String}, category_names::Vector{String}, units::Dict)
+Leaderboard.RMSEVariable(short_name::String, model_names::Vector{String}, category_names::Vector{String}, RMSEs, units::Dict)
+Leaderboard.RMSEVariable(short_name, model_names::Vector{String}, units::String)
+Leaderboard.RMSEVariable(short_name, model_names::Vector{String}, category_names::Vector{String}, units::String)
+Leaderboard.RMSEVariable(short_name::String, model_names::Vector{String}, category_names::Vector{String}, RMSEs, units::String)
+Leaderboard.model_names
+Leaderboard.category_names
+Leaderboard.rmse_units
+```
+
 ## Utilities
 
 For development and not
