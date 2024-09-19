@@ -355,6 +355,19 @@ rmse_var[2,5] = 11.2
 rmse_var[:, :]
 ```
 
+#### Adding categories, models, and units
+Adding categories (e.g., seasons, months, years, etc.), models, and units to a `RMSEVariable`
+can be done using `add_category`, `add_model`, and `add_units!`.
+
+See the example below for how to use this functionality.
+
+Adding categories (e.g., seasons, months, years, etc.), models, and units to a `RMSEVariable`
+rmse_var2 = ClimaAnalysis.add_category(rmse_var, "Jan") # can take in mode than one category
+rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA") # can take in more than one model name
+ClimaAnalysis.add_unit!(rmse_var, "CliMA", "K")
+ClimaAnalysis.add_unit!(rmse_var, Dict("CliMA" => "K")) # for adding multiple units
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.

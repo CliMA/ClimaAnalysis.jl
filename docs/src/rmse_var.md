@@ -111,3 +111,27 @@ rmse_var["ACCESS-CM2", ["ANN", "DJF", "MAM"]]
 rmse_var[2,5] = 11.2;
 rmse_var[:, :]
 ```
+
+## Adding categories, models, and units
+
+It may be the case that the CSV file does not contain all the models you want to analyze, or
+you want to consider another category but do not want to go in and manually edit the CSV
+file to add it. `ClimaAnalysis` provides `add_category`, `add_model`, and `add_unit!` for
+adding categories, models, and units respectively. Multiple model or categories can be
+provided (e.g., `add_model(rmse_var, "model1", "model2")`) in the functions. For adding
+multiple units, one can pass in a dictionary mapping model names to units. See the example
+below using this functionality.
+
+```@julia rmse_var
+rmse_var2 = ClimaAnalysis.add_category(rmse_var, "Jan") # can take in more than one category
+rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA") # can take in more than one model name
+ClimaAnalysis.add_unit!(rmse_var, "CliMA", "K")
+ClimaAnalysis.add_unit!(rmse_var, Dict("CliMA" => "K")) # for adding multiple units
+```
+
+```@repl rmse_var
+ClimaAnalysis.category_names(rmse_var2)
+ClimaAnalysis.model_names(rmse_var)
+ClimaAnalysis.rmse_units(rmse_var)
+rmse_var[:,:]
+```

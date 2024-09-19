@@ -85,6 +85,9 @@ Base.getindex(rmse_var::RMSEVariable, model_name, category)
 Base.getindex(rmse_var::RMSEVariable, model_name::String)
 Base.setindex!(rmse_var::RMSEVariable, rmse, model_name, category)
 Base.setindex!(rmse_var::RMSEVariable, rmse, model_name::String)
+Leaderboard.add_category
+Leaderboard.add_model
+Leaderboard.add_unit!
 ```
 
 ## Utilities

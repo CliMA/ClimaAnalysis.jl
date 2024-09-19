@@ -188,3 +188,78 @@ end
         [120.0, 130.0, 140.0]
     @test_throws DimensionMismatch rmse_var[1, :] = [120.0, 130.0, 140.0]
 end
+
+@testset "Adding model and category" begin
+    # Add single model
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "new model")
+    @test ClimaAnalysis.model_names(rmse_var) ==
+          ["ACCESS-CM2", "ACCESS-ESM1-5", "new model"]
+    @test ClimaAnalysis.category_names(rmse_var) ==
+          ["DJF", "MAM", "JJA", "SON", "ANN"]
+    @test ClimaAnalysis.rmse_units(rmse_var) ==
+          Dict("ACCESS-CM2" => "", "ACCESS-ESM1-5" => "", "new model" => "")
+    @test all(isnan.(rmse_var["new model"]))
+
+    # Add single category
+    rmse_var = ClimaAnalysis.add_category(rmse_var, "new cat")
+    @test ClimaAnalysis.model_names(rmse_var) ==
+          ["ACCESS-CM2", "ACCESS-ESM1-5", "new model"]
+    @test ClimaAnalysis.category_names(rmse_var) ==
+          ["DJF", "MAM", "JJA", "SON", "ANN", "new cat"]
+    @test ClimaAnalysis.rmse_units(rmse_var) ==
+          Dict("ACCESS-CM2" => "", "ACCESS-ESM1-5" => "", "new model" => "")
+    @test all(isnan.(rmse_var[:, "new cat"]))
+
+    # Add multiple models
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "new model", "new model 2")
+    @test ClimaAnalysis.model_names(rmse_var) ==
+          ["ACCESS-CM2", "ACCESS-ESM1-5", "new model", "new model 2"]
+    @test ClimaAnalysis.category_names(rmse_var) ==
+          ["DJF", "MAM", "JJA", "SON", "ANN"]
+    @test ClimaAnalysis.rmse_units(rmse_var) == Dict(
+        "ACCESS-CM2" => "",
+        "ACCESS-ESM1-5" => "",
+        "new model" => "",
+        "new model 2" => "",
+    )
+    @test all(isnan.(rmse_var["new model"]))
+    @test all(isnan.(rmse_var["new model 2"]))
+
+    # Add multiple categories
+    rmse_var = ClimaAnalysis.add_category(rmse_var, "new cat", "new cat 2")
+    @test ClimaAnalysis.model_names(rmse_var) ==
+          ["ACCESS-CM2", "ACCESS-ESM1-5", "new model", "new model 2"]
+    @test ClimaAnalysis.category_names(rmse_var) ==
+          ["DJF", "MAM", "JJA", "SON", "ANN", "new cat", "new cat 2"]
+    @test ClimaAnalysis.rmse_units(rmse_var) == Dict(
+        "ACCESS-CM2" => "",
+        "ACCESS-ESM1-5" => "",
+        "new model" => "",
+        "new model 2" => "",
+    )
+    @test all(isnan.(rmse_var[:, "new cat"]))
+    @test all(isnan.(rmse_var[:, "new cat 2"]))
+end
+
+@testset "Adding units" begin
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+
+    # Adding a single unit
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "hi")
+    ClimaAnalysis.add_unit!(rmse_var, "hi", "test")
+    @test ClimaAnalysis.rmse_units(rmse_var)["hi"] == "test"
+
+    # Adding multiple units
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "hello1", "hello2")
+    ClimaAnalysis.add_unit!(
+        rmse_var,
+        Dict("hello1" => "units1", "hello2" => "units2"),
+    )
+    @test ClimaAnalysis.rmse_units(rmse_var)["hello1"] == "units1"
+    @test ClimaAnalysis.rmse_units(rmse_var)["hello2"] == "units2"
+end
