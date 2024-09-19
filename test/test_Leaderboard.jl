@@ -263,3 +263,45 @@ end
     @test ClimaAnalysis.rmse_units(rmse_var)["hello1"] == "units1"
     @test ClimaAnalysis.rmse_units(rmse_var)["hello2"] == "units2"
 end
+
+@testset "Finding best, worst, and median model" begin
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var[:, :] = [[1.0 2.0 3.0 4.0 5.0]; [6.0 7.0 8.0 9.0 10.0]]
+    ClimaAnalysis.add_unit!(rmse_var, "ACCESS-CM2", "units")
+    ClimaAnalysis.add_unit!(rmse_var, "ACCESS-ESM1-5", "units")
+    val, model_name =
+        ClimaAnalysis.find_best_single_model(rmse_var, category_name = "ANN")
+    @test model_name == "ACCESS-CM2"
+    @test val == [1.0, 2.0, 3.0, 4.0, 5.0]
+    @test val |> size == (5,)
+
+    val, model_name =
+        ClimaAnalysis.find_worst_single_model(rmse_var, category_name = "ANN")
+    @test model_name == "ACCESS-ESM1-5"
+    @test val == [6.0, 7.0, 8.0, 9.0, 10.0]
+    @test val |> size == (5,)
+
+    val = ClimaAnalysis.median(rmse_var)
+    @test val == [7.0, 9.0, 11.0, 13.0, 15.0] ./ 2.0
+    @test val |> size == (5,)
+
+    # Test with NaN in RMSE array
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "for adding NaN")
+    ClimaAnalysis.add_unit!(rmse_var, "for adding NaN", "units")
+    val, model_name =
+        ClimaAnalysis.find_best_single_model(rmse_var, category_name = "ANN")
+    @test model_name == "ACCESS-CM2"
+    @test val == [1.0, 2.0, 3.0, 4.0, 5.0]
+    @test val |> size == (5,)
+
+    val, model_name =
+        ClimaAnalysis.find_worst_single_model(rmse_var, category_name = "ANN")
+    @test model_name == "ACCESS-ESM1-5"
+    @test val == [6.0, 7.0, 8.0, 9.0, 10.0]
+    @test val |> size == (5,)
+
+    val = ClimaAnalysis.median(rmse_var)
+    @test val == [7.0, 9.0, 11.0, 13.0, 15.0] ./ 2.0
+    @test val |> size == (5,)
+end

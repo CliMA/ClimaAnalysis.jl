@@ -12,7 +12,10 @@ export RMSEVariable,
     setindex!,
     add_category,
     add_model,
-    add_unit!
+    add_unit!,
+    find_best_single_model,
+    find_worst_single_model,
+    median
 
 """
     Holding root mean squared errors over multiple categories and models for a single
@@ -516,6 +519,77 @@ function add_unit!(rmse_var::RMSEVariable, model_name2unit::Dict)
         rmse_var.units[model_name] = unit
     end
     return nothing
+end
+
+"""
+    _unit_check(rmse_var::RMSEVariable)
+
+Return nothing if units are not missing and units are the same across all models. Otherwise,
+return an error.
+"""
+function _unit_check(rmse_var::RMSEVariable)
+    units = values(rmse_var.units) |> collect
+    unit_equal = all(unit -> unit == first(units), units)
+    (!unit_equal || first(units) == "") &&
+        error("Units are not the same across all models or units are missing")
+    return nothing
+end
+
+"""
+    find_best_single_model(rmse_var::RMSEVariable; category_name = "ANN")
+
+Return a tuple of the best single model and the name of the model. Find the best single
+model using the root mean squared errors of the category `category_name`.
+"""
+function find_best_single_model(rmse_var::RMSEVariable; category_name = "ANN")
+    _unit_check(rmse_var)
+    categ_names = category_names(rmse_var)
+    ann_idx = categ_names |> (x -> findfirst(y -> (y == category_name), x))
+    isnothing(ann_idx) &&
+        error("The category $category_name does not exist in $categ_names")
+    rmse_vec = rmse_var[:, ann_idx] |> copy
+    # Replace all NaN with Inf so that we do not get NaN as a result
+    # We do this instead of filtering because if we filter, then we need to keep track of
+    # original indices
+    replace!(rmse_vec, NaN => Inf)
+    _, model_idx = findmin(rmse_vec)
+    mdl_names = model_names(rmse_var)
+    return rmse_var[model_idx, :], mdl_names[model_idx]
+end
+
+"""
+    find_worst_single_model(rmse_var::RMSEVariable; category_name = "ANN")
+
+Return a tuple of the worst single model and the name of the model. Find the worst single
+model using the root mean squared errors of the category `category_name`.
+"""
+function find_worst_single_model(rmse_var::RMSEVariable; category_name = "ANN")
+    _unit_check(rmse_var)
+    categ_names = category_names(rmse_var)
+    ann_idx = categ_names |> (x -> findfirst(y -> (y == category_name), x))
+    isnothing(ann_idx) && error("Annual does not exist in $categ_names")
+    rmse_vec = rmse_var[:, ann_idx] |> copy
+    # Replace all NaN with Inf so that we do not get NaN as a result
+    # We do this instead of filtering because if we filter, then we need to keep track of
+    # original indices
+    replace!(rmse_vec, NaN => -Inf)
+    _, model_idx = findmax(rmse_vec)
+    mdl_names = model_names(rmse_var)
+    return rmse_var[model_idx, :], mdl_names[model_idx]
+end
+
+"""
+    median(rmse_var::RMSEVariable)
+
+Find the median using the root mean squared errors across all categories.
+
+Any `NaN` is ignored in computing the median.
+"""
+function median(rmse_var::RMSEVariable)
+    _unit_check(rmse_var)
+    # Drop dimension so that size is (n,) instead of (1,n) so that it is consistent with the
+    # size of the arrays returned from find_worst_single_model and find_best_single_model
+    return dropdims(nanmedian(rmse_var.RMSEs, dims = 1), dims = 1)
 end
 
 end

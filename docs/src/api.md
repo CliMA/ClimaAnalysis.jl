@@ -88,6 +88,9 @@ Base.setindex!(rmse_var::RMSEVariable, rmse, model_name::String)
 Leaderboard.add_category
 Leaderboard.add_model
 Leaderboard.add_unit!
+Leaderboard.find_best_single_model
+Leaderboard.find_worst_single_model
+Leaderboard.median
 ```
 
 ## Utilities

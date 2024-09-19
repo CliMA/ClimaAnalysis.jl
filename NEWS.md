@@ -368,6 +368,21 @@ ClimaAnalysis.add_unit!(rmse_var, "CliMA", "K")
 ClimaAnalysis.add_unit!(rmse_var, Dict("CliMA" => "K")) # for adding multiple units
 ```
 
+#### Summary statistics
+Comparsion between models can be done using `find_best_single_model`,
+`find_worst_single_model`, and `median`. The functions `find_best_single_model` and
+`find_worst_single_model` default to the category "ANN" (corresponding to the annual mean),
+but any category be considered using the parameter `category_name`. Furthermore, the model's
+root mean squared errors (RMSEs) and name is returned. The function `median` only return the
+model's RMSEs. Any `NaN` that appear in the data is ignored when computing the summary
+statistics. See the example below on how to use this functionality.
+
+```julia rmse_var
+ClimaAnalysis.find_best_single_model(rmse_var, category_name = "DJF")
+ClimaAnalysis.find_worst_single_model(rmse_var, category_name = "DJF")
+ClimaAnalysis.median(rmse_var)
+```
+
 ## Bug fixes
 
 - Increased the default value for `warp_string` to 72.
