@@ -5,6 +5,15 @@ v0.5.8
 ------
 
 ## Features
+This release introduces the following features
+- [Directly reading NetCDF files](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#add-support-for-directly-reading-netcdf-files)
+- [Resampling a OutputVar using the dimensions from another OutputVar](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#resampling-a-outputvar-using-the-dimensions-from-another-outputvar)
+- [Add support for converting units](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#add-support-for-converting-units)
+- [Applying a land/sea mask to GeoMakie plots](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#applying-a-landsea-mask-to-geomakie-plots)
+- [Integrating OutputVar with respect to longitude or latitude](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#integrating-outputvar-with-respect-to-longitude-or-latitude)
+- [Splitting OutputVar by season](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#splitting-outputvar-by-season)
+- [Compute bias and squared error between OutputVar](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#compute-bias-and-squared-error-between-outputvar)
+- [Represent RMSEs from various models](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#represent-rmses-from-various-models)
 
 ### Add support for directly reading NetCDF files
 
@@ -133,7 +142,7 @@ integration being done is rectangular integration using the left endpoints for i
 longitude and latitude. See the example of integrating over a sphere where the data is all
 ones to find the surface area of a sphere.
 
-```@julia integrate_lonlat
+```julia
 julia> lon = collect(range(-179.5, 179.5, 360));
 
 julia> lat = collect(range(-89.5, 89.5, 180));
@@ -164,7 +173,7 @@ julia> long_name(integrated_var) # updated long name to reflect the data being i
 "f integrated over lon (-179.5 to 179.5degrees_east) and integrated over lat (-89.5 to 89.5degrees_north)"
 ```
 
-### Split by season
+### Splitting OutputVar by season
 `OutputVar`s can be split by seasons using `split_by_season(var)` provided that a start date
 can be found in `var.attributes["start_date"]` and time is a dimension in the `OutputVar`.
 The unit of time is expected to be second. The function `split_by_season(var)` returns a
@@ -173,7 +182,7 @@ the seasons are March to May, June to August, September to November, and Decembe
 February. The order of the vector is MAM, JJA, SON, and DJF. If there are no dates found for
 a season, then the `OutputVar` for that season will be an empty `OutputVar`.
 
-```@julia split_by_season
+```julia
 julia> attribs = Dict("start_date" => "2024-1-1");
 
 julia> time = [0.0, 5_184_000.0, 13_132_800.0]; # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
@@ -204,7 +213,7 @@ julia> [MAM.data, JJA.data, DJF.data]
  [1.0]
 ```
 
-### Bias and squared error
+### Compute bias and squared error between OutputVar
 Bias and squared error can be computed from simulation data and observational data in
 `OutputVar`s using `bias(sim, obs)` and `squared_error(sim, obs)`. The function `bias(sim,
 obs)` returns a `OutputVar` whose data is the bias (`sim.data - obs.data`) and computes the
@@ -225,7 +234,7 @@ and `obs` and the units for longitude and latitude should be degrees.
 Consider the following example, where we compute the bias and RMSE between our simulation
 and some observations stored in "ta\_1d\_average.nc".
 
-```@julia bias_and_mse
+```julia
 julia> obs_var = OutputVar("ta_1d_average.nc"); # load in observational data
 
 julia> sim_var = get(simdir("simulation_output"), "ta"); # load in simulation data
@@ -276,7 +285,7 @@ plot_bias_on_globe!(fig, sim_var, obs_var)
 CairoMakie.save("myfigure.pdf", fig)
 ```
 
-### RMSEVariable
+### Represent RMSEs from various models
 
 To facilitate analysis of root mean squared errors (RMSEs) over different models and
 categories (e.g., seasons) for a single variable of interest, `RMSEVariable` is introduced in
@@ -361,7 +370,7 @@ can be done using `add_category`, `add_model`, and `add_units!`.
 
 See the example below for how to use this functionality.
 
-Adding categories (e.g., seasons, months, years, etc.), models, and units to a `RMSEVariable`
+```julia
 rmse_var2 = ClimaAnalysis.add_category(rmse_var, "Jan") # can take in mode than one category
 rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA") # can take in more than one model name
 ClimaAnalysis.add_unit!(rmse_var, "CliMA", "K")
@@ -377,7 +386,7 @@ root mean squared errors (RMSEs) and name is returned. The function `median` onl
 model's RMSEs. Any `NaN` that appear in the data is ignored when computing the summary
 statistics. See the example below on how to use this functionality.
 
-```julia rmse_var
+```julia
 ClimaAnalysis.find_best_single_model(rmse_var, category_name = "DJF")
 ClimaAnalysis.find_worst_single_model(rmse_var, category_name = "DJF")
 ClimaAnalysis.median(rmse_var)
@@ -385,14 +394,11 @@ ClimaAnalysis.median(rmse_var)
 
 #### Plotting RMSEVariable
 `RMSEVariable` can be visualized as a box plot or heat map using `plot_boxplot!` and
-`plot_leaderboard!`. The function `plot_boxplot!(fig, rmse_var::ClimaAnalysis.RMSEVariable;
-model_names = ["CliMA"], ploc = (1, 1), best_and_worst_category_name = "ANN")` makes a box
-plot for each category in the `RMSEVariable` and plots any other models as specified by
-`model_names`. The function `plot_leaderboard!(fig,
-rmse_vars::ClimaAnalysis.RMSEVariable...; ploc = (1, 1), model_names = ["CliMA"],
-best_category_name = "ANN")` makes a heatmap of the RMSEs between the variables of interest
-and the categories. The values of the heatmap are normalized by dividing over the median
-model's RMSEs for each variable.
+`plot_leaderboard!`. The function `plot_boxplot!` makes a box plot for each category in the
+`RMSEVariable` and plots any other models as specified by `model_names`. The function
+`plot_leaderboard!` makes a heatmap of the RMSEs between the variables of interest and the
+categories. The values of the heatmap are normalized by dividing over the median model's
+RMSEs for each variable.
 
 ## Bug fixes
 
