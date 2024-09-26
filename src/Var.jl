@@ -37,6 +37,7 @@ export OutputVar,
     units,
     dim_units,
     range_dim,
+    reordered_as,
     resampled_as,
     has_units,
     convert_units,
@@ -785,6 +786,48 @@ function _check_dims_consistent(x::OutputVar, y::OutputVar)
         "Units for dimensions $(x_dims[not_consistent_units]) in x is not consistent with units for dimensions $(y_dims[not_consistent_units]) in y",
     )
     return nothing
+end
+
+"""
+    reordered_as(src_var::OutputVar, dest_var::OutputVar)
+
+Reorder the dimensions in `src_var` to match the ordering of dimensions in `dest_var`.
+"""
+function reordered_as(src_var::OutputVar, dest_var::OutputVar)
+    # Get the conventional dim names for both src_var and dest_var
+    conventional_dim_name_src = conventional_dim_name.(keys(src_var.dims))
+    conventional_dim_name_dest = conventional_dim_name.(keys(dest_var.dims))
+
+    # Check if the dimensions are the same (order does not matter)
+    Set(conventional_dim_name_src) == Set(conventional_dim_name_dest) || error(
+        "Dimensions are not the same between src ($conventional_dim_name_src) and dest ($conventional_dim_name_dest)",
+    )
+
+    # Find permutation indices to reorder dims
+    reorder_indices =
+        indexin(conventional_dim_name_dest, conventional_dim_name_src)
+
+    # Reorder dims, dim_attribs, and data, but not attribs
+    ret_dims = deepcopy(src_var.dims)
+    ret_dims = OrderedDict(collect(ret_dims)[reorder_indices])
+    ret_attribs = deepcopy(src_var.attributes)
+
+    # Cannot assume that every dimension is present in dim_attribs so we loop to reorder the
+    # best we can and merge with src_var.dim_attributes to add any remaining pairs to
+    # ret_dim_attribs
+    ret_dim_attribs = empty(src_var.dim_attributes)
+    src_var_dim_attribs = src_var.dim_attributes |> deepcopy
+    src_var_dim_names = collect(keys(src_var.dims))
+    for idx in reorder_indices
+        dim_name = src_var_dim_names[idx]
+        haskey(src_var_dim_attribs, dim_name) &&
+            (ret_dim_attribs[dim_name] = src_var_dim_attribs[dim_name])
+    end
+    merge!(ret_dim_attribs, src_var_dim_attribs)
+
+    ret_data = copy(src_var.data)
+    ret_data = permutedims(ret_data, reorder_indices)
+    return OutputVar(ret_attribs, ret_dims, ret_dim_attribs, ret_data)
 end
 
 """

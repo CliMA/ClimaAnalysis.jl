@@ -601,6 +601,104 @@ end
 
 end
 
+@testset "Reordering" begin
+    # Reordering the dimensions of a var to match itself
+    src_long = 0.0:180.0 |> collect
+    src_lat = 0.0:90.0 |> collect
+    src_data = ones(length(src_long), length(src_lat))
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+    reordered_var = ClimaAnalysis.reordered_as(src_var, src_var)
+    @test reordered_var.attributes == src_var.attributes
+    @test reordered_var.dims == src_var.dims
+    @test reordered_var.dim_attributes == src_var.dim_attributes
+    @test reordered_var.data == src_var.data
+
+    # Reordering the dimensions of src_var to match a different order of dimensions in
+    # dest_var
+    dest_long = 20.0:180.0 |> collect
+    dest_lat = 30.0:90.0 |> collect
+    dest_data = zeros(length(dest_lat), length(dest_long))
+    dest_dims = OrderedDict(["lat" => dest_lat, "long" => dest_long])
+    dest_attribs = Dict("long_name" => "hi")
+    dest_dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "test_units4"),
+        "long" => Dict("units" => "test_units3"),
+    ])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+    reordered_var = ClimaAnalysis.reordered_as(src_var, dest_var)
+    @test reordered_var.attributes == src_var.attributes
+    @test reordered_var.dims ==
+          OrderedDict(["lat" => src_lat, "long" => src_long])
+    @test reordered_var.dim_attributes == OrderedDict([
+        "lat" => Dict("units" => "test_units2"),
+        "long" => Dict("units" => "test_units1"),
+    ])
+    @test reordered_var.data == ones(length(src_lat), length(src_long))
+
+    # Reordering but dim_attributes is not available for every dimension
+    src_dim_attribs_one = OrderedDict(["lat" => Dict("units" => "test_units2")])
+    src_dim_attribs_empty = empty(src_dim_attribs_one)
+    src_dim_attribs_extra = OrderedDict([
+        "extra_info" => "hi",
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    src_var_one = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs_one,
+        src_data,
+    )
+    src_var_empty = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs_empty,
+        src_data,
+    )
+    src_var_extra = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs_extra,
+        src_data,
+    )
+    reordered_var = ClimaAnalysis.reordered_as(src_var_one, dest_var)
+    @test reordered_var.dim_attributes == src_dim_attribs_one
+    reordered_var = ClimaAnalysis.reordered_as(src_var_empty, dest_var)
+    @test reordered_var.dim_attributes == src_dim_attribs_empty
+    reordered_var = ClimaAnalysis.reordered_as(src_var_extra, dest_var)
+    @test reordered_var.dim_attributes == OrderedDict([
+        "lat" => Dict("units" => "test_units2"),
+        "extra_info" => "hi",
+    ])
+
+    # Error checking for dimensions not being the same in both
+    src_long = 20.0:180.0 |> collect
+    src_lat = 30.0:90.0 |> collect
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_data = ones(length(src_long), length(src_lat))
+    dest_lat = 30.0:90.0 |> collect
+    dest_dims = OrderedDict(["lat" => dest_lat])
+    dest_data = ones(length(src_lat))
+    src_var = ClimaAnalysis.OutputVar(src_dims, src_data)
+    dest_var = ClimaAnalysis.OutputVar(dest_dims, dest_data)
+    @test_throws ErrorException ClimaAnalysis.reordered_as(src_var, dest_var)
+end
+
 @testset "Resampling" begin
     src_long = 0.0:180.0 |> collect
     src_lat = 0.0:90.0 |> collect
