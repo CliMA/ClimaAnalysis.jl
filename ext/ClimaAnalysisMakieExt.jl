@@ -640,7 +640,8 @@ end
 Plot a Tukey style boxplot for each category in `rmse_var`.
 
 The best and worst single models are found for the category `best_and_worst_category_name`
-and are plotted on the boxplot. Additionally, any model in `model_names` will also be
+and are plotted on the boxplot. When finding the best and worst single models, any models in
+`model_names` will be excluded. Additionally, any model in `model_names` will also be
 plotted on the boxplot.
 
 The parameter `ploc` determines where to place the plot on the figure.
@@ -693,15 +694,19 @@ function Visualize.plot_boxplot!(
         whiskerlinewidth = 1,
     )
 
-    # Plotting best and worst model
+    # Delete any model in model_names to exclude them when finding best and worst models
+    rmse_var_delete =
+        ClimaAnalysis.Leaderboard._delete_model(rmse_var, model_names...)
+
+    # Find and plot best and worst models
     absolute_worst_values, absolute_worst_model_name =
         ClimaAnalysis.find_worst_single_model(
-            rmse_var,
+            rmse_var_delete,
             category_name = best_and_worst_category_name,
         )
     absolute_best_values, absolute_best_model_name =
         ClimaAnalysis.find_best_single_model(
-            rmse_var,
+            rmse_var_delete,
             category_name = best_and_worst_category_name,
         )
     Makie.scatter!(

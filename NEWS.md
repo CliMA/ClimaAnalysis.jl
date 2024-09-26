@@ -31,6 +31,11 @@ julia> reordered_var.dims |> keys |> collect
  "long"
 ```
 
+## Bug fixes
+
+- Fix models repeating in legend of box plots by not considering the models in `model_names`
+  when finding the best and worst models
+
 v0.5.8
 ------
 

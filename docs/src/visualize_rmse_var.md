@@ -4,10 +4,11 @@ Instead of computing summary statistics, it may be more helpful to plot a box pl
 heatmap. `ClimaAnalysis` provides the functions `plot_boxplot!` and `plot_leaderboard!`
 to help visualize the root mean squared errors (RMSEs) in a `RMSEVariable`.
 
-The function [`Visualize.plot_boxplot!`](@ref) makes a box plot for each
-category in the `RMSEVariable`. The best model and worst model and any other models in
-`model_names` are plotted. The category to find the best and worst model defaults to
-"ANN", but can be changed using the parameter `best_and_worst_category_name`.
+The function [`Visualize.plot_boxplot!`](@ref) makes a box plot for each category in the
+`RMSEVariable`. The best model and worst model and any other models in `model_names` are
+plotted. When finding the best and worst single models, any models in `model_names` will be
+excluded. The category to find the best and worst model defaults to "ANN", but can be
+changed using the parameter `best_and_worst_category_name`.
 
 The function [`Visualize.plot_leaderboard!`](@ref) makes a heatmap of the
 RMSEs between the variables of interest and the categories. The best model for each variable
