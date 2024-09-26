@@ -838,6 +838,7 @@ Resample `data` in `src_var` to `dims` in `dest_var`.
 The resampling performed here is a 1st-order linear resampling.
 """
 function resampled_as(src_var::OutputVar, dest_var::OutputVar)
+    src_var = reordered_as(src_var, dest_var)
     _check_dims_consistent(src_var, dest_var)
 
     src_resampled_data =

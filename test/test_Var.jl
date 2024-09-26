@@ -1205,35 +1205,6 @@ end
         var_missing_dim_units,
     )
 
-    # Mismatch in ordering of dims
-    lon = collect(range(-179.5, 179.5, 360))
-    lat = collect(range(-89.5, 89.5, 180))
-    data_ones = ones(length(lon), length(lat))
-    dims = OrderedDict(["lon" => lon, "lat" => lat])
-    attribs =
-        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
-    dim_attribs = OrderedDict([
-        "lon" => Dict("units" => "deg"),
-        "lat" => Dict("units" => "deg"),
-    ])
-    var_lonlat = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
-    lon = collect(range(-179.5, 179.5, 360))
-    lat = collect(range(-89.5, 89.5, 180))
-    data_ones = ones(length(lat), length(lon))
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs =
-        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
-    dim_attribs = OrderedDict([
-        "lat" => Dict("units" => "deg"),
-        "lon" => Dict("units" => "deg"),
-    ])
-    var_latlon = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
-    @test_throws ErrorException ClimaAnalysis.bias(var_lonlat, var_latlon)
-    @test_throws ErrorException ClimaAnalysis.squared_error(
-        var_lonlat,
-        var_latlon,
-    )
-
     # Missing dims
     lon = collect(range(-179.5, 179.5, 360))
     data_missing_dim = ones(length(lon))
