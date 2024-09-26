@@ -245,6 +245,37 @@ end
     @test all(isnan.(rmse_var[:, "new cat 2"]))
 end
 
+@testset "Removing model" begin
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(rmse_var, "new model", "new model 2")
+    rmse_var[2, 5] = 10.0
+    rmse_var_delete = ClimaAnalysis.Leaderboard._delete_model(
+        rmse_var,
+        "ACCESS-CM2",
+        "new model",
+    )
+    @test rmse_var_delete.short_name == "ta"
+    @test ClimaAnalysis.model_names(rmse_var_delete) ==
+          ["ACCESS-ESM1-5", "new model 2"]
+    @test ClimaAnalysis.category_names(rmse_var_delete) ==
+          ClimaAnalysis.category_names(rmse_var)
+    @test rmse_var_delete[1, :] == rmse_var[2, :]
+    @test all(isnan.(rmse_var_delete[2, :]))
+
+    # Delete all models
+    rmse_var_delete = ClimaAnalysis.Leaderboard._delete_model(
+        rmse_var_delete,
+        "ACCESS-ESM1-5",
+        "new model 2",
+    )
+    @test rmse_var_delete.short_name == "ta"
+    @test isempty(ClimaAnalysis.model_names(rmse_var_delete))
+    @test ClimaAnalysis.category_names(rmse_var_delete) ==
+          ClimaAnalysis.category_names(rmse_var)
+    @test rmse_var_delete[:, :] |> size == (0, 5)
+end
+
 @testset "Adding units" begin
     csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
     rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")

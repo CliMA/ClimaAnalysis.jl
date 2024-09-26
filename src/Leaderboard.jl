@@ -483,6 +483,36 @@ function add_model(rmse_var::RMSEVariable, models::String...)
 end
 
 """
+    _delete_model(rmse_var::RMSEVariable, models::String...)
+
+Delete one or more models named `models` from `rmse_var`.
+"""
+function _delete_model(rmse_var::RMSEVariable, models::String...)
+    # Delete model name
+    mdl_names = model_names(rmse_var)
+    num_rows = length(mdl_names)
+    setdiff!(mdl_names, models)
+
+    # Delete model
+    rmses = rmse_var.RMSEs |> copy
+    indices_to_delete = (rmse_var.model2index[model] for model in models)
+    rmses = rmse_var.RMSEs[setdiff(1:num_rows, indices_to_delete), :]
+
+    # Delete unit for model
+    units = rmse_var.units |> deepcopy
+    for name in models
+        delete!(units, name)
+    end
+    return RMSEVariable(
+        rmse_var.short_name,
+        mdl_names,
+        category_names(rmse_var),
+        rmses,
+        units,
+    )
+end
+
+"""
     _model_name_check(rmse_var::RMSEVariable, model_name)
 
 Check if `model_name` is present in the model names of `rmse_var`.
