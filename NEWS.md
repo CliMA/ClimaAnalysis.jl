@@ -9,8 +9,8 @@ v0.5.9
 ### Reorder dimensions
 Before, resampling requires that the order of the dimensions is the same between the two
 `OutputVar`s. This feature adds the functionality of reordering the dimensions in a
-`OutputVar` to match the ordering of dimensions in another `OutputVar`. See the example
-below of this functionality.
+`OutputVar` to match the ordering of another `OutputVar`. The function `resampled_as` is
+updated to use `reordered_as`. See the example below of this functionality.
 
 ```julia
 julia> src_var.dims |> keys |> collect
