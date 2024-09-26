@@ -1,6 +1,36 @@
 ClimaAnalysis.jl Release Notes
 ===============================
 
+v0.5.9
+------
+
+## Features
+
+### Reorder dimensions
+Before, resampling requires that the order of the dimensions is the same between the two
+`OutputVar`s. This feature adds the functionality of reordering the dimensions in a
+`OutputVar` to match the ordering of dimensions in another `OutputVar`. See the example
+below of this functionality.
+
+```julia
+julia> src_var.dims |> keys |> collect
+2-element Vector{String}:
+ "long"
+ "lat"
+
+julia> dest_var.dims |> keys |> collect
+2-element Vector{String}:
+ "lat"
+ "long"
+
+julia> reordered_var = ClimaAnalysis.reordered_as(src_var, dest_var);
+
+julia> reordered_var.dims |> keys |> collect
+2-element Vector{String}:
+ "lat"
+ "long"
+```
+
 v0.5.8
 ------
 

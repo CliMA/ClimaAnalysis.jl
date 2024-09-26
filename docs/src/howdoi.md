@@ -67,6 +67,51 @@ The `Atmos` module in `ClimaAnalysis` comes with a function,
 `OutputVar` is returned where the values are linearly interpolated on fixed
 pressure levels.
 
+## How do I reorder the dimensions in a `OutputVar` to match the dimensions in another `OutputVar`?
+
+You can use the `reordered_as(src_var, dest_var)` function where `src_var` is a `OutputVar`
+with the dimensions you want to reorder to match the dimensions in the OutputVar `dest_var`.
+
+```@setup reordered_as
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
+
+src_long = 0.0:180.0 |> collect
+src_lat = 0.0:90.0 |> collect
+src_data = ones(length(src_long), length(src_lat))
+src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+src_attribs = Dict("long_name" => "hi")
+src_dim_attribs = OrderedDict([
+    "long" => Dict("units" => "test_units1"),
+    "lat" => Dict("units" => "test_units2"),
+])
+src_var =
+    ClimaAnalysis.OutputVar(src_attribs, src_dims, src_dim_attribs, src_data)
+
+dest_long = 20.0:180.0 |> collect
+dest_lat = 30.0:90.0 |> collect
+dest_data = zeros(length(dest_lat), length(dest_long))
+dest_dims = OrderedDict(["lat" => dest_lat, "long" => dest_long])
+dest_attribs = Dict("long_name" => "hi")
+dest_dim_attribs = OrderedDict([
+    "lat" => Dict("units" => "test_units4"),
+    "long" => Dict("units" => "test_units3"),
+])
+dest_var = ClimaAnalysis.OutputVar(
+    dest_attribs,
+    dest_dims,
+    dest_dim_attribs,
+    dest_data,
+)
+```
+
+```@repl reordered_as
+src_var.dims |> keys |> collect
+dest_var.dims |> keys |> collect
+reordered_var = ClimaAnalysis.reordered_as(src_var, dest_var);
+reordered_var.dims |> keys |> collect
+```
+
 ## How do I resample the data in a `OutputVar` using the dimensions from another `OutputVar`?
 
 You can use the `resampled_as(src_var, dest_var)` function where `src_var` is a

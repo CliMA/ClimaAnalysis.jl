@@ -54,6 +54,7 @@ Var.has_altitude
 Var.conventional_dim_name
 Var.dim_units
 Var.range_dim
+Var.reordered_as
 Var.resampled_as
 Var.convert_units
 Var.integrate_lonlat
