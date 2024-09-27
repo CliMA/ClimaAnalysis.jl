@@ -763,7 +763,6 @@ function Visualize.plot_boxplot!(
                 1:num_cats,
                 rmse_var[model_name],
                 label = model_name,
-                markersize = 20,
                 color = :red,
             ) |> pt -> push!(pts_on_boxplot, pt)
         end
