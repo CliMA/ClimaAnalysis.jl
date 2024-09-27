@@ -784,6 +784,13 @@ end
         data,
     )
 
+    var_empty_unit = ClimaAnalysis.OutputVar(
+        Dict{String, Any}("units" => ""),
+        Dict("long" => long),
+        dim_attributes,
+        data,
+    )
+
     @test ClimaAnalysis.has_units(var_with_unitful)
 
     # Convert to cm/s
