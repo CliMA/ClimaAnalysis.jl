@@ -191,6 +191,22 @@ using OrderedCollections
         ),
     )
     rmse_var[2, 5] = 4.0
+
+    rmse_var1 = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var1 = ClimaAnalysis.add_model(rmse_var1, "CliMA", "test_model")
+    rmse_var1["CliMA", :] = [12.0, 12.0, 11.0, 14.0, 6.0]
+    rmse_var1["test_model", :] = [12.0, 12.0, 11.0, 14.0, 6.0]
+    ClimaAnalysis.add_unit!(
+        rmse_var1,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "CliMA" => "units",
+            "test_model" => "units",
+        ),
+    )
+    rmse_var1[2, 5] = 4.0
+
     fig = Makie.Figure(; size = (800, 300 * 3 + 400), fontsize = 20)
     ClimaAnalysis.Visualize.plot_boxplot!(
         fig,
@@ -207,7 +223,7 @@ using OrderedCollections
     )
     ClimaAnalysis.Visualize.plot_boxplot!(
         fig,
-        rmse_var,
+        rmse_var1,
         model_names = ["CliMA", "ACCESS-ESM1-5"],
         ploc = (3, 1),
         best_and_worst_category_name = "ANN",
@@ -331,6 +347,31 @@ using OrderedCollections
         best_category_name = "ANN",
     )
     output_name = joinpath(tmp_dir, "test_leaderboard_nan.png")
+    Makie.save(output_name, fig)
+
+    # Testing with long name
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var = ClimaAnalysis.add_model(
+        rmse_var,
+        "long_name_name_name_name_name_name_name",
+    )
+    ClimaAnalysis.add_unit!(
+        rmse_var,
+        Dict(
+            "ACCESS-ESM1-5" => "units",
+            "ACCESS-CM2" => "units",
+            "long_name_name_name_name_name_name_name" => "units",
+        ),
+    )
+    rmse_var[2, 5] = 10.0
+    fig = Makie.Figure(; fontsize = 20)
+    ClimaAnalysis.Visualize.plot_boxplot!(
+        fig,
+        rmse_var,
+        model_names = ["long_name_name_name_name_name_name_name"],
+        best_and_worst_category_name = "ANN",
+    )
+    output_name = joinpath(tmp_dir, "test_boxplot_long_name.png")
     Makie.save(output_name, fig)
 
     # Test error handling for plot_leaderboard

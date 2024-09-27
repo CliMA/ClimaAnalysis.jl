@@ -635,7 +635,8 @@ end
                             rmse_var::ClimaAnalysis.RMSEVariable;
                             model_names = ["CliMA"],
                             ploc = (1, 1),
-                            best_and_worst_category_name = "ANN")
+                            best_and_worst_category_name = "ANN",
+                            legend_text_width = 10)
 
 Plot a Tukey style boxplot for each category in `rmse_var`.
 
@@ -644,7 +645,8 @@ and are plotted on the boxplot. When finding the best and worst single models, a
 `model_names` will be excluded. Additionally, any model in `model_names` will also be
 plotted on the boxplot.
 
-The parameter `ploc` determines where to place the plot on the figure.
+The parameter `ploc` determines where to place the plot on the figure. The parameter
+`legend_text_width` determines the number of characters on each line in the legend.
 """
 function Visualize.plot_boxplot!(
     fig,
@@ -652,6 +654,7 @@ function Visualize.plot_boxplot!(
     model_names = ["CliMA"],
     ploc = (1, 1),
     best_and_worst_category_name = "ANN",
+    legend_text_width = 10,
 )
     # Unit checking
     ClimaAnalysis.Leaderboard._unit_check(rmse_var)
@@ -709,21 +712,21 @@ function Visualize.plot_boxplot!(
             rmse_var_delete,
             category_name = best_and_worst_category_name,
         )
-    Makie.scatter!(
-        ax,
-        1:num_cats,
-        absolute_worst_values,
-        label = absolute_worst_model_name,
-    )
-    Makie.scatter!(
+    best_pt = Makie.scatter!(
         ax,
         1:num_cats,
         absolute_best_values,
         label = absolute_best_model_name,
     )
+    worst_pt = Makie.scatter!(
+        ax,
+        1:num_cats,
+        absolute_worst_values,
+        label = absolute_worst_model_name,
+    )
 
     # Plotting the median model
-    Makie.scatter!(
+    median_pt = Makie.scatter!(
         ax,
         1:num_cats,
         ClimaAnalysis.median(rmse_var),
@@ -734,6 +737,13 @@ function Visualize.plot_boxplot!(
         visible = false,
     )
 
+    # Keep track of points plotted by scatter! and names for plotting the legend
+    # later
+    pts_on_boxplot = [median_pt, best_pt, worst_pt]
+    names_on_legend = vcat(
+        ["Median", absolute_best_model_name, absolute_worst_model_name],
+        model_names,
+    )
     # Plot CliMA model and other models
     for model_name in model_names
         ClimaAnalysis.Leaderboard._model_name_check(rmse_var, model_name)
@@ -746,7 +756,7 @@ function Visualize.plot_boxplot!(
                 marker = :star5,
                 markersize = 20,
                 color = :green,
-            )
+            ) |> pt -> push!(pts_on_boxplot, pt)
         else
             Makie.scatter!(
                 ax,
@@ -755,12 +765,22 @@ function Visualize.plot_boxplot!(
                 label = model_name,
                 markersize = 20,
                 color = :red,
-            )
+            ) |> pt -> push!(pts_on_boxplot, pt)
         end
     end
 
+    # Add a new line character every `legend_text_width` characters to prevent legend from
+    # overflowing onto the box plot
+    # Soln from
+    # https://stackoverflow.com/questions/40545980/insert-a-newline-character-every-10-characters-in-a-string-using-julia
+    names_on_legend = map(
+        name ->
+            replace(name, Regex("(.{$legend_text_width})") => s"\1\n") |>
+            (name -> rstrip(name, '\n')),
+        names_on_legend,
+    )
     # Hack to make legend appear better
-    Makie.axislegend()
+    Makie.axislegend(ax, pts_on_boxplot, names_on_legend)
     Makie.scatter!(ax, [num_cats + 2.5], [0.1], markersize = 0.01)
 end
 

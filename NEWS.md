@@ -35,6 +35,8 @@ julia> reordered_var.dims |> keys |> collect
 
 - Fix models repeating in legend of box plots by not considering the models in `model_names`
   when finding the best and worst models
+- Fix legend from covering the box plot by adding the parameter `legend_text_width` which
+  control the number of characters on each line of the legend of the box plot
 
 v0.5.8
 ------
