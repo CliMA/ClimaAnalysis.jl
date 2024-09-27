@@ -1,5 +1,19 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.10
+-------
+
+## Features
+
+### Set units
+
+You can now set units for a `OutputVar`. This is useful if you need to change the name of
+the units or units are missing.
+
+```julia
+new_var = ClimaAnalysis.set_units(var, "kg m s^-1")
+```
+
 
 v0.5.9
 ------
