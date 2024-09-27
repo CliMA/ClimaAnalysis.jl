@@ -1247,3 +1247,49 @@ end
     @test_throws ErrorException ClimaAnalysis.bias(var_tal, var_tal)
     @test_throws ErrorException ClimaAnalysis.squared_error(var_tal, var_tal)
 end
+
+@testset "Setting units" begin
+    # Unit exists (unitful)
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_units = ClimaAnalysis.set_units(var, "idk")
+    @test ClimaAnalysis.units(var_units) == "idk"
+
+    # Unit exists (not unitful)
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "wacky")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_units = ClimaAnalysis.set_units(var, "idk")
+    @test ClimaAnalysis.units(var_units) == "idk"
+
+    # Unit does not exist
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    attribs = Dict("long_name" => "idk", "short_name" => "short")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_units = ClimaAnalysis.set_units(var, "idk")
+    @test ClimaAnalysis.units(var_units) == "idk"
+end

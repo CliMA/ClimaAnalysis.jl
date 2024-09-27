@@ -50,7 +50,8 @@ export OutputVar,
     global_bias,
     squared_error,
     global_mse,
-    global_rmse
+    global_rmse,
+    set_units
 
 """
     Representing an output variable
@@ -241,7 +242,6 @@ end
 # Implemented in ClimaAnalysisUnitfulExt
 function _maybe_convert_to_unitful end
 
-
 """
     Var.convert_units(var, new_units; conversion_function = nothing)
 
@@ -301,6 +301,19 @@ Failure to specify the `conversion_function` will produce an error.
 """
 function convert_units end
 
+"""
+    set_units(var::OutputVar, units::AbstractString)
+
+Set `units` for data in `var`.
+
+!!! warning "Override existing units"
+    If units already exist, this will override the units for data in `var`. To convert
+    units, see [`Var.convert_units`](@ref)
+"""
+function set_units(var::OutputVar, units::AbstractString)
+    converted_var = convert_units(var, units, conversion_function = identity)
+    return converted_var
+end
 
 """
     is_z_1D(var::OutputVar)
