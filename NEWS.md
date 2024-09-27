@@ -37,6 +37,8 @@ julia> reordered_var.dims |> keys |> collect
   when finding the best and worst models
 - Fix legend from covering the box plot by adding the parameter `legend_text_width` which
   control the number of characters on each line of the legend of the box plot
+- Use default marker size instead of a marker size of 20 when plotting other models beside
+  `CliMA` on the box plot
 
 v0.5.8
 ------
