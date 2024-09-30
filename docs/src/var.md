@@ -63,6 +63,23 @@ new_var = ClimaAnalysis.set_units(var, "kg m s^-1")
 !!! warning "Override existing units"
     If units already exist, this will override the units for data in `var`.
 
+## Interpolations and extrapolations
+
+Interpolating a `OutputVar` onto coordinates can be done by doing the following:
+```julia
+var((0.0, 0.0)) # var is a two-dimensional OutputVar
+```
+
+A multilinear interpolation is used to determine the value at the coordinate (0, 0).
+!!! warning "Interpolate on dates"
+    If any of the dimensions contains `Dates.DateTime` elements, interpolation is not
+    possible. `Interpolations.jl` does not support interpolating on dates.
+
+Extrapolating is supported only on the longitude and latitude dimensions. For the longitude
+and latitude dimensions, a periodic boundary condition and a flat boundary condition are
+added, respectively, when the dimension array is equispaced and spans the entire range. For
+all other cases, extrapolating beyond the domain of the dimension will throw an error.
+
 ## Integration
 
 `OutputVar`s can be integrated with respect to longitude, latitude, or both using

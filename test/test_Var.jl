@@ -6,6 +6,7 @@ import NaNStatistics: nanmean
 import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
 import Unitful: @u_str
+import Dates
 
 @testset "General" begin
     # Add test for short constructor
@@ -83,6 +84,61 @@ import Unitful: @u_str
         Dict("time" => time),
         [1],
     )
+end
+
+@testset "Interpolant boundary conditions" begin
+    # Check boundary condtions for lon (equispaced and span), lat (equispaced and span), and
+    # time
+    lon = 0.5:1.0:359.5 |> collect
+    lat = -89.5:1.0:89.5 |> collect
+    time = 1.0:100 |> collect
+    data = ones(length(lon), length(lat), length(time))
+    dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+        "time" => Dict("units" => "test_units3"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test var.interpolant.et == (Intp.Periodic(), Intp.Flat(), Intp.Throw())
+
+    # Not equispaced for lon and lat
+    lon = 0.5:1.0:359.5 |> collect |> x -> push!(x, 42.0) |> sort
+    lat = -89.5:1.0:89.5 |> collect |> x -> push!(x, 42.0) |> sort
+    time = 1.0:100 |> collect
+    data = ones(length(lon), length(lat), length(time))
+    dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test var.interpolant.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+
+    # Does not span entire range for and lat
+    lon = 0.5:1.0:350.5 |> collect
+    lat = -89.5:1.0:80.5 |> collect
+    time = 1.0:100 |> collect
+    data = ones(length(lon), length(lat), length(time))
+    dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test var.interpolant.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+
+    # Dates for the time dimension
+    lon = 0.5:1.0:359.5 |> collect
+    lat = -89.5:1.0:89.5 |> collect
+    time = [
+        Dates.DateTime(2020, 3, 1, 1, 1),
+        Dates.DateTime(2020, 3, 1, 1, 2),
+        Dates.DateTime(2020, 3, 1, 1, 3),
+    ]
+    data = ones(length(lon), length(lat), length(time))
+    dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+        "time" => Dict("units" => "test_units3"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test isnothing(var.interpolant)
 end
 
 @testset "empty" begin
@@ -423,7 +479,7 @@ end
 
 @testset "Interpolation" begin
     # 1D interpolation with linear data, should yield correct results
-    long = -180.0:180.0 |> collect
+    long = -175.0:175.0 |> collect
     data = copy(long)
 
     longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
