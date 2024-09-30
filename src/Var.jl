@@ -16,7 +16,8 @@ import ..Utils:
     split_by_season,
     time_to_date,
     date_to_time,
-    _data_at_dim_vals
+    _data_at_dim_vals,
+    _isequispaced
 
 export OutputVar,
     read_var,
@@ -80,37 +81,91 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, ITP}
     interpolant::ITP
 end
 
+"""
+    _make_interpolant(dims, data)
+
+Make a linear interpolant from `dims`, a dictionary mapping dimension name to array and
+`data`, an array containing data. Used in constructing a `OutputVar`.
+
+If any element of the arrays in `dims` is a Dates.DateTime, then no interpolant is returned.
+Interpolations.jl does not support interpolating on dates. If the longitudes span the entire
+range and are equispaced, then a periodic boundary condition is added for the longitude
+dimension. If the latitudes span the entire range and are equispaced, then a flat boundary
+condition is added for the latitude dimension. In all other cases, an error is thrown when
+extrapolating outside of `dim_array`.
+"""
+function _make_interpolant(dims, data)
+    # If any element is DateTime, then return nothing for the interpolant because
+    # Interpolations.jl do not support DateTimes
+    for dim_array in values(dims)
+        eltype(dim_array) <: Dates.DateTime && return nothing
+    end
+
+    # We can only create interpolants when we have 1D dimensions
+    if isempty(dims) || any(d -> ndims(d) != 1 || length(d) == 1, values(dims))
+        return nothing
+    end
+
+    # Dimensions are all 1D, check that they are compatible with data
+    size_data = size(data)
+    for (dim_index, (dim_name, dim_array)) in enumerate(dims)
+        dim_length = length(dim_array)
+        data_length = size_data[dim_index]
+        if dim_length != data_length
+            error(
+                "Dimension $dim_name has inconsistent size with provided data ($dim_length != $data_length)",
+            )
+        end
+    end
+
+    # Find boundary conditions for extrapolation
+    extp_bound_conds = (
+        _find_extp_bound_cond(dim_name, dim_array) for
+        (dim_name, dim_array) in dims
+    )
+
+    dims_tuple = tuple(values(dims)...)
+    extp_bound_conds_tuple = tuple(extp_bound_conds...)
+    return Intp.extrapolate(
+        Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
+        extp_bound_conds_tuple,
+    )
+end
+
+"""
+    _find_extp_bound_cond(dim_name, dim_array)
+
+Find the appropriate boundary condition for the `dim_name` dimension.
+"""
+function _find_extp_bound_cond(dim_name, dim_array)
+    min_of_dim, max_of_dim = extrema(dim_array)
+    dim_size = max_of_dim - min_of_dim
+    dsize = dim_array[begin + 1] - dim_array[begin]
+
+    # If the dimension array span the entire range and is equispaced, then add the
+    # appropriate boundary condition
+    # We do not handle the cases when the array is not equispaced
+    (
+        conventional_dim_name(dim_name) == "longitude" &&
+        _isequispaced(dim_array) &&
+        isapprox(dim_size + dsize, 360.0)
+    ) && return Intp.Periodic()
+    (
+        conventional_dim_name(dim_name) == "latitude" &&
+        _isequispaced(dim_array) &&
+        isapprox(dim_size + dsize, 180.0)
+    ) && return Intp.Flat()
+    return Intp.Throw()
+end
+
 function OutputVar(attribs, dims, dim_attribs, data)
     index2dim = keys(dims) |> collect
     dim2index =
         Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
 
-    # We can only create interpolants when we have 1D dimensions
-    if isempty(index2dim) ||
-       any(d -> ndims(d) != 1 || length(d) == 1, values(dims))
-        itp = nothing
-    else
-        # Dimensions are all 1D, check that they are compatible with data
-        size_data = size(data)
-        for (dim_index, (dim_name, dim_array)) in enumerate(dims)
-            dim_length = length(dim_array)
-            data_length = size_data[dim_index]
-            if dim_length != data_length
-                error(
-                    "Dimension $dim_name has inconsistent size with provided data ($dim_length != $data_length)",
-                )
-            end
-        end
-
-        dims_tuple = tuple(values(dims)...)
-
-        # TODO: Make this lazy: we should compute the spline the first time we use
-        # it, not when we create the object
-        itp = Intp.extrapolate(
-            Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
-            Intp.Throw(),
-        )
-    end
+    # TODO: Make this lazy: we should compute the spline the first time we use
+    # it, not when we create the object
+    itp = _make_interpolant(dims, data)
 
     function _maybe_process_key_value(k, v)
         k != "units" && return k => v
@@ -710,7 +765,14 @@ end
 Interpolate variable `x` onto the given `target_coord` coordinate using
 multilinear interpolation.
 
-Extrapolation is now allowed and will throw a `BoundsError`.
+Extrapolation is now allowed and will throw a `BoundsError` in most cases.
+
+If any element of the arrays of the dimensions is a Dates.DateTime, then interpolation is
+not possible. Interpolations.jl do not support making interpolations for dates. If the
+longitudes span the entire range and are equispaced, then a periodic boundary condition is
+added for the longitude dimension. If the latitudes span the entire range and are
+equispaced, then a flat boundary condition is added for the latitude dimension. In all other
+cases, an error is thrown when extrapolating outside of the array of the dimension.
 
 Example
 =======

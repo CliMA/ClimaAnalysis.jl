@@ -14,6 +14,16 @@ the units or units are missing.
 new_var = ClimaAnalysis.set_units(var, "kg m s^-1")
 ```
 
+### Extrapolating `OutputVar` on longitude and latitude
+Extrapolation is now possible for the longitude and latitude dimensions. If the dimension
+arrays are equispaced and span the entire range, then a periodic boundary condition is added
+for the longitude dimension and a flat boundary condition is added for the latitude
+dimension.
+
+## Bug fixes
+
+- Interpolation is not possible with dates. When dates are detected in any dimension, an
+  interpolat will not be made.
 
 v0.5.9
 ------
