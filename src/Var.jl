@@ -195,14 +195,41 @@ function OutputVar(dims, data)
 end
 
 """
-    OutputVar(path, short_name = nothing)
+    OutputVar(path,
+              short_name = nothing;
+              new_start_date = nothing,
+              shift_by = identity)
 
 Read the NetCDF file in `path` as an `OutputVar`.
 
 If `short_name` is `nothing`, automatically find the name.
+
+Dates in the time dimension are automatically converted to seconds with respect to the first
+date in the time dimension array or the `new_start_date`. The parameter `new_start_date` can
+be any string parseable by the [Dates](https://docs.julialang.org/en/v1/stdlib/Dates/)
+module or a `Dates.DateTime` object. The parameter `shift_by` is a function that takes in
+Dates.DateTime elements and return Dates.DateTime elements. The start date is added to the
+attributes of the `OutputVar`. The parameter `shift_by` is a function that takes in
+`Dates.DateTime` elements and returns `Dates.DateTime` elements. This function is applied to
+each element of the time array. Shifting the dates and converting to seconds is done in that
+order.
 """
-function OutputVar(path::String, short_name = nothing)
-    return read_var(path; short_name)
+function OutputVar(
+    path::String,
+    short_name = nothing;
+    new_start_date = nothing,
+    shift_by = identity,
+)
+    var = read_var(path; short_name)
+    # Check if it is possible to convert dates to seconds in the time dimension
+    if (has_time(var) && eltype(times(var)) <: Dates.DateTime)
+        var = _dates_to_seconds(
+            read_var(path; short_name),
+            new_start_date = new_start_date,
+            shift_by = shift_by,
+        )
+    end
+    return var
 end
 
 """
@@ -1299,6 +1326,69 @@ function global_rmse(sim::OutputVar, obs::OutputVar)
     squared_error_var = squared_error(sim, obs)
     return squared_error_var.attributes["global_rmse"]
 end
+
+"""
+    _dates_to_seconds(var::OutputVar;
+                      new_start_date = nothing,
+                      shift_by = identity)
+
+Convert dates in time dimension to seconds with respect to the first date in the time
+dimension array or the `new_start_date`.
+
+Dates in the time dimension are automatically converted to seconds with respect to the first
+date in the time dimension array or the `new_start_date`. The parameter `new_start_date` can
+be any string parseable by the [Dates](https://docs.julialang.org/en/v1/stdlib/Dates/)
+module or a `Dates.DateTime` object. The parameter `shift_by` is a function that takes in
+Dates.DateTime elements and return Dates.DateTime elements. The start date is added to the
+attributes of the `OutputVar`. The parameter `shift_by` is a function that takes in
+`Dates.DateTime` elements and returns `Dates.DateTime` elements. This function is applied to
+each element of the time array. Shifting the dates and converting to seconds is done in that
+order.
+
+Note that this function only works for the time dimension and will not work for the date
+dimension.
+"""
+function _dates_to_seconds(
+    var::OutputVar;
+    new_start_date = nothing,
+    shift_by = identity,
+)
+    has_time(var) || error(
+        "Converting from dates to seconds is only supported for the time dimension",
+    )
+    eltype(times(var)) <: Dates.DateTime ||
+        error("Type of time dimension is not dates")
+
+    # Preprocess time_arr by shifting dates
+    time_arr = copy(times(var))
+    if !isnothing(shift_by)
+        time_arr .= shift_by.(time_arr)
+    end
+
+    # Convert from dates to seconds using the first date in the time dimension array as the
+    # start date or the new_start_date
+    start_date = isnothing(new_start_date) ? time_arr[begin] : new_start_date
+
+    # Handle the case if start_date is a DateTime or string; if it is the latter, then try
+    # to parse it as a DateTime
+    start_date isa AbstractString && (start_date = Dates.DateTime(start_date))
+    time_arr = map(date -> date_to_time(start_date, date), time_arr)
+
+    # Remake OutputVar
+    ret_attribs = deepcopy(var.attributes)
+    ret_attribs["start_date"] = string(start_date) # add start_date as an attribute
+    ret_dim_attribs = deepcopy(var.dim_attributes)
+    ret_dim_attribs[time_name(var)]["units"] = "s" # add unit
+    var_dims = deepcopy(var.dims)
+    ret_dims_generator = (
+        conventional_dim_name(dim_name) == "time" ? dim_name => time_arr :
+        dim_name => dim_data for (dim_name, dim_data) in var_dims
+    )
+    ret_dims = OrderedDict(ret_dims_generator...)
+    ret_data = copy(var.data)
+    return OutputVar(ret_attribs, ret_dims, ret_dim_attribs, ret_data)
+end
+
 """
     overload_binary_op(op)
 

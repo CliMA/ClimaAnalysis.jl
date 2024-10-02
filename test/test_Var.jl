@@ -1349,3 +1349,89 @@ end
     var_units = ClimaAnalysis.set_units(var, "idk")
     @test ClimaAnalysis.units(var_units) == "idk"
 end
+
+@testset "Dates to seconds for vars" begin
+    # Test for no start date
+    time_arr = [
+        Dates.DateTime(2020, 3, 1, 1, 1),
+        Dates.DateTime(2020, 3, 1, 1, 2),
+        Dates.DateTime(2020, 3, 1, 1, 3),
+    ]
+    data = ones(length(time_arr))
+    dims = OrderedDict("time" => time_arr)
+    dim_attribs = OrderedDict("time" => Dict("blah" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_s = ClimaAnalysis.Var._dates_to_seconds(var)
+    @test ClimaAnalysis.times(var_s) == [0.0, 60.0, 120.0]
+    @test var_s.attributes["start_date"] == "2020-03-01T01:01:00"
+
+    # Test for a new start date
+    var_s = ClimaAnalysis.Var._dates_to_seconds(
+        var;
+        new_start_date = "2020-03-01T01:03:00",
+    )
+    @test ClimaAnalysis.times(var_s) == [-120.0, -60.0, 0.0]
+    @test var_s.attributes["start_date"] == "2020-03-01T01:03:00"
+
+    # Test for a new start date as a DateTime object
+    var_s = ClimaAnalysis.Var._dates_to_seconds(
+        var;
+        new_start_date = Dates.DateTime("2020-03-01T01:03:00"),
+    )
+    @test ClimaAnalysis.times(var_s) == [-120.0, -60.0, 0.0]
+    @test var_s.attributes["start_date"] == "2020-03-01T01:03:00"
+
+    # Test for shifting dates
+    var_s = ClimaAnalysis.Var._dates_to_seconds(
+        var,
+        shift_by = t -> t - Dates.Day(15),
+    )
+    @test ClimaAnalysis.times(var_s) == [0.0, 60.0, 120.0]
+    @test var_s.attributes["start_date"] == "2020-02-15T01:01:00"
+
+    # Test for shifting dates and new date together
+    var_s = ClimaAnalysis.Var._dates_to_seconds(
+        var;
+        new_start_date = "2020-03-01T01:00:00",
+        shift_by = t -> t + Dates.Minute(4),
+    )
+    @test ClimaAnalysis.times(var_s) == [300.0, 360.0, 420.0]
+    @test var_s.attributes["start_date"] == "2020-03-01T01:00:00"
+
+    # Test constructor for OutputVar that uses _dates_to_seconds
+    ncpath = joinpath(@__DIR__, "sample_nc/test_pr.nc")
+    file_var = ClimaAnalysis.OutputVar(
+        ncpath;
+        new_start_date = nothing,
+        shift_by = identity,
+    )
+    @test ClimaAnalysis.times(file_var) == [0.0, 1398902400.0]
+    @test file_var.attributes["start_date"] == "1979-01-01T00:00:00"
+
+    # Test for error handling
+    # Use date dimension instead of time dimension
+    date_arr = [
+        Dates.DateTime(2020, 3, 1, 1, 1),
+        Dates.DateTime(2020, 3, 1, 1, 2),
+        Dates.DateTime(2020, 3, 1, 1, 3),
+    ]
+    data = ones(length(date_arr))
+    dims = OrderedDict("date" => date_arr)
+    dim_attribs = OrderedDict("date" => Dict("blah" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.Var._dates_to_seconds(var)
+
+    # Cannot convert if the element type of time array is float
+    time_arr = [0.0, 60.0, 120.0]
+    data = ones(length(time_arr))
+    dims = OrderedDict("time" => time_arr)
+    dim_attribs = OrderedDict("time" => Dict("blah" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.Var._dates_to_seconds(var)
+end
