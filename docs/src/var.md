@@ -80,6 +80,31 @@ and latitude dimensions, a periodic boundary condition and a flat boundary condi
 added, respectively, when the dimension array is equispaced and spans the entire range. For
 all other cases, extrapolating beyond the domain of the dimension will throw an error.
 
+## Preprocess dates and seconds
+When loading a NetCDF file, dates in the time dimension are automatically converted to
+seconds and a start date is added to the attributes of the `OutputVar`. This is done because
+`ClimaAnalysis` does not support interpolating on dates which mean functions that rely on
+the interpolats, such as `resampled_as`, will not work otherwise.
+
+Two additional parameters are provided to help preprocess dates which are `new_start_date`
+and `shift_by`. If `new_start_date` is provided, then dates in the time dimension will
+automatically be converted with reference to the `new_start_date` rather than the first date
+found in the NetCDF file. The parameter `new_start_date` can be any string parseable by the
+[Dates](https://docs.julialang.org/en/v1/stdlib/Dates/) module or a `Dates.DateTime` object.
+If additional preprocessing is needed, then one can provide a function that takes in and
+returns a `Date.DateTime` object. This function is applied to each date before converting
+each dates to seconds with reference with the start date.
+```@julia dates_to_seconds
+# Shift the dates to first day of month, convert to seconds, and adjust seconds to
+# match the date 1/1/2010
+obs_var = ClimaAnalysis.OutputVar(
+                "pr.nc",
+                "precip",
+                new_start_date = "2010-01-01T00:00:00", # or Dates.DateTime(2010, 1, 1)
+                shift_by = Dates.firstdayofmonth,
+            )
+```
+
 ## Integration
 
 `OutputVar`s can be integrated with respect to longitude, latitude, or both using

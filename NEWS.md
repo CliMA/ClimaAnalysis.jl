@@ -20,6 +20,28 @@ arrays are equispaced and span the entire range, then a periodic boundary condit
 for the longitude dimension and a flat boundary condition is added for the latitude
 dimension.
 
+### Preprocess dates and times
+There is now support for preprocessing dates and times. The constructor for reading NetCDF
+files now automatically converts dates to seconds in the time dimension. This is done
+because `ClimaAnalysis` does not support interpolating on dates which mean functions that
+rely on the interpolats, such as `resampled_as`, will not work otherwise.
+
+Also, the constructor supports two additional parameters `new_start_date` and `shift_by`.
+After converting from dates to seconds, the seconds are shifted to match `new_start_date`.
+If preprocessing of dates is needed before shifting to `new_start_date`, then the parameter
+`shift_by` can be used as it accepts a function that takes in `Dates.DateTime` elements and
+return Dates.DateTime elements. This function is applied to each element of the time array.
+```julia
+# Shift the dates to first day of month, convert to seconds, and adjust seconds to
+# match "1/1/2010"
+shift_var = OutputVar(
+        "test.nc",
+        "pr",
+        new_start_date = "1/1/2010", # or Dates.DateTime(2010, 1, 1)
+        shift_by = Dates.firstdayofmonth,
+    )
+```
+
 ## Bug fixes
 
 - Interpolation is not possible with dates. When dates are detected in any dimension, an
