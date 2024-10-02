@@ -170,7 +170,7 @@ end
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     dim_attributes = OrderedDict([
-        "time" => Dict(),
+        "time" => Dict("units" => "s"),
         "lon" => Dict("b" => 2),
         "lat" => Dict("a" => 1),
     ])
@@ -178,7 +178,7 @@ end
     var1 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data1)
 
     dim_attributes2 = OrderedDict([
-        "time" => Dict(),
+        "time" => Dict("units" => "m"),
         "lon" => Dict("lol" => 2),
         "lat" => Dict("a" => 1),
     ])

@@ -57,6 +57,11 @@ sim_var = shift_to_start_of_previous_month(sim_var)
 - Interpolation is not possible with dates. When dates are detected in any dimension, an
   interpolat will not be made.
 
+## Minor changes
+
+- Var.arecompatible only check for the units of the dimensions instead of checking that the
+  dimension attributes fully match.
+
 v0.5.9
 ------
 
