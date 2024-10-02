@@ -60,6 +60,11 @@ sim_var = shift_to_start_of_previous_month(sim_var)
   `net_toa_flux`). ([#109](https://github.com/CliMA/ClimaAnalysis.jl/pull/109
   "PR109"))
 
+## Minor changes
+
+- Var.arecompatible only check for the units of the dimensions instead of checking that the
+  dimension attributes fully match.
+
 v0.5.9
 ------
 

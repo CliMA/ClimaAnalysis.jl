@@ -840,7 +840,17 @@ We assume that:
 We also *do not* check units for `data`.
 """
 function arecompatible(x::OutputVar, y::OutputVar)
-    return (x.dims == y.dims) && (x.dim_attributes == y.dim_attributes)
+    x_dims = collect(keys(x.dims))
+    y_dims = collect(keys(y.dims))
+    x_units = (dim_units(x, dim_name) for dim_name in x_dims)
+    y_units = (dim_units(y, dim_name) for dim_name in y_dims)
+
+    for (x_dim, x_unit, y_dim, y_unit) in zip(x_dims, x_units, y_dims, y_units)
+        x_unit == "" && @warn "Missing units for dimension $x_dim in x"
+        y_unit == "" && @warn "Missing units for dimension $y_dim in y"
+        x_unit != y_unit && return false
+    end
+    return x.dims == y.dims
 end
 
 """
