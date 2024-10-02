@@ -52,7 +52,8 @@ export OutputVar,
     squared_error,
     global_mse,
     global_rmse,
-    set_units
+    set_units,
+    shift_to_start_of_previous_month
 
 """
     Representing an output variable
@@ -1388,6 +1389,54 @@ function _dates_to_seconds(
     ret_data = copy(var.data)
     return OutputVar(ret_attribs, ret_dims, ret_dim_attribs, ret_data)
 end
+
+"""
+    shift_to_start_of_previous_month(var::OutputVar)
+
+Shift the times in the time dimension to the start of the previous month.
+
+After applying this function, the start date in the attributes correspond to the first
+element in the time array.
+
+This function is helpful in ensuring consistency in dates between simulation and
+observational data. One example of this is when adjusting monthly averaged data. For
+instance, suppose that data on 2010-02-01 in the `OutputVar` corresponds to the monthly
+average for January. This function shifts the times so that 2010-01-01 will correspond to
+the monthly average for January.
+
+Note that this function only works for the time dimension and will not work for the date
+dimension.
+"""
+function shift_to_start_of_previous_month(var::OutputVar)
+    # Check if time dimension exists, floats are in the array, and unit of data is
+    # second
+    has_time(var) || error("Time is not a dimension of var")
+    eltype(times(var)) <: Dates.DateTime && ("Dates found in time array")
+    dim_units(var, time_name(var)) != "s" &&
+        error("Unit of data is not in second")
+
+    # Convert to seconds to dates
+    date_arr =
+        Dates.Second.(times(var)) .+
+        Dates.DateTime.(var.attributes["start_date"])
+
+    # Apply transformations (find first day of month and subtract one month)
+    date_arr .=
+        date_arr .|> Dates.firstdayofmonth .|> date -> date - Dates.Month(1)
+
+    # Convert from dates to seconds
+    start_date = date_arr[begin]
+    time_arr = map(date -> date_to_time(start_date, date), date_arr)
+
+    ret_attribs = deepcopy(var.attributes)
+    ret_attribs["start_date"] = string(start_date)
+    ret_dims = deepcopy(var.dims)
+    ret_dims["time"] = time_arr
+    ret_dim_attributes = deepcopy(var.dim_attributes)
+    ret_data = copy(var.data)
+    return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, ret_data)
+end
+
 
 """
     overload_binary_op(op)

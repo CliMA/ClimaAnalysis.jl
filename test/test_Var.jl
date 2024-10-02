@@ -1435,3 +1435,74 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test_throws ErrorException ClimaAnalysis.Var._dates_to_seconds(var)
 end
+
+@testset "End of previous month" begin
+    # Shift to beginning of month and shift back one month
+    time_arr = [
+        Dates.DateTime("2010-02-01T00:00:00"),
+        Dates.DateTime("2010-03-01T00:02:00"),
+        Dates.DateTime("2010-04-01T00:02:00"),
+    ]
+    data = ones(length(time_arr))
+    dims = OrderedDict("time" => time_arr)
+    dim_attribs = OrderedDict("time" => Dict("blah" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_s = ClimaAnalysis.Var._dates_to_seconds(var)
+    var_times = ClimaAnalysis.shift_to_start_of_previous_month(var_s)
+
+    @test ClimaAnalysis.times(var_times) == [0.0, 2678400.0, 5097600.0]
+    @test var_times.attributes["start_date"] == "2010-01-01T00:00:00"
+
+    # Error checking
+    # Dates in time array
+    time_arr = [
+        Dates.DateTime(2020, 3, 1, 1, 1),
+        Dates.DateTime(2020, 3, 1, 1, 2),
+        Dates.DateTime(2020, 3, 1, 1, 3),
+    ]
+    data = ones(length(time_arr))
+    dims = OrderedDict("time" => time_arr)
+    dim_attribs = OrderedDict("time" => Dict("blah" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.shift_to_start_of_previous_month(
+        var,
+    )
+
+    # Time is not a dimension
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.shift_to_start_of_previous_month(
+        var,
+    )
+
+    # Units is wrong
+    time_arr = [
+        Dates.DateTime("2010-02-01T00:00:00"),
+        Dates.DateTime("2010-03-01T00:02:00"),
+        Dates.DateTime("2010-04-01T00:02:00"),
+    ]
+    data = ones(length(time_arr))
+    dims = OrderedDict("time" => time_arr)
+    dim_attribs = OrderedDict("time" => Dict("units" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_min = ClimaAnalysis.Var._dates_to_seconds(var)
+    var_min.dim_attributes["time"]["units"] = "min"
+    @test_throws ErrorException ClimaAnalysis.shift_to_start_of_previous_month(
+        var_min,
+    )
+end
