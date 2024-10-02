@@ -105,6 +105,22 @@ obs_var = ClimaAnalysis.OutputVar(
             )
 ```
 
+Additionally, the function `shift_to_start_of_previous_month(var::OutputVar)` is provided to
+help with preprocessing. This function shifts the times in the time dimension to the start
+of the previous month. After applying this function, the start date in the attributes
+corresponds to the first element in the time array.
+
+```@julia beginning
+sim_var = shift_to_start_of_previous_month(sim_var)
+```
+
+This function is helpful in ensuring consistency in dates between simulation and
+observational data. One example of this is when adjusting monthly averaged data. For
+instance, suppose that data on 2010-02-01 in `sim_var` corresponds to the monthly
+average for January. This function shifts the times so that 2010-01-01 will correspond to
+the monthly average for January.
+
+
 ## Integration
 
 `OutputVar`s can be integrated with respect to longitude, latitude, or both using

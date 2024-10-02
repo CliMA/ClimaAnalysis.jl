@@ -42,6 +42,16 @@ shift_var = OutputVar(
     )
 ```
 
+The function `Var.shift_to_start_of_previous_month` is added to shift the times in the time
+dimension to the end of the previous month. This function is helpful in ensuring consistency
+in dates between simulation and observational data. One example of this is when adjusting
+monthly averaged data. For instance, data on 2010-02-01 in the `OutputVar` corresponds to
+the monthly average for January. This function shifts the times so that 2010-01-01 will
+correspond to the monthly average for January.
+```julia
+sim_var = shift_to_start_of_previous_month(sim_var)
+```
+
 ## Bug fixes
 
 - Interpolation is not possible with dates. When dates are detected in any dimension, an
