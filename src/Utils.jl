@@ -26,8 +26,8 @@ julia> match_nc_filename("ta_1d_average.nc")
 ```
 
 ```jldoctest
-julia> match_nc_filename("pfull_6.0min_max.nc")
-("pfull", "6.0min", "max")
+julia> match_nc_filename("pfull_6.0m_max.nc")
+("pfull", "6.0m", "max")
 ```
 
 ```jldoctest
@@ -39,23 +39,36 @@ function match_nc_filename(filename::String)
     # Let's unpack this regular expression to find files names like "orog_inst.nc" or
     # "ta_3.0h_average.nc" and extract information from there.
 
-    # ^ $: mean match the entire string
-    # (\w+?): the first capturing group, matching any word non greedily
-    # _: matches this literal character
-    # (?>([a-zA-Z0-9\.]*)_)?: an optional group (it doesn't always exist for _inst
-    #                         variables) ?> means that we don't want to capture the outside
-    #                         group the inside group is any combinations of letters/numbers,
-    #                         and the literal character ., followed by the _. We capture the
-    #                         combination of characters because that's the reduction
-    # (\w+): Again, any word
-    # \.nc: file extension has to be .nc
-    re = r"^(\w+?)_(?>([a-zA-Z0-9_\.]*)_)?(\w*)\.nc$"
+    # ^: Matches the beginning of the string
+
+    # (\w+?): Matches one or more word characters (letters, numbers, or underscore)
+    # non-greedily and captures it as the first group (variable name)
+
+    # _: Matches the underscore separating the variable name and the optional time
+    # resolution.
+
+    # ((?:[0-9]|m|M|d|s|y|_|\.)*?): Matches zero or more occurrences of the allowed
+    # characters (digits, time units, underscore, or dot) non-greedily and captures the
+    # entire time resolution string as the second group
+
+    # _?: Matches an optional underscore (to handle cases where there's no time resolution)
+
+    # ([a-zA-Z0-9]+): Matches one or more alphanumeric characters and captures it as the
+    # third group (statistic)
+
+    # \.nc: Matches the literal ".nc" file extension
+
+    # $: Matches the end of the string
+
+    re = r"^(\w+?)_((?:[0-9]|m|M|d|s|y|h|_|\.)*?)_?([a-zA-Z0-9]+)\.nc$"
     m = match(re, filename)
     if !isnothing(m)
         # m.captures returns `SubString`s (or nothing). We want to have actual `String`s (or
-        # nothing) so that we can assume we have `String`s everywhere.
+        # nothing) so that we can assume we have `String`s everywhere. We also take care of
+        # the case where the period is matched to an empty string and return nothing instead
         return Tuple(
-            isnothing(cap) ? nothing : String(cap) for cap in m.captures
+            (isnothing(cap) || cap == "") ? nothing : String(cap) for
+            cap in m.captures
         )
     else
         return nothing

@@ -24,6 +24,9 @@ dimension.
 
 - Interpolation is not possible with dates. When dates are detected in any dimension, an
   interpolat will not be made.
+- Fix identifying variables with underscore in the short name (such as
+  `net_toa_flux`). ([#109](https://github.com/CliMA/ClimaAnalysis.jl/pull/109
+  "PR109"))
 
 v0.5.9
 ------
@@ -58,11 +61,11 @@ julia> reordered_var.dims |> keys |> collect
 ## Bug fixes
 
 - Fix models repeating in legend of box plots by not considering the models in `model_names`
-  when finding the best and worst models
+  when finding the best and worst models.
 - Fix legend from covering the box plot by adding the parameter `legend_text_width` which
-  control the number of characters on each line of the legend of the box plot
+  control the number of characters on each line of the legend of the box plot.
 - Use default marker size instead of a marker size of 20 when plotting other models beside
-  `CliMA` on the box plot
+  `CliMA` on the box plot.
 - Fix support for `""` in units.
 
 v0.5.8

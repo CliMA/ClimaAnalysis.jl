@@ -9,11 +9,20 @@ import Dates
     @test Utils.match_nc_filename("ta_1d_average.nc") ==
           Tuple(["ta", "1d", "average"])
 
-    @test Utils.match_nc_filename("ta_1m_40s_inst.nc") ==
-          Tuple(["ta", "1m_40s", "inst"])
+    @test Utils.match_nc_filename("ta_3.0h_average.nc") ==
+          Tuple(["ta", "3.0h", "average"])
 
-    @test Utils.match_nc_filename("pfull_6.0min_max.nc") ==
-          Tuple(["pfull", "6.0min", "max"])
+    @test Utils.match_nc_filename("toa_net_flux_1m_40s_inst.nc") ==
+          Tuple(["toa_net_flux", "1m_40s", "inst"])
+
+    @test Utils.match_nc_filename("toa_net_flux_1M_inst.nc") ==
+          Tuple(["toa_net_flux", "1M", "inst"])
+
+    @test Utils.match_nc_filename("p500_1M_inst.nc") ==
+          Tuple(["p500", "1M", "inst"])
+
+    @test Utils.match_nc_filename("pfull_6.0m_max.nc") ==
+          Tuple(["pfull", "6.0m", "max"])
 
     @test Utils.match_nc_filename("hu_inst.nc") ==
           Tuple(["hu", nothing, "inst"])
