@@ -39,9 +39,6 @@ In this example, we plotted `var` on the globe and overplotted a blue ocean.
 `ca_kwargs` (`Utils.kwargs`) is a convenience function to pass keyword arguments
 more easily.
 
-!!! note Masking does not affect the colorbar. If you have values defined
-    beneath the map, they can still affect the colorbar.
-
 The output might look something like:
 
 ![oceanmask](./assets/oceanmask.png)
@@ -71,3 +68,28 @@ CairoMakie.save("myfigure.pdf", fig)
 The output produces something like:
 
 ![biasplot](./assets/bias_plot.png)
+
+We can also plot the bias using an ocean mask. This also means we compute the bias only
+over land.
+
+```julia
+import ClimaAnalysis
+import ClimaAnalysis.Visualize: plot_bias_on_globe!, oceanmask
+import GeoMakie
+import CairoMakie
+
+obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
+sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
+
+fig = CairoMakie.Figure()
+plot_bias_on_globe!(fig,
+                    var,
+                    mask = oceanmask(),
+                    more_kwargs = Dict(:mask => ca_kwargs(color = :blue)),
+                   )
+CairoMakie.save("myfigure.pdf", fig)
+```
+
+The output produces something like:
+
+![biasplot_oceanmask](./assets/bias_plot_oceanmask.png)

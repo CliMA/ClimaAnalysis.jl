@@ -161,4 +161,54 @@ using OrderedCollections
     ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig9, ocean_var)
     output_name = joinpath(tmp_dir, "plot_apply_ocean_mask.png")
     Makie.save(output_name, fig9)
+
+    # Test bias plots with apply_landmask and apply_oceanmask
+    fig10 = Makie.Figure()
+
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = collect(reshape(-32400:32399, (360, 180))) ./ (32399.0 / 5.0)
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs = Dict("long_name" => "idk", "short_name" => "ta", "units" => "K")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    data_zero = zeros(length(lon), length(lat))
+    var_zero = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_zero)
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(
+        fig10,
+        var,
+        var_zero;
+        mask = ClimaAnalysis.Visualize.landmask(),
+        more_kwargs = Dict(:mask => ClimaAnalysis.Utils.kwargs(color = :red)),
+    )
+    output_name = joinpath(tmp_dir, "plot_bias_landmask.png")
+    Makie.save(output_name, fig10)
+
+    fig11 = Makie.Figure()
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(
+        fig11,
+        var,
+        var_zero;
+        mask = ClimaAnalysis.Visualize.oceanmask(),
+        more_kwargs = Dict(:mask => ClimaAnalysis.Utils.kwargs(color = :blue)),
+    )
+    output_name = joinpath(tmp_dir, "plot_bias_oceanmask.png")
+    Makie.save(output_name, fig11)
+
+    # Test bias plots with a mask that is not landmask() or oceanmask()
+    fig12 = Makie.Figure()
+    land_mask_modified = first(ClimaAnalysis.Visualize.landmask(), 50)
+
+    ClimaAnalysis.Visualize.heatmap2D_on_globe!(
+        fig12,
+        var2D,
+        mask = land_mask_modified,
+        more_kwargs = Dict(:mask => ClimaAnalysis.Utils.kwargs(color = :red)),
+    )
+    output_name = joinpath(tmp_dir, "plot_modified_mask.png")
+    Makie.save(output_name, fig12)
 end

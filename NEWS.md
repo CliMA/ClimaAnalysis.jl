@@ -20,6 +20,9 @@ var_no_land = ClimaAnalysis.apply_landmask(var)
 var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
 ```
 
+## Bug fixes
+- Masking now affects the colorbar.
+
 v0.5.10
 -------
 
