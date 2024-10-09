@@ -16,7 +16,7 @@ Plot with `Makie.poly`.
 """
 function Visualize.oceanmask()
     elevation = 0
-    return GeoMakie.NaturalEarth.bathymetry(elevation)
+    return GeoMakie.NaturalEarth.bathymetry(elevation).geometry
 end
 
 """
@@ -47,6 +47,9 @@ function _geomakie_plot_on_globe!(
     plot_fn = Makie.surface!,
 )
     length(var.dims) == 2 || error("Can only plot 2D variables")
+
+    apply_mask = _find_mask_to_apply(mask)
+    !isnothing(apply_mask) && (var = apply_mask(var))
 
     lon_name = ""
     lat_name = ""
@@ -130,9 +133,6 @@ The dimensions have to be longitude and latitude.
 mask. `ClimaAnalysis` comes with predefined masks, check out [`Visualize.oceanmask`](@ref) and
 [`Visualize.landmask`](@ref).
 
-!!! note Masking does not affect the colorbar. If you have values defined beneath the map,
-    they can still affect the colorbar.
-
 Additional arguments to the plotting and axis functions
 =======================================================
 
@@ -209,9 +209,6 @@ The dimensions have to be longitude and latitude.
 mask. `ClimaAnalysis` comes with predefined masks, check out [`Visualize.oceanmask`](@ref) and
 [`Visualize.landmask`](@ref).
 
-!!! note Masking does not affect the colorbar. If you have values defined beneath the map,
-    they can still affect the colorbar.
-
 Additional arguments to the plotting and axis functions
 =======================================================
 
@@ -287,10 +284,9 @@ The dimensions have to be longitude and latitude.
 
 `mask` has to be an object that can be plotted by `Makie.poly`. `ClimaAnalysis` comes with
 predefined masks, check out [`Visualize.oceanmask`](@ref) and [`Visualize.landmask`](@ref).
-
-!!! note
-    Masking does not affect the colorbar. If you have values defined beneath the map, they
-    can still affect the colorbar.
+Also, the corresponding mask is applied to the `OutputVar`s. For instance, using
+`Visualize.landmask` means `ClimaAnalysis.apply_landmask` is applied to the `OutputVar`s
+when computing the bias.
 
 Additional arguments to the plotting and axis functions
 =======================================================
@@ -324,9 +320,14 @@ function Visualize.plot_bias_on_globe!(
         :mask => Dict(),
     ),
 )
-    bias_var = ClimaAnalysis.bias(sim, obs)
+    apply_mask = _find_mask_to_apply(mask)
+
+    bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
     global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
-    rmse = round(ClimaAnalysis.global_rmse(sim, obs), sigdigits = 3)
+    rmse = round(
+        ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
+        sigdigits = 3,
+    )
     units = ClimaAnalysis.units(bias_var)
 
     bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
@@ -373,6 +374,26 @@ function Visualize.plot_bias_on_globe!(
         mask = mask,
         more_kwargs = default_and_more_kwargs,
     )
+end
+
+"""
+    Return the appropriate mask to apply to a `OutputVar` from the plotting `mask`.
+
+If `mask` is `Visualize.landmask()`, return `ClimaAnalysis.apply_landmask`. If `mask` is
+`Visualize.oceanmask()`, return `ClimaAnalysis.apply_oceanmask`. In all other cases, return
+nothing.
+"""
+function _find_mask_to_apply(mask)
+    if isnothing(mask)
+        return nothing
+    elseif mask == Visualize.landmask()
+        return ClimaAnalysis.apply_landmask
+    elseif mask == Visualize.oceanmask()
+        return ClimaAnalysis.apply_oceanmask
+    else
+        @warn "Mask not recognized, overplotting it. The colorbar will not be correct"
+        return nothing
+    end
 end
 
 end
