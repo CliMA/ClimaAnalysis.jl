@@ -1,5 +1,25 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.11
+-------
+
+## Features
+
+### Applying a land/sea mask to `OutputVar`s
+
+There is now support to applying a land or sea mask to `OutputVar`s though
+`apply_landmask(var)` and `apply_oceanmask(var)` respectively. A land mask sets all the
+coordinates corresponding to land to zeros in the data of the `OutputVar` and a sea mask
+sets all the coordinates corresponding to ocean to zeros in the data of the `OutputVar`.
+Furthermore, the parameter `mask` is added to the functions `bias`, `global_bias`,
+`squared_error`,`global_mse`, and `global_rmse` which takes either `apply_landmask` and
+`apply_oceanmask`. This is useful for computing these quantities only over the land or sea.
+
+```julia
+var_no_land = ClimaAnalysis.apply_landmask(var)
+var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
+```
+
 v0.5.10
 -------
 
