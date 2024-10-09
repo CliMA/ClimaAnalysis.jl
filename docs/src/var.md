@@ -226,7 +226,7 @@ longitude and latitude. Furthermore, units must be supplied for data and dimensi
 and `obs` and the units for longitude and latitude should be degrees.
 
 Consider the following example, where we compute the bias and RMSE between our simulation
-and some observations stored in "ta\_1d\_average.nc".
+and some observations stored in `ta_1d_average.nc`.
 
 ```@julia bias_and_mse
 julia> obs_var = OutputVar("ta_1d_average.nc"); # load in observational data
@@ -254,4 +254,20 @@ julia> global_rmse(sim, obs)
 
 julia> units(se_var)
 "K^2"
+```
+
+### Masking
+Bias and squared error can be computed only over the land or ocean through the `mask` parameter.
+As of now, the mask parameter takes in `apply_oceanmask` or `apply_oceanmask`. See the
+example below of this usage.
+
+```julia
+# Do not consider the ocean when computing the bias
+ClimaAnalysis.bias(sim_var, obs_var; mask = apply_oceanmask)
+ClimaAnalysis.global_bias(sim_var, obs_var; mask = apply_oceanmask)
+
+# Do not consider the land when computing the squared error
+ClimaAnalysis.squared_error(sim_var, obs_var; mask = apply_landmask)
+ClimaAnalysis.global_mse(sim_var, obs_var; mask = apply_landmask)
+ClimaAnalysis.global_rmse(sim_var, obs_var; mask = apply_landmask)
 ```

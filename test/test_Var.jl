@@ -1566,3 +1566,114 @@ end
     @test_throws ErrorException ClimaAnalysis.apply_landmask(var)
     @test_throws ErrorException ClimaAnalysis.apply_oceanmask(var)
 end
+
+@testset "Bias and RMSE with masks" begin
+    # Test bias and global_bias
+    land_var = ClimaAnalysis.OutputVar(ClimaAnalysis.Var.LAND_MASK)
+    ocean_var = ClimaAnalysis.OutputVar(ClimaAnalysis.Var.OCEAN_MASK)
+    data_zero = zeros(land_var.data |> size)
+    zero_var = ClimaAnalysis.OutputVar(
+        land_var.attributes,
+        land_var.dims,
+        land_var.dim_attributes,
+        data_zero,
+    )
+
+    # Trim data because periodic boundary condition on the edges
+    @test ClimaAnalysis.bias(
+        land_var,
+        zero_var,
+        mask = ClimaAnalysis.apply_oceanmask,
+    ).data[
+        begin:(end - 1),
+        :,
+    ] == data_zero[begin:(end - 1), :]
+    @test ClimaAnalysis.bias(
+        ocean_var,
+        zero_var,
+        mask = ClimaAnalysis.apply_landmask,
+    ).data[
+        begin:(end - 1),
+        :,
+    ] == data_zero[begin:(end - 1), :]
+
+    # Not exactly zero because of the periodic boundary condition on the edges
+    # which results in some ones in the data
+    @test isapprox(
+        ClimaAnalysis.global_bias(
+            land_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_oceanmask,
+        ),
+        0.0,
+        atol = 1e-5,
+    )
+    @test isapprox(
+        ClimaAnalysis.global_bias(
+            ocean_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_landmask,
+        ),
+        0.0,
+        atol = 1e-5,
+    )
+
+    # Test squared error, global_mse, and global_rmse
+    # Trim data because periodic boundary condition on the edges
+    @test ClimaAnalysis.squared_error(
+        land_var,
+        zero_var,
+        mask = ClimaAnalysis.apply_oceanmask,
+    ).data[
+        begin:(end - 1),
+        :,
+    ] == data_zero[begin:(end - 1), :]
+    @test ClimaAnalysis.squared_error(
+        ocean_var,
+        zero_var,
+        mask = ClimaAnalysis.apply_landmask,
+    ).data[
+        begin:(end - 1),
+        :,
+    ] == data_zero[begin:(end - 1), :]
+
+    # Not exactly zero because of the periodic boundary condition on the edges
+    # which results in some ones in the data
+    @test isapprox(
+        ClimaAnalysis.global_mse(
+            land_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_oceanmask,
+        ),
+        0.0,
+        atol = 1e-5,
+    )
+    @test isapprox(
+        ClimaAnalysis.global_mse(
+            ocean_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_landmask,
+        ),
+        0.0,
+        atol = 1e-5,
+    )
+
+    @test isapprox(
+        ClimaAnalysis.global_rmse(
+            land_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_oceanmask,
+        ),
+        0.0,
+        atol = 10^(-2.5),
+    )
+    @test isapprox(
+        ClimaAnalysis.global_rmse(
+            ocean_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_landmask,
+        ),
+        0.0,
+        atol = 10^(-2.5),
+    )
+end
