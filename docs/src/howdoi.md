@@ -152,3 +152,15 @@ OrderedDict{String, Vector{Float64}} with 2 entries:
   "lon"      => [0.0, 1.0]
   "latitude" => [0.0, 1.0, 2.0]
 ```
+
+## How do I apply a land or sea mask to a `OutputVar`?
+
+You can use `apply_landmask` or `apply_oceanmask` to mask out the land or ocean,
+respectively, in a `OutputVar`. The result of `apply_landmask(var)` is data of `var`, where
+any coordinate corresponding to land is zero. Similarly, the result of `apply_oceanmask(var)` is
+data of `var`, where any coordinate corresponding to ocean is zero.
+
+```@julia masks
+var_no_land = ClimaAnalysis.apply_landmask(var)
+var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
+```

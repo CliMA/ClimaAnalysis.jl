@@ -68,6 +68,8 @@ Var.squared_error
 Var.global_mse
 Var.global_rmse
 Var.shift_to_start_of_previous_month
+Var.apply_landmask
+Var.apply_oceanmask
 ```
 
 ## Leaderboard
