@@ -53,7 +53,9 @@ export OutputVar,
     global_mse,
     global_rmse,
     set_units,
-    shift_to_start_of_previous_month
+    shift_to_start_of_previous_month,
+    apply_landmask,
+    apply_oceanmask
 
 """
     Representing an output variable
@@ -1447,6 +1449,78 @@ function shift_to_start_of_previous_month(var::OutputVar)
     return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, ret_data)
 end
 
+"""
+    apply_landmask(var::OutputVar)
+
+Apply a land mask to `var` by zeroing any data whose coordinates are located on land.
+"""
+function apply_landmask(var::OutputVar)
+    _apply_lonlat_mask(var, LAND_MASK)
+end
+
+"""
+    apply_oceanmask(var::OutputVar)
+
+Apply an ocean mask to `var` by zeroing any data whose coordinates are in the ocean.
+"""
+function apply_oceanmask(var::OutputVar)
+    _apply_lonlat_mask(var, OCEAN_MASK)
+end
+
+"""
+    _apply_lonlat_mask(var, mask::AbstractString)
+
+Apply a mask using the NCDataset found at `mask`.
+
+The dimensions of the mask should only contain longitude and latitude and are in that order.
+"""
+function _apply_lonlat_mask(var, mask::AbstractString)
+    # Check if lon and lat exist
+    has_longitude(var) ||
+        error("Longitude does not exist as a dimension in var")
+    has_latitude(var) || error("Latitude does not exist as a dimension in var")
+
+    # Create OutputVar using mask
+    mask_var = OutputVar(mask)
+
+    # Resample so that the land mask match up with the grid of var
+    # Round because linear resampling is done and we want the mask to be only ones and zeros
+    land_mask =
+        [
+            mask_var(pt) for pt in Base.product(
+                var.dims[longitude_name(var)],
+                var.dims[latitude_name(var)],
+            )
+        ] .|> round
+
+    # Reshape data for broadcasting
+    lon_idx = var.dim2index[longitude_name(var)]
+    lat_idx = var.dim2index[latitude_name(var)]
+    lon_length = var.dims[longitude_name(mask_var)] |> length
+    lat_length = var.dims[latitude_name(mask_var)] |> length
+    if lon_idx > lat_idx
+        land_mask = transpose(land_mask)
+    end
+    size_to_reshape = (
+        if i == lon_idx
+            lon_length
+        elseif i == lat_idx
+            lat_length
+        else
+            1
+        end for i in 1:ndims(var.data)
+    )
+
+    # Mask data
+    land_mask = reshape(land_mask, size_to_reshape...)
+    masked_data = var.data .* land_mask
+
+    # Remake OutputVar with new data
+    ret_attribs = deepcopy(var.attributes)
+    ret_dims = deepcopy(var.dims)
+    ret_dim_attributes = deepcopy(var.dim_attributes)
+    return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, masked_data)
+end
 
 """
     overload_binary_op(op)
@@ -1545,5 +1619,6 @@ end
 @overload_binary_op (/)
 
 include("outvar_dimensions.jl")
+include("constants.jl")
 
 end

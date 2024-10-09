@@ -1506,3 +1506,63 @@ end
         var_min,
     )
 end
+
+@testset "Land and ocean masks" begin
+    # Order of dimensions should not matter
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var_latlon = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var_lonlat = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    land_var_lonlat = ClimaAnalysis.apply_landmask(var_lonlat)
+    ocean_var_lonlat = ClimaAnalysis.apply_oceanmask(var_lonlat)
+    land_var_latlon = ClimaAnalysis.apply_landmask(var_latlon)
+    ocean_var_latlon = ClimaAnalysis.apply_oceanmask(var_latlon)
+    @test land_var_lonlat.data == land_var_latlon.data'
+    @test ocean_var_lonlat.data == ocean_var_latlon.data'
+
+    # Testing with another dimension
+    lat = collect(range(-89.5, 89.5, 180))
+    times = collect(range(0.0, 100, 2 * 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(times), length(lon))
+    dims = OrderedDict(["lat" => lat, "time" => times, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "s"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    land_var = ClimaAnalysis.apply_landmask(var) |> ClimaAnalysis.average_time
+    ocean_var = ClimaAnalysis.apply_oceanmask(var) |> ClimaAnalysis.average_time
+    @test land_var.data |> transpose == land_var_lonlat.data
+    @test ocean_var.data |> transpose == ocean_var_lonlat.data
+
+    # Test error handling
+    times = collect(range(0.0, 100, 2 * 180))
+    data = ones(length(times))
+    dims = OrderedDict(["time" => times])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.apply_landmask(var)
+    @test_throws ErrorException ClimaAnalysis.apply_oceanmask(var)
+end

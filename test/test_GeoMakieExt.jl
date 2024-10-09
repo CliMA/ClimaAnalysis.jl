@@ -136,4 +136,29 @@ using OrderedCollections
     )
     output_name = joinpath(tmp_dir, "plot_bias_kwargs.png")
     Makie.save(output_name, fig7)
+
+    # Test plots with apply_landmask and apply_oceanmask
+    fig8 = Makie.Figure()
+
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    land_var = var |> ClimaAnalysis.apply_landmask
+    ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig8, land_var)
+    output_name = joinpath(tmp_dir, "plot_apply_land_mask.png")
+    Makie.save(output_name, fig8)
+
+    fig9 = Makie.Figure()
+    ocean_var = var |> ClimaAnalysis.apply_oceanmask
+    ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig9, ocean_var)
+    output_name = joinpath(tmp_dir, "plot_apply_ocean_mask.png")
+    Makie.save(output_name, fig9)
 end
