@@ -38,7 +38,7 @@ function _geomakie_plot_on_globe!(
     plot_colorbar = true,
     mask = nothing,
     more_kwargs = Dict(
-        :plot => Dict(),
+        :plot => Dict(:shading => Makie.NoShading),
         :cb => Dict(),
         :axis => Dict(),
         :coast => Dict(:color => :black),
@@ -69,7 +69,7 @@ function _geomakie_plot_on_globe!(
     colorbar_label = "$short_name [$units]"
 
     axis_kwargs = get(more_kwargs, :axis, Dict())
-    plot_kwargs = get(more_kwargs, :plot, Dict())
+    plot_kwargs = get(more_kwargs, :plot, Dict(:shading => Makie.NoShading))
     cb_kwargs = get(more_kwargs, :cb, Dict())
     coast_kwargs = get(more_kwargs, :coast, Dict(:color => :black))
     mask_kwargs = get(more_kwargs, :mask, Dict(:color => :white))
@@ -156,7 +156,7 @@ function Visualize.heatmap2D_on_globe!(
     plot_colorbar = true,
     mask = nothing,
     more_kwargs = Dict(
-        :plot => Dict(),
+        :plot => Dict(:shading => Makie.NoShading),
         :cb => Dict(),
         :axis => Dict(),
         :coast => Dict(:color => :black),
