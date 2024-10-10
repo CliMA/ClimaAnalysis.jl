@@ -163,6 +163,9 @@ function Visualize.heatmap2D_on_globe!(
         :mask => Dict(),
     ),
 )
+    default_kwargs = Dict(:plot => Dict(:shading => Makie.NoShading))
+    default_and_more_kwargs =
+        ClimaAnalysis.Utils._recursive_merge(default_kwargs, more_kwargs)
     return _geomakie_plot_on_globe!(
         place,
         var;
@@ -170,7 +173,7 @@ function Visualize.heatmap2D_on_globe!(
         plot_coastline,
         plot_colorbar,
         mask,
-        more_kwargs,
+        more_kwargs = default_and_more_kwargs,
         plot_fn = Makie.surface!,
     )
 end
