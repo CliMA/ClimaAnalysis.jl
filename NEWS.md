@@ -52,6 +52,7 @@ pfull_var = ClimaAnalysis.get(simdir, short_name = "pfull", reduction = "2.0d", 
 - `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error
 if duplicate dates are detected.
 - Fix issue with plotting multiple figures at the same time.
+- Improve shading for `Visualize.heatmap2D_on_globe!`.
 
 v0.5.10
 -------
