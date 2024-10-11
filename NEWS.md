@@ -22,6 +22,8 @@ var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
 
 ## Bug fixes
 - Masking now affects the colorbar.
+- `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error
+if duplicate dates are detected.
 
 v0.5.10
 -------

@@ -1451,6 +1451,12 @@ function shift_to_start_of_previous_month(var::OutputVar)
     date_arr .=
         date_arr .|> Dates.firstdayofmonth .|> date -> date - Dates.Month(1)
 
+    # Check for duplicate dates
+    unique_dates = unique(date_arr)
+    unique_dates != date_arr && error(
+        "Dates are not unique after applying shift_to_start_of_previous_month",
+    )
+
     # Convert from dates to seconds
     start_date = date_arr[begin]
     time_arr = map(date -> date_to_time(start_date, date), date_arr)

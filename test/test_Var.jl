@@ -1505,6 +1505,23 @@ end
     @test_throws ErrorException ClimaAnalysis.shift_to_start_of_previous_month(
         var_min,
     )
+
+    # Duplicate dates after applying transformations
+    time_arr = [
+        Dates.DateTime("2010-01-02T00:00:00"),
+        Dates.DateTime("2010-01-21T00:00:00"),
+        Dates.DateTime("2010-01-31T00:00:00"),
+    ]
+    data = ones(length(time_arr))
+    dims = OrderedDict("time" => time_arr)
+    dim_attribs = OrderedDict("time" => Dict("blah" => "blah"))
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_s = ClimaAnalysis.Var._dates_to_seconds(var)
+    @test_throws ErrorException ClimaAnalysis.shift_to_start_of_previous_month(
+        var_s,
+    )
 end
 
 @testset "Land and ocean masks" begin
