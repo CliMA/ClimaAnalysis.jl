@@ -84,11 +84,11 @@ function _geomakie_plot_on_globe!(
 
     title = get(axis_kwargs, :title, var.attributes["long_name"])
 
-    GeoMakie.GeoAxis(place[p_loc...]; title, axis_kwargs...)
+    ax = GeoMakie.GeoAxis(place[p_loc...]; title, axis_kwargs...)
 
-    plot = plot_fn(lon, lat, var.data; plot_kwargs...)
-    plot_mask && Makie.poly!(mask; mask_kwargs...)
-    plot_coastline && Makie.lines!(GeoMakie.coastlines(); coast_kwargs...)
+    plot = plot_fn(ax, lon, lat, var.data; plot_kwargs...)
+    plot_mask && Makie.poly!(ax, mask; mask_kwargs...)
+    plot_coastline && Makie.lines!(ax, GeoMakie.coastlines(); coast_kwargs...)
 
     if plot_colorbar
         p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])

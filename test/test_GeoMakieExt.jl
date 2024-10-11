@@ -27,7 +27,10 @@ using OrderedCollections
     ])
     var2D = ClimaAnalysis.OutputVar(attribs, dims2D, dim_attributes2D, data2D)
 
+    # Intialize another figure to see if plotting with multiple figures initialized is
+    # possible
     fig = Makie.Figure()
+    fig1 = Makie.Figure()
 
     ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig, var2D)
 
