@@ -29,7 +29,10 @@ using OrderedCollections
     ])
     var3D = ClimaAnalysis.OutputVar(attribs, dims3D, dim_attributes3D, data3D)
 
+    # Intialize another figure to see if plotting with multiple figures initialized is
+    # possible
     fig = Makie.Figure()
+    fig1 = Makie.Figure()
     @test_throws ErrorException ClimaAnalysis.Visualize.heatmap2D!(fig, var3D)
 
     data2D = reshape(1.0:(91 * 181), (181, 91))
@@ -91,7 +94,10 @@ using OrderedCollections
     dim_attributes1D = OrderedDict(["lat" => Dict(["units" => "degrees"])])
     var1D = ClimaAnalysis.OutputVar(attribs, dims1D, dim_attributes1D, data1D)
 
+    # Intialize another figure to see if plotting with multiple figures initialized is
+    # possible
     fig = Makie.Figure()
+    fig2 = Makie.Figure()
     ClimaAnalysis.Visualize.line_plot1D!(fig, var1D)
     output_name = joinpath(tmp_dir, "test1D.png")
     Makie.save(output_name, fig)

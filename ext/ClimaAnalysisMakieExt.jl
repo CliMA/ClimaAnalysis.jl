@@ -79,9 +79,9 @@ function Visualize.heatmap2D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    ax = Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
 
-    plot = Makie.heatmap!(dim1, dim2, var.data; plot_kwargs...)
+    plot = Makie.heatmap!(ax, dim1, dim2, var.data; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
     Makie.Colorbar(
@@ -318,8 +318,8 @@ function Visualize.line_plot1D!(
         axis_kwargs = pairs(axis_kwargs_dict)
     end
 
-    Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
-    Makie.lines!(x, y; plot_kwargs...)
+    ax = Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
+    Makie.lines!(ax, x, y; plot_kwargs...)
 end
 
 """
