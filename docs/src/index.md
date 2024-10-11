@@ -151,7 +151,7 @@ If we want to make a heatmap for `ta_max` at time of 100 s at altitude `z` of 30
 import CairoMakie
 import ClimaAnalysis.Visualize as viz
 
-fig = Makie.Figure(size = (400, 600))
+fig = CairoMakie.Figure(size = (400, 600))
 
 viz.plot!(
   fig,
@@ -160,7 +160,7 @@ viz.plot!(
   z = 30_000.0
 )
 
-Makie.save("ta_max.png", fig)
+CairoMakie.save("ta_max.png", fig)
 ```
 
 If we want to have a line plot, we can simply add another argument (e.g., `lat =
