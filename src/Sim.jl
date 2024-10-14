@@ -33,36 +33,47 @@ function SimDir(simulation_path::String)
     vars = Dict()
     allfiles = Set{String}()
 
-    foreach(readdir(simulation_path)) do path
-        m = Utils.match_nc_filename(path)
-        if !isnothing(m)
-            short_name, period, reduction = m
+    for (root, _, files) in walkdir(simulation_path)
+        for file in files
+            m = Utils.match_nc_filename(file)
+            if !isnothing(m)
+                short_name, period, reduction = m
 
-            full_path = joinpath(simulation_path, path)
+                full_path = joinpath(root, file)
 
-            # Get the dictionary variable_paths["short_name"] if it exists, otherwise make it
-            # a new dictionary.
-            variable_reduction = get!(variable_paths, short_name, Dict())
+                # Get the dictionary variable_paths["short_name"] if it exists, otherwise make it
+                # a new dictionary.
+                variable_reduction = get!(variable_paths, short_name, Dict())
 
-            variable_reduction_period =
-                get!(variable_reduction, reduction, Dict())
-            push!(variable_reduction_period, period => full_path)
+                variable_reduction_period =
+                    get!(variable_reduction, reduction, Dict())
 
-            # Do the same for `vars`
-            vars_reduction = get!(vars, short_name, Dict())
-            vars_reduction_period = get!(vars_reduction, reduction, Dict())
-            push!(vars_reduction_period, period => nothing)
+                # Store file paths as a vector of strings
+                if haskey(variable_reduction_period, period)
+                    # Do not sort because walkdir will give the files in top-down order
+                    push!(variable_reduction_period[period], full_path)
+                else
+                    push!(variable_reduction_period, period => [full_path])
+                end
 
-            # Add to allfiles
-            push!(allfiles, full_path)
+                # Do the same for `vars`
+                vars_reduction = get!(vars, short_name, Dict())
+                vars_reduction_period = get!(vars_reduction, reduction, Dict())
+                push!(vars_reduction_period, period => nothing)
 
-            # At the end we have three layers of dictionaries.
-            #
-            # The first layer maps variable short names to a dictionary, which maps
-            # reductions to a dictionary, which maps periods to the path of the file that
-            # contains that chain
-            #
-            # Example: variable_paths = {"ta" : {"max": {"6.0h" => file.nc}}}
+                # Add to allfiles
+                push!(allfiles, full_path)
+
+                # At the end we have three layers of dictionaries.
+                #
+                # The first layer maps variable short names to a dictionary, which maps
+                # reductions to a dictionary, which maps periods to a vector of the path(s)
+                # of the file(s).
+                #
+                # Example: variable_paths = {"ta" : {"max": {"6.0h" => ["file.nc"]}}}
+                # Example: variable_paths = {"ta" : {"max": {"6.0h" =>
+                # ["output_0001/file.nc", "output_0002/file.nc"]}}}
+            end
         end
     end
     return SimDir(simulation_path, variable_paths, vars, allfiles)

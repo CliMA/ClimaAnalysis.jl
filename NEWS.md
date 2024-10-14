@@ -20,6 +20,33 @@ var_no_land = ClimaAnalysis.apply_landmask(var)
 var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
 ```
 
+### Aggregating data over the time dimension using SimDir
+
+Before, `SimDir` only search for `.nc` files in `simulation_path`. This update now allows
+for `SimDir` to recursively search for `.nc` files in `simulation_path`. If the same
+combination of short name, reduction, and period is found, then calling `get` on `SimDir`
+aggregate the NetCDF files along the time dimension. This is useful if you need to restart
+the simulation multiple times and the data is scattered across different `.nc` files.
+
+See the example below of this functionality. The file directories might look like this:
+```
+global_diagnostics/
+├── output_0001
+│   ├── pfull_2.0d_inst.nc
+│   ├── ts_1.0h_max.nc
+│   └── ts_10d_average.nc
+├── output_0002
+│   ├── ts_1.0h_max.nc
+│   └── ts_10d_average.nc
+└── output_0003
+    └── pfull_2.0d_inst.nc
+```
+The following code would work:
+```julia
+ts_max_var = ClimaAnalysis.get(simdir, short_name = "ts", reduction = "max", period = "1.0h")
+pfull_var = ClimaAnalysis.get(simdir, short_name = "pfull", reduction = "2.0d", period = "inst")
+```
+
 ## Bug fixes
 - Masking now affects the colorbar.
 - `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error

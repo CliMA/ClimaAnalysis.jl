@@ -29,10 +29,10 @@ import ClimaAnalysis
     )
 
     @test simdir.variable_paths["orog"]["inst"][nothing] ==
-          joinpath(simulation_path, "orog_inst.nc")
+          [joinpath(simulation_path, "orog_inst.nc")]
     @test simdir.variable_paths["ta"]["max"] == Dict{Any, Any}(
-        "3.0h" => joinpath(simulation_path, "ta_3.0h_max.nc"),
-        "4.0h" => joinpath(simulation_path, "ta_4.0h_max.nc"),
+        "3.0h" => [joinpath(simulation_path, "ta_3.0h_max.nc")],
+        "4.0h" => [joinpath(simulation_path, "ta_4.0h_max.nc")],
     )
 
     @test simdir.vars["ta"]["max"] ==
@@ -46,7 +46,7 @@ import ClimaAnalysis
     @test simdir.allfiles == expected_files
 
     @test !isempty(simdir)
-    @test isempty(ClimaAnalysis.SimDir(tempdir()))
+    @test isempty(ClimaAnalysis.SimDir(mktempdir()))
 end
 
 @testset "OutputVar" begin
@@ -112,4 +112,101 @@ end
     # attribute because it was generated before that was a feature. We use that
     # to check the empty tring
     @test ClimaAnalysis.short_name(ts_max) == ""
+end
+
+@testset "SimDir with stitching" begin
+    simulation_path = joinpath(@__DIR__, "sample_outputs")
+
+    simdir = ClimaAnalysis.SimDir(simulation_path)
+
+    @test ClimaAnalysis.available_vars(simdir) ==
+          Set(["pfull", "orog", "ts", "test"])
+
+    @test ClimaAnalysis.available_reductions(simdir, short_name = "pfull") ==
+          Set(["inst"])
+    @test_throws ErrorException ClimaAnalysis.available_reductions(
+        simdir,
+        short_name = "bob",
+    )
+
+    @test ClimaAnalysis.available_periods(
+        simdir,
+        short_name = "pfull",
+        reduction = "inst",
+    ) == Set(["2.0d"])
+    @test_throws ErrorException ClimaAnalysis.available_periods(
+        simdir,
+        short_name = "pfull",
+        reduction = "bob",
+    )
+
+    @test simdir.variable_paths["ts"]["max"]["1.0h"] == [
+        joinpath(simulation_path, "output_0001", "ts_1.0h_max.nc"),
+        joinpath(simulation_path, "output_0002", "ts_1.0h_max.nc"),
+    ]
+    @test simdir.variable_paths["pfull"]["inst"]["2.0d"] == [
+        joinpath(simulation_path, "output_0001", "pfull_2.0d_inst.nc"),
+        joinpath(simulation_path, "output_0002", "pfull_2.0d_inst.nc"),
+        joinpath(simulation_path, "output_0003", "pfull_2.0d_inst.nc"),
+    ]
+
+    @test simdir.vars["pfull"]["inst"] == Dict{Any, Any}("2.0d" => nothing)
+
+    expected_files = Set()
+    for (root, _, files) in walkdir(simulation_path)
+        for file in files
+            if endswith(file, ".nc")
+                push!(expected_files, joinpath(root, file))
+            end
+        end
+    end
+
+    @test simdir.allfiles == expected_files
+
+    @test !isempty(simdir)
+end
+
+@testset "OutputVar with stitching" begin
+    simulation_path = joinpath(@__DIR__, "sample_outputs")
+
+    simdir = ClimaAnalysis.SimDir(simulation_path)
+
+    # We do not care about what these variable mean, but only that the stitching works
+    # Normal case: points in time are in sequential order
+    orog_var = get(simdir, short_name = "orog", reduction = "inst")
+
+    # Wrong names for time dimension
+    @test_throws ErrorException get(
+        simdir,
+        short_name = "ts",
+        reduction = "max",
+        period = "1.0h",
+    )
+
+    # Time dimension is not in increasing order
+    @test_throws ErrorException get(
+        simdir,
+        short_name = "pfull",
+        reduction = "inst",
+        period = "2.0d",
+    )
+
+    # Start dates do not match
+    @test_throws ErrorException get(
+        simdir,
+        short_name = "ts",
+        reduction = "average",
+        period = "10d",
+    )
+
+    # Time dimension does not exists
+    @test_throws ErrorException get(
+        simdir,
+        short_name = "test",
+        reduction = "average",
+        period = "10d",
+    )
+
+    @test orog_var |> ClimaAnalysis.times == [0.0, 1.0, 2.0]
+    @test orog_var.data |> size == (3, 180, 90)
 end
