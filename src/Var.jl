@@ -283,6 +283,117 @@ function read_var(path::String; short_name = nothing)
 end
 
 """
+    read_var(paths::Vector{String}; short_name = nothing)
+
+Read the `short_name` variable in the vector of NetCDF files.
+
+This function automatically aggregates the NetCDF files along the time dimension. If this
+is not possible, then an error is thrown. The attributes of the OutputVar is the same as the
+attributes of the first NetCDF file.
+
+When `short_name` is `nothing`, automatically identify the name of the variable. If multiple
+variables are present, the last one in alphabetical order is chosen.
+
+When `units` is among the attributes, try to parse it and convert it into an
+[`Unitful`](https://painterqubits.github.io/Unitful.jl) object. `OutputVar`s with `Unitful`
+support automatic unit conversions.
+
+If you want to access `units` as a string, look at [`units`](@ref) function.
+
+Example
+=========
+
+```julia
+simdir = SimDir("my_output")
+read_var(simdir.variable_paths["hu"]["inst"])
+
+read_var(["my_netcdf_file1.nc", "my_netcdf_file2.nc"], short_name = "ts")
+```
+"""
+function read_var(paths::Vector{String}; short_name = nothing)
+    # Assume that `paths` contain all the datasets we want to try to stitch together
+    # Assume that `paths` is sorted (will rely on simdir to return it sorted)
+
+    # If there is only one path, then use `read_var(path::String)`
+    # We do this because SimDir always store file paths in a vector even if there is only one
+    # file path
+    length(paths) == 1 && return read_var(first(paths))
+
+    # Helper function to find the name of the time dimension
+    function find_time_name(dim_names)
+        for dim_name in dim_names
+            dim_name in TIME_NAMES && return dim_name
+        end
+        return nothing
+    end
+    ncs = (NCDatasets.NCDataset(path) for path in paths)
+    time_names = map(nc -> find_time_name(NCDatasets.dimnames(nc)), ncs)
+
+    # Check if each NCDataset got a time dimension
+    if nothing in time_names
+        error(
+            "Time dimension does not exist in one of the NetCDF files. Provide the specific folder in SimDir",
+        )
+    end
+
+    # Check if the name for the time dimension is the same across alll NetCDF files
+    if length(unique(time_names)) != 1
+        error(
+            " Names of the time dimension are not the same across all NetCDF files. Provide the specific folder in SimDir",
+        )
+    end
+
+    time_dim_name = first(time_names)
+
+    # Check if the start dates are the same
+    unordered_dims = (NCDatasets.dimnames(nc) for nc in ncs)
+    short_names = (
+        !isnothing(short_name) ? short_name :
+        pop!(setdiff(keys(nc), unordered_dim)) for
+        (unordered_dim, nc) in zip(unordered_dims, ncs)
+    )
+    start_dates = (
+        get(nc[short_name].attrib, "start_date", "") for
+        (nc, short_name) in zip(ncs, short_names)
+    )
+    if length(unique(start_dates)) != 1
+        error(
+            "Start dates are not the same across all the NetCDF files. Provide the specific folder in SimDir",
+        )
+    end
+
+    # Check if it make sense to concat time dimension arrays
+    time_dim_arrays = (Array(nc[time_dim_name]) for nc in ncs)
+    time_dim_concat = vcat(time_dim_arrays...)
+    if !issorted(time_dim_concat)
+        error(
+            "Time dimension is not in increasing order after aggregating datasets. Provide the specific folder in SimDir",
+        )
+    end
+
+    NCDatasets.NCDataset(paths, aggdim = time_dim_name) do nc
+        # First, if short_name is nothing, we have to identify the name of the variable by
+        # finding what is not a dimension
+        unordered_dims = NCDatasets.dimnames(nc)
+        isnothing(short_name) &&
+            (short_name = pop!(setdiff(keys(nc), unordered_dims)))
+
+        dims =
+            map(NCDatasets.dimnames(nc[short_name])) do dim_name
+                return dim_name => Array(nc[dim_name])
+            end |> OrderedDict
+        attribs = Dict(k => v for (k, v) in nc[short_name].attrib)
+
+        dim_attribs = OrderedDict(
+            dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
+        )
+        data = Array(nc[short_name])
+
+        return OutputVar(attribs, dims, dim_attribs, data)
+    end
+end
+
+"""
     short_name(var::OutputVar)
 
 Return the `short_name` of the given `var`, if available.
