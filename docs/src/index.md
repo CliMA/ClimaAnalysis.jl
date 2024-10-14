@@ -15,7 +15,25 @@ import ClimaAnalysis
 simdir = ClimaAnalysis.SimDir("simulation_output")
 ```
 `ClimaAnalysis.SimDir` scans the `simulation_output`, finds all the output
-files, and organizes them.
+files, and organizes them. Consider the following directories:
+```
+global_diagnostics/
+├── output_0001
+│   ├── ta_3.0h_average.nc
+│   ├── ta_3.0h_max.nc
+│   ├── ta_3.0h_min.nc
+│   ├── ta_4.0h_max.nc
+│   ├── ts_1.0h_max.nc
+│   ├── ua_6.0h_average.nc
+│   └── va_2.0h_average.nc
+├── output_0002
+│   ├── ua_6.0h_average.nc
+│   └── va_2.0h_average.nc
+└── output_0003
+    ├── ts_1.0h_max.nc
+    ├── ua_6.0h_average.nc
+    └── va_2.0h_average.nc
+```
 
 As of version `0.1.0`, `ClimaAnalysis` uses file names to identify files and
 variables. In this, `ClimaAnalysis` assumes that the default names for outputs
@@ -44,13 +62,29 @@ Variables:
 ```
 Now, you can access any given variable
 ``` julia
-ta_max = get(simdir; short_name = "t12", reduction = "max", period = "3.0h")
+ta_max = get(simdir; short_name = "ta", reduction = "max", period = "3.0h")
 ```
 
 `ta_max` is a ` OutputVar`, a type that contains the variable as well as some
 metadata. When there is only one combination `short_name/reduction/period`, the
 function `get` can be used with `get(simdir, short_name)` (e.g., `get(simdir,
 "orog")` in the previous example).
+
+If there are more files with the same combination of short name, reduction, and
+period, then the function `get` automatically stitch the `.nc` files together
+along the time dimension.
+``` julia
+# Stitch `ua_6.0h_average.nc` in output_0001, output_0002, and output_0003
+ua_average = get(simdir; short_name = "ua", reduction = "average", period = "6.0h")
+
+# Stitch `ts_1.0h_max.nc` in output_0001 and output_0003
+ts_average = get(simdir; short_name = "ts", reduction = "max", period = "1.0h")
+```
+
+The order of files in the directory tree traversed top-down determines the order of the
+files when stitching them. Stitching the datasets is not possible when the start dates are
+not the same, the names of the time dimension are not the same across the datasets, the time
+dimension does not exist, or the times are not in sequential order.
 
 Let us learn about ` OutputVar`s
 
