@@ -9,7 +9,7 @@ the axis.
 
 For instance,
 ```julia
-plot!(var, more_kwargs = Dict(:axis => [:dim_on_y = true]))
+plot!(var, more_kwargs = Dict(:axis => [:dim_on_y => true]))
 ```
 
 `ClimaAnalysis.Utils` provides a convenience function `kwargs` to specify
