@@ -205,19 +205,25 @@ to the `plot!` function. `more_kwargs` is a dictionary that can contain
 additional arguments to the `Axis` (`:axis`), `plot` (`:plot`), and `Colorbar`
 (`:cb`) functions. `more_kwargs` is a Dictionary that maps the symbols `:axis`,
 `:plot`, and `:cb` to their additional arguments. For instance, to choose the
-colormap for the colorbar to viridis
+alpha value of the plot, the label of the colorbar, and the subtitle, you can
+do the following:
 ``` julia
 viz.plot!(
-  fig,
-  ta_max,
-  time = 100.0,
-  z = 30_000.0,
-  more_kwargs = Dict(:cb => [:colormap => :viridis])
+    fig,
+    ta_max,
+    time = 100.0,
+    z = 30_000.0,
+    more_kwargs = Dict(
+        :plot => Dict(:alpha => 0.5),
+        :cb => Dict(:label => "My label"),
+        :axis => Dict(:subtitle => "My subtitle"),
+    ),
 )
 ```
-Note the `Symbol` in colormap!. `:cb` has to be a mapping of `Symbol`s and
-values. `ClimaAnalysis` has a convenience function `kwargs` to more easily pass
-down the keyword arguments avoiding this step. With that, the above example becomes
+Note the `Symbol` in plot, cb, and axis!. `:plot`, `:cb`, and `:axis` have to be
+a mapping of `Symbol`s and values. `ClimaAnalysis` has a convenience function
+`kwargs` to more easily pass down the keyword arguments avoiding this step. With
+that, the above example becomes
 ``` julia
 import ClimaAnalysis.Utils : kwargs as ca_kwargs
 viz.plot!(
@@ -225,7 +231,11 @@ viz.plot!(
   ta_max,
   time = 100.0,
   z = 30_000.0,
-  more_kwargs = Dict(:cb => ca_kwargs(colormap = :inferno))
+  more_kwargs = Dict(
+      :plot => ca_kwargs(alpha = 0.5),
+      :cb => ca_kwargs(label = "My label"),
+      :axis => ca_kwargs(subtitle = "My subtitle"),
+  ),
 )
 ```
 With `Utils.kwargs`, you can just pass the arguments as you would pass them to
@@ -244,7 +254,11 @@ viz.plot!(
   ta_max,
   time = 100.0,
   z = 30_000.0,
-  more_kwargs = Dict(:cb => ca_kwargs(colormap = :inferno))
+  more_kwargs = Dict(
+      :plot => ca_kwargs(alpha = 0.5),
+      :cb => ca_kwargs(label = "My label"),
+      :axis => ca_kwargs(subtitle = "My subtitle"),
+  ),
 )
 ```
 
