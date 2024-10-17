@@ -155,3 +155,46 @@ end
     @test Utils._data_at_dim_vals(data, dim_arr, dim_idx, [2.1, 2.9, 4.0]) ==
           data
 end
+
+@testset "Recursive merge" begin
+    dict1 = Dict("a" => 2)
+    dict2 = Dict("b" => 3)
+    @test Utils._recursive_merge(dict1, dict2) == Dict("a" => 2, "b" => 3)
+
+    dict1 = Dict("a" => 2)
+    dict2 = Dict("a" => 3)
+    @test Utils._recursive_merge(dict1, dict2) == Dict("a" => 3)
+
+    dict1 = Dict("a" => Dict("a" => 3))
+    dict2 = Dict("a" => Dict("b" => 4))
+    @test Utils._recursive_merge(dict1, dict2) ==
+          Dict("a" => Dict("a" => 3, "b" => 4))
+
+    dict1 = Dict("a" => Dict("a" => 3))
+    dict2 = Dict("a" => Dict("a" => 4))
+    @test Utils._recursive_merge(dict1, dict2) == Dict("a" => Dict("a" => 4))
+
+    dict1 = Dict("a" => Dict("a" => 3))
+    dict2 = Dict("a" => Dict("a" => 4))
+    @test Utils._recursive_merge(dict1, dict2) == Dict("a" => Dict("a" => 4))
+
+    dict1 = Dict(
+        "a" => Dict("b" => Dict("c" => 5)),
+        "b" => Dict("c" => 3),
+        "c" => 4,
+        "d" => 7,
+    )
+    dict2 = Dict(
+        "a" => Dict("b" => Dict("c" => 8)),
+        "b" => Dict("c" => 4),
+        "c" => 5,
+        "e" => 8,
+    )
+    @test Utils._recursive_merge(dict1, dict2) == Dict(
+        "a" => Dict("b" => Dict("c" => 8)),
+        "b" => Dict("c" => 4),
+        "c" => 5,
+        "d" => 7,
+        "e" => 8,
+    )
+end

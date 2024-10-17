@@ -459,4 +459,17 @@ function _data_at_dim_vals(data, dim_arr, dim_idx, vals)
     return selectdim(data, dim_idx, nearest_indices)
 end
 
+"""
+    _recursive_merge(x::AbstractDict...)
+
+Recursively merge nested dictionaries together. In the case of keys duplicated among the
+arguments, the rightmost argument that owns the key gets its value stored in the result.
+
+The function is helpful when dealing with keyword arguments when plotting and you want to
+have default keyword arguments.
+
+See: https://discourse.julialang.org/t/multi-layer-dict-merge/27261/6
+"""
+_recursive_merge(x::AbstractDict...) = merge(_recursive_merge, x...)
+_recursive_merge(x...) = x[end]
 end
