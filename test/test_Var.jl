@@ -1410,6 +1410,17 @@ end
     @test ClimaAnalysis.times(file_var) == [0.0, 1398902400.0]
     @test file_var.attributes["start_date"] == "1979-01-01T00:00:00"
 
+    # Test constructor for DateTimeNoLeap for the type of the time dimension
+    ncpath = joinpath(@__DIR__, "sample_nc/test_gpp.nc")
+    file_var = ClimaAnalysis.OutputVar(
+        ncpath,
+        "gpp";
+        new_start_date = nothing,
+        shift_by = identity,
+    )
+    @test ClimaAnalysis.times(file_var) == [0.0]
+    @test file_var.attributes["start_date"] == "1980-01-15T00:00:00"
+
     # Test for error handling
     # Use date dimension instead of time dimension
     date_arr = [
