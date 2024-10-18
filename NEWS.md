@@ -53,6 +53,7 @@ pfull_var = ClimaAnalysis.get(simdir, short_name = "pfull", reduction = "2.0d", 
 if duplicate dates are detected.
 - Fix issue with plotting multiple figures at the same time.
 - Improve shading for `Visualize.heatmap2D_on_globe!`.
+- Add support for automatically converting CFTime.AbstractCFDateTime dates to seconds.
 
 v0.5.10
 -------
