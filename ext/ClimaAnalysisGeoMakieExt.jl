@@ -163,6 +163,9 @@ function Visualize.heatmap2D_on_globe!(
         :mask => Dict(),
     ),
 )
+    default_kwargs = Dict(:plot => Dict(:shading => Makie.NoShading))
+    default_and_more_kwargs =
+        ClimaAnalysis.Utils._recursive_merge(default_kwargs, more_kwargs)
     return _geomakie_plot_on_globe!(
         place,
         var;
@@ -170,7 +173,7 @@ function Visualize.heatmap2D_on_globe!(
         plot_coastline,
         plot_colorbar,
         mask,
-        more_kwargs,
+        more_kwargs = default_and_more_kwargs,
         plot_fn = Makie.surface!,
     )
 end
@@ -357,14 +360,8 @@ function Visualize.plot_bias_on_globe!(
         ),
         :cb => Dict(:ticks => ticks),
     )
-
-    # Function for recursively merging two dictionaries if the values of the dictionaries
-    # are dictionaries and the values of those are also dictionaries and so on
-    # See: https://discourse.julialang.org/t/multi-layer-dict-merge/27261/6
-    recursive_merge(x::AbstractDict...) = merge(recursive_merge, x...)
-    recursive_merge(x...) = x[end]
-    default_and_more_kwargs = recursive_merge(default_kwargs, more_kwargs)
-
+    default_and_more_kwargs =
+        ClimaAnalysis.Utils._recursive_merge(default_kwargs, more_kwargs)
     return Visualize.contour2D_on_globe!(
         place,
         bias_var;
