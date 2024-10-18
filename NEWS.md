@@ -47,6 +47,14 @@ ts_max_var = ClimaAnalysis.get(simdir, short_name = "ts", reduction = "max", per
 pfull_var = ClimaAnalysis.get(simdir, short_name = "pfull", reduction = "2.0d", period = "inst")
 ```
 
+### Replace values in data of a `OutputVar`
+When dealing with land or ocean data, there can potentially be `missing` or `NaN` values in
+the data. The function `replace` can be used to replace `missing` or `NaN` values in
+`Var.data` with another value like 0.0. See the example below of this usage.
+```julia
+ClimaAnalysis.replace(var, NaN => 0.0, missing => 0.0)
+```
+
 ## Bug fixes
 - Masking now affects the colorbar.
 - `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error

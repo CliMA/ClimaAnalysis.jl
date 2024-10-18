@@ -1694,3 +1694,52 @@ end
         atol = 10^(-2.5),
     )
 end
+
+@testset "Replace" begin
+    times = collect(range(0.0, 100, 2 * 180))
+    data = ones(length(times))
+    data[1:5] .= NaN
+    dims = OrderedDict(["time" => times])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_no_nan = ClimaAnalysis.replace(var, NaN => 0.0)
+    @test var_no_nan.dims == var.dims
+    @test var_no_nan.data == vcat(zeros(5), ones(355))
+    @test var_no_nan.attributes == var.attributes
+    @test var_no_nan.dim_attributes == var.dim_attributes
+
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    data[42:47] .= NaN
+    data[32042:32047] .= NaN
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_no_nan = ClimaAnalysis.replace(var, NaN => 1.0)
+    @test var_no_nan.dims == var.dims
+    @test var_no_nan.data == ones(length(lat), length(lon))
+    @test var_no_nan.attributes == var.attributes
+    @test var_no_nan.dim_attributes == var.dim_attributes
+
+    lat = collect(range(-89.5, 89.5, 2))
+    lon = collect(range(-179.5, 179.5, 2))
+    data = [[missing, NaN] [NaN, missing]]
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_no_nan = ClimaAnalysis.replace(var, missing => 1.0, NaN => 2.0)
+    @test var_no_nan.dims == var.dims
+    @test var_no_nan.data == [[1.0, 2.0] [2.0, 1.0]]
+    @test var_no_nan.attributes == var.attributes
+    @test var_no_nan.dim_attributes == var.dim_attributes
+end
