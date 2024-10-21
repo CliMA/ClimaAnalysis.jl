@@ -237,4 +237,45 @@ using OrderedCollections
     output_name = joinpath(tmp_dir, "plot_custom_mask.png")
     Makie.save(output_name, fig13)
 
+    # Make bias with mask generating function
+    fig14 = Makie.Figure()
+
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    data = collect(reshape(-32400:32399, (360, 180))) ./ (32399.0 / 5.0)
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs =
+        Dict("long_name" => "idk", "short_name" => "short", "units" => "kg")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    data_zero = zeros(length(lon), length(lat))
+    var_zero = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_zero)
+
+    var_mask = ClimaAnalysis.OutputVar(ncpath, "gpp")
+    var_mask.attributes["short_name"] = "gpp"
+    var_mask = ClimaAnalysis.replace(var_mask, missing => NaN)
+    var_mask = ClimaAnalysis.slice(
+        var_mask,
+        time = ClimaAnalysis.times(var_mask) |> first,
+    )
+    mask_fn = ClimaAnalysis.make_lonlat_mask(var_mask; set_to_val = isnan)
+
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(
+        fig14,
+        var,
+        var_zero,
+        mask = mask_fn,
+        cmap_extrema = (-5.0, 5.0),
+        # The keyword `nan_color` do not work right now for CairoMakie.
+        # See https://github.com/MakieOrg/Makie.jl/issues/4524
+        more_kwargs = Dict(
+            :plot => ClimaAnalysis.Utils.kwargs(nan_color = :red),
+        ),
+    )
+    output_name = joinpath(tmp_dir, "plot_bias_with_custom_mask.png")
+    Makie.save(output_name, fig14)
 end
