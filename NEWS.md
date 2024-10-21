@@ -74,6 +74,27 @@ mask_fn = ClimaAnalysis.make_lonlat_mask(var; set_to_val = isnan, true_val = 0.0
 another_masked_var = mask_fn(another_var)
 ```
 
+### Using masking function when plotting
+Masking functions can now be passed for the `mask` keyword for plotting functions. See the
+example below of plotting with a masking function.
+
+```julia
+import ClimaAnalysis
+import ClimaAnalysis.Visualize: plot_bias_on_globe!, oceanmask
+import GeoMakie
+import CairoMakie
+
+mask_var = ClimaAnalysis.OutputVar("ocean_mask.nc")
+mask_fn = ClimaAnalysis.make_lonlat_mask(mask_var; set_to_val = isnan)
+
+obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
+sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
+
+fig = CairoMakie.Figure()
+plot_bias_on_globe!(fig, var, mask = mask_fn)
+CairoMakie.save("myfigure.pdf", fig)
+```
+
 ## Bug fixes
 - Masking now affects the colorbar.
 - `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error
