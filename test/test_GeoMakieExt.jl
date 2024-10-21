@@ -219,4 +219,22 @@ using OrderedCollections
     )
     output_name = joinpath(tmp_dir, "plot_modified_mask.png")
     Makie.save(output_name, fig12)
+
+    # # Make plot with mask generating function
+    fig13 = Makie.Figure()
+    ncpath = joinpath(@__DIR__, "sample_nc/test_gpp_mask.nc")
+    var = ClimaAnalysis.OutputVar(ncpath, "gpp")
+    var.attributes["short_name"] = "gpp"
+    var = ClimaAnalysis.replace(var, missing => NaN)
+    var = ClimaAnalysis.slice(var, time = ClimaAnalysis.times(var) |> first)
+    mask_fn = ClimaAnalysis.make_lonlat_mask(
+        var,
+        set_to_val = x -> !isnan(x),
+        true_val = 0.0,
+    )
+    var = mask_fn(var)
+    ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig13, var)
+    output_name = joinpath(tmp_dir, "plot_custom_mask.png")
+    Makie.save(output_name, fig13)
+
 end
