@@ -1800,3 +1800,52 @@ end
         "idk",
     )
 end
+
+@testset "Generating masks" begin
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    data[1] = NaN
+    data_ones = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    ones_var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_ones)
+
+    mask_fn = ClimaAnalysis.make_lonlat_mask(
+        var,
+        set_to_val = isnan,
+        true_val = 0.0,
+        false_val = 1.0,
+    )
+    var1 = mask_fn(ones_var)
+    @test var1.data[1] == 0.0
+
+    # Error handling
+    lat = collect(range(-89.5, 89.5, 180))
+    data = ones(length(lat))
+    dims = OrderedDict(["lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.make_lonlat_mask(var)
+
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lon))
+    dims = OrderedDict(["lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.make_lonlat_mask(var)
+
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    t = collect(range(1, 2, 2))
+    data = ones(length(lat), length(lon), length(t))
+    dims = OrderedDict(["lat" => lat, "lon" => lon, "time" => t])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.make_lonlat_mask(var)
+end
