@@ -58,6 +58,7 @@ Var.reordered_as
 Var.resampled_as
 Var.convert_units
 Var.set_units
+Var.set_dim_units!
 Var.integrate_lonlat
 Var.integrate_lat
 Var.integrate_lon

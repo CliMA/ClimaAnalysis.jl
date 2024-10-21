@@ -1754,3 +1754,49 @@ end
     @test var_no_nan.attributes == var.attributes
     @test var_no_nan.dim_attributes == var.dim_attributes
 end
+
+@testset "Set units for dimension" begin
+    # Units exist in dim_attribs
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    ClimaAnalysis.set_dim_units!(var, "lat", "degrees")
+    @test ClimaAnalysis.dim_units(var, "lat") == "degrees"
+
+    # Units do not exist in dim_attribs as a key
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs =
+        OrderedDict(["lat" => Dict(), "lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    ClimaAnalysis.set_dim_units!(var, "lat", "degrees")
+    @test ClimaAnalysis.dim_units(var, "lat") == "degrees"
+
+    # Dimension is not present in dim_attribs
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    ClimaAnalysis.set_dim_units!(var, "lat", "degrees")
+    @test ClimaAnalysis.dim_units(var, "lat") == "degrees"
+
+    # Error handling
+    @test_throws ErrorException ClimaAnalysis.set_dim_units!(
+        var,
+        "wacky",
+        "idk",
+    )
+end

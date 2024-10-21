@@ -53,6 +53,7 @@ export OutputVar,
     global_mse,
     global_rmse,
     set_units,
+    set_dim_units!,
     shift_to_start_of_previous_month,
     apply_landmask,
     apply_oceanmask,
@@ -515,6 +516,30 @@ Set `units` for data in `var`.
 function set_units(var::OutputVar, units::AbstractString)
     converted_var = convert_units(var, units, conversion_function = identity)
     return converted_var
+end
+
+"""
+    set_dim_units!(var::OutputVar, dim_name::AbstractString, units::AbstractString)
+
+Set `units` for the `dim_name` dimension in `var`.
+
+!!! warning "Override existing units"
+    If units already exist for the dimension, this will override the units for the dimension
+    in `var`.
+"""
+function set_dim_units!(
+    var::OutputVar,
+    dim_name::AbstractString,
+    units::AbstractString,
+)
+    !haskey(var.dims, dim_name) &&
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    if haskey(var.dim_attributes, dim_name)
+        push!(var.dim_attributes[dim_name], "units" => units)
+    else
+        var.dim_attributes[dim_name] = Dict("units" => units)
+    end
+    return nothing
 end
 
 """
