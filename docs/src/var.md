@@ -55,13 +55,19 @@ new_var = ClimaAnalysis.convert_units(var, "kg m/s", conversion_function = (x) -
 
 !!! note If you find some unparseable units, please open an issue. We can fix them!
 
-If units do not exist or you want to change the name of the units, then one can uses the
+If units do not exist or you want to change the name of the units, then one can use the
 `set_units` function.
 ```julia
 new_var = ClimaAnalysis.set_units(var, "kg m s^-1")
 ```
+
+Similarly, to set the units of a dimension, one can use the `dim_set_units!` function.
+```julia
+new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
+```
+
 !!! warning "Override existing units"
-    If units already exist, this will override the units for data in `var`.
+    If units already exist, this will override the units for data or the dimension in `var`.
 
 ## Interpolations and extrapolations
 

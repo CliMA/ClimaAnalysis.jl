@@ -55,6 +55,14 @@ the data. The function `replace` can be used to replace `missing` or `NaN` value
 ClimaAnalysis.replace(var, NaN => 0.0, missing => 0.0)
 ```
 
+### Set units for dimensions
+Similar to `set_units`, there is the function `set_dim_units!` which one can use to set
+the units of a dimension.
+
+```julia
+new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
+```
+
 ## Bug fixes
 - Masking now affects the colorbar.
 - `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error
