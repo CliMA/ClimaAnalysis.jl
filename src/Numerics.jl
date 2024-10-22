@@ -1,6 +1,7 @@
 module Numerics
 
 import ..Utils: _isequispaced
+import NaNStatistics: nansum
 
 """
     _integrate_lon(data::AbstractArray, lon::AbstractVector; dims)
@@ -67,7 +68,7 @@ function _integrate_over_angle(
     size_to_reshape =
         (i == angle_idx ? length(int_weights) : 1 for i in 1:ndims(data))
     int_weights = reshape(int_weights, size_to_reshape...)
-    int_on_angle = sum(data .* int_weights, dims = angle_idx)
+    int_on_angle = nansum(data .* int_weights, dims = angle_idx)
     return int_on_angle
 end
 

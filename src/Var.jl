@@ -1129,6 +1129,8 @@ If the points are equispaced, it is assumed that each point correspond to the mi
 cell which results in rectangular integration using the midpoint rule. Otherwise, the
 integration being done is rectangular integration using the left endpoints for integrating
 longitude and latitude. The units for longitude and latitude should be degrees.
+
+All `NaN`s in `var.data` are treated as zeros when integrating.
 """
 function integrate_lonlat(var::OutputVar)
     var_integrate_lon = var |> integrate_lon
@@ -1150,6 +1152,8 @@ If the points are equispaced, it is assumed that each point correspond to the mi
 cell which results in rectangular integration using the midpoint rule. Otherwise, the
 integration being done is rectangular integration using the left endpoints. The unit for
 longitude should be degrees.
+
+All `NaN`s in `var.data` are treated as zeros when integrating.
 """
 function integrate_lon(var::OutputVar)
     has_longitude(var) || error("var does not has longitude as a dimension")
@@ -1167,6 +1171,8 @@ If the points are equispaced, it is assumed that each point correspond to the mi
 cell which results in rectangular integration using the midpoint rule. Otherwise, the
 integration being done is rectangular integration using the left endpoints. The unit for
 latitude should be degrees.
+
+All `NaN`s in `var.data` are treated as zeros when integrating.
 """
 function integrate_lat(var::OutputVar)
     has_latitude(var) || error("var does not has latitude as a dimension")

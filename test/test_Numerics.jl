@@ -92,7 +92,7 @@ end
         dims = 1,
     )
 
-    # Integrating only lon (non equispaced)
+    # Integrating only lon (equispaced)
     lon = collect(range(-179.5, 179.5, 360))
     lon_data = ones(length(lon))
     @test isapprox(
@@ -101,7 +101,7 @@ end
         atol = 0.01,
     )
 
-    # Integrating only lat (non equispaced)
+    # Integrating only lat (equispaced)
     lat = collect(range(-89.5, 89.5, 180))
     lat_data = ones(length(lat))
     @test isapprox(
@@ -110,4 +110,19 @@ end
         atol = 0.01,
     )
 
+    # Integrating with NaNs
+    lon = collect(range(-179.5, 179.5, 360))
+    lon_data = ones(length(lon))
+    lon_data[:] .= NaN
+    @test ClimaAnalysis.Numerics._integrate_lon(lon_data, lon, dims = 1)[1] ==
+          0.0
+
+    lon = collect(range(-179.5, 179.5, 360))
+    lon_data = ones(length(lon))
+    lon_data[1:180] .= NaN
+    @test isapprox(
+        ClimaAnalysis.Numerics._integrate_lon(lon_data, lon, dims = 1)[1],
+        1.0π,
+        atol = 0.01,
+    )
 end
