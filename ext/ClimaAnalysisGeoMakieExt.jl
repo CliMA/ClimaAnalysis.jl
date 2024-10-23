@@ -348,7 +348,13 @@ function Visualize.plot_bias_on_globe!(
     levels = collect(range(min_level, max_level, length = nlevels))
     offset = levels[argmin(abs.(levels))]
     levels = levels .- offset
-    ticklabels = map(x -> string(round(x; digits = 0)), levels)
+    # log(0.1, 0.1 * (max_level - min_level)) computes the number of digits we need to round
+    # to (e.g. if the difference is 0.1, the digits we need to round to is 2 and if the
+    # difference is 0.01, then the digits we need to round to is 3)
+    # Take the maximum with 0 because log(0.1, 0.1 * (max_level - min_level)) is negative
+    # when the difference is greater than or equal to 100
+    digits_to_round = max(0, ceil(Int, log(0.1, 0.1 * (max_level - min_level))))
+    ticklabels = map(x -> string(round(x; digits = digits_to_round)), levels)
     ticks = (levels, ticklabels)
 
     default_kwargs = Dict(

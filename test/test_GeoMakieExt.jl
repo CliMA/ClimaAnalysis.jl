@@ -122,7 +122,12 @@ using OrderedCollections
     data_zero = zeros(length(lon), length(lat))
     var_zero = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data_zero)
 
-    ClimaAnalysis.Visualize.plot_bias_on_globe!(fig6, var, var_zero)
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(
+        fig6,
+        var,
+        var_zero,
+        cmap_extrema = (-0.001, 0.001),
+    )
     output_name = joinpath(tmp_dir, "plot_bias.png")
     Makie.save(output_name, fig6)
 
