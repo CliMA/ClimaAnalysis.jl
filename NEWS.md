@@ -70,7 +70,8 @@ if duplicate dates are detected.
 - Fix issue with plotting multiple figures at the same time.
 - Improve shading for `Visualize.heatmap2D_on_globe!`.
 - Add support for automatically converting CFTime.AbstractCFDateTime dates to seconds.
-- Treat `NaN`s as zeros when integrating (`integrate_lon, integrate_lat, integrate_lonlat`)
+- Treat `NaN`s as zeros when integrating (`integrate_lon, integrate_lat, integrate_lonlat`).
+- Fix duplicate values on colorbar for plotting bias.
 
 v0.5.10
 -------
