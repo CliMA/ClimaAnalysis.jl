@@ -269,8 +269,7 @@ using OrderedCollections
         var,
         var_zero,
         mask = mask_fn,
-        cmap_extrema = (-5.0, 5.0),
-        # The keyword `nan_color` do not work right now for CairoMakie.
+        # The keyword `nan_color` does not work right now for CairoMakie.
         # See https://github.com/MakieOrg/Makie.jl/issues/4524
         more_kwargs = Dict(
             :plot => ClimaAnalysis.Utils.kwargs(nan_color = :red),
