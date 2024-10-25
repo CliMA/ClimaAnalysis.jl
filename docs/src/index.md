@@ -62,10 +62,10 @@ Variables:
 ```
 Now, you can access any given variable
 ``` julia
-ta_max = get(simdir; short_name = "ta", reduction = "max", period = "3.0h")
+ts_max = get(simdir; short_name = "ts", reduction = "max", period = "3.0h")
 ```
 
-`ta_max` is a ` OutputVar`, a type that contains the variable as well as some
+`ts_max` is a ` OutputVar`, a type that contains the variable as well as some
 metadata. When there is only one combination `short_name/reduction/period`, the
 function `get` can be used with `get(simdir, short_name)` (e.g., `get(simdir,
 "orog")` in the previous example).
@@ -156,7 +156,7 @@ times(ts_max_lat_averaged_sliced) =
 
 `OutputVar`s can be evaluated on arbitrary points. For instance
 ``` julia-repl
-julia> ts_max(12000., 23., 45., 1200.)
+julia> ts_max([12000., 23., 45., 1200.])
 ```
 will return the value of the maximum temperature at time 12000, longitude 23,
 latitude 45, and altitude 1200. This can be used to interpolate `OutputVar`s
@@ -179,7 +179,7 @@ If [`Makie`](https://docs.makie.org/stable/) is available, `ClimaAnalysis` can
 be used for plotting. Importing `Makie` and `ClimaAnalysis` in the same session
 automatically loads the necessary `ClimaAnalysis` plotting modules.
 
-If we want to make a heatmap for `ta_max` at time of 100 s at altitude `z` of 30000 meters:
+If we want to make a heatmap for `ts_max` at time of 100 s at altitude `z` of 30000 meters:
 
 ``` julia
 import CairoMakie
@@ -189,12 +189,12 @@ fig = CairoMakie.Figure(size = (400, 600))
 
 viz.plot!(
   fig,
-  ta_max,
+  ts_max,
   time = 100.0,
   z = 30_000.0
 )
 
-CairoMakie.save("ta_max.png", fig)
+CairoMakie.save("ts_max.png", fig)
 ```
 
 If we want to have a line plot, we can simply add another argument (e.g., `lat =
@@ -210,7 +210,7 @@ do the following:
 ``` julia
 viz.plot!(
     fig,
-    ta_max,
+    ts_max,
     time = 100.0,
     z = 30_000.0,
     more_kwargs = Dict(
@@ -228,7 +228,7 @@ that, the above example becomes
 import ClimaAnalysis.Utils : kwargs as ca_kwargs
 viz.plot!(
   fig,
-  ta_max,
+  ts_max,
   time = 100.0,
   z = 30_000.0,
   more_kwargs = Dict(
@@ -251,7 +251,7 @@ layout = fig[1, 2] = GridLayout()
 
 viz.plot!(
   layout,
-  ta_max,
+  ts_max,
   time = 100.0,
   z = 30_000.0,
   more_kwargs = Dict(
