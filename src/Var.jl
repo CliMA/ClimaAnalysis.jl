@@ -57,6 +57,7 @@ export OutputVar,
     shift_to_start_of_previous_month,
     apply_landmask,
     apply_oceanmask,
+    make_lonlat_mask,
     replace
 
 """
@@ -1650,51 +1651,110 @@ Apply a mask using the NCDataset found at `mask`.
 The dimensions of the mask should only contain longitude and latitude and are in that order.
 """
 function _apply_lonlat_mask(var, mask::AbstractString)
-    # Check if lon and lat exist
+    mask_var = OutputVar(mask)
+    apply_mask = make_lonlat_mask(mask_var)
+    return apply_mask(var)
+end
+
+"""
+    make_lonlat_mask(var;
+                     set_to_val = nothing,
+                     true_val = NaN,
+                     false_val = 1.0)
+
+Return a masking function that takes in a `OutputVar` and mask the data using `var.data`.
+
+The parameter `set_to_val` is a function that takes in an element of `var.data` and return
+`True` or `False`. If `set_to_nan` returns `True`, then the value will be `true_val` in the
+mask and if `set_to_nan` returns `False`, then the value will be `false_val` in the mask.
+
+If `set_to_nan` is `nothing`, then no transformation is done and `var.data` is used. This is
+helpful if `var.data` is already an array of NaNs and ones or zeros and ones.
+"""
+function make_lonlat_mask(
+    var;
+    set_to_val = nothing,
+    true_val = NaN,
+    false_val = 1.0,
+)
+    # Check if lon and lat are the only dimensions
     has_longitude(var) ||
         error("Longitude does not exist as a dimension in var")
     has_latitude(var) || error("Latitude does not exist as a dimension in var")
+    length(var.dims) == 2 ||
+        error("Number of dimensions ($(length(var.dims))) is not two")
 
-    # Create OutputVar using mask
-    mask_var = OutputVar(mask)
-
-    # Resample so that the land mask match up with the grid of var
-    # Round because linear resampling is done and we want the mask to be only ones and zeros
-    land_mask =
-        [
-            mask_var(pt) for pt in Base.product(
-                var.dims[longitude_name(var)],
-                var.dims[latitude_name(var)],
-            )
-        ] .|> round
-
-    # Reshape data for broadcasting
-    lon_idx = var.dim2index[longitude_name(var)]
-    lat_idx = var.dim2index[latitude_name(var)]
-    lon_length = var.dims[longitude_name(mask_var)] |> length
-    lat_length = var.dims[latitude_name(mask_var)] |> length
-    if lon_idx > lat_idx
-        land_mask = transpose(land_mask)
+    # Preprocess data for the mask if needed
+    if !isnothing(set_to_val)
+        true_indices = findall(set_to_val, var.data)
+        false_indices = findall(!set_to_val, var.data)
+        cleaned_up_data = var.data |> copy
+        cleaned_up_data[true_indices] .= true_val
+        cleaned_up_data[false_indices] .= false_val
+        var = OutputVar(
+            var.attributes |> deepcopy,
+            var.dims |> deepcopy,
+            var.dim_attributes |> deepcopy,
+            cleaned_up_data,
+        )
     end
-    size_to_reshape = (
-        if i == lon_idx
-            lon_length
-        elseif i == lat_idx
-            lat_length
-        else
-            1
-        end for i in 1:ndims(var.data)
-    )
 
-    # Mask data
-    land_mask = reshape(land_mask, size_to_reshape...)
-    masked_data = var.data .* land_mask
+    # Make a dummy OutputVar so we can reorder on it
+    lon = [42.0]
+    lat = [42.0]
+    data = ones(length(lon), length(lat))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs = Dict{String, String}()
+    dim_attribs = OrderedDict{String, Dict{String, String}}()
+    reordered_var = OutputVar(attribs, dims, dim_attribs, data)
 
-    # Remake OutputVar with new data
-    ret_attribs = deepcopy(var.attributes)
-    ret_dims = deepcopy(var.dims)
-    ret_dim_attributes = deepcopy(var.dim_attributes)
-    return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, masked_data)
+    mask_var = reordered_as(var, reordered_var)
+
+    return apply_lonlat_mask(input_var) = begin
+        # Check if lon and lat exist
+        has_longitude(input_var) ||
+        error("Longitude does not exist as a dimension in var")
+        has_latitude(input_var) ||
+        error("Latitude does not exist as a dimension in var")
+
+        # Resample so that the mask match up with the grid of var
+        # Round because linear resampling is done and we want the mask to be only ones and zeros
+        mask_arr =
+            [
+                mask_var(pt) for pt in Base.product(
+                    input_var.dims[longitude_name(input_var)],
+                    input_var.dims[latitude_name(input_var)],
+                )
+            ] .|> round
+
+        # Reshape data for broadcasting
+        lon_idx = input_var.dim2index[longitude_name(input_var)]
+        lat_idx = input_var.dim2index[latitude_name(input_var)]
+        lon_length = input_var.dims[longitude_name(mask_var)] |> length
+        lat_length = input_var.dims[latitude_name(mask_var)] |> length
+        if lon_idx > lat_idx
+            mask_arr = transpose(mask_arr)
+        end
+        size_to_reshape = (
+            if i == lon_idx
+                lon_length
+            elseif i == lat_idx
+                lat_length
+            else
+                1
+            end for i in 1:ndims(input_var.data)
+        )
+
+        # Mask data
+        mask_arr = reshape(mask_arr, size_to_reshape...)
+        masked_data = input_var.data .* mask_arr
+
+        # Remake OutputVar with new data
+        ret_attribs = deepcopy(input_var.attributes)
+        ret_dims = deepcopy(input_var.dims)
+        ret_dim_attributes = deepcopy(input_var.dim_attributes)
+        return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, masked_data)
+    end
 end
 
 """

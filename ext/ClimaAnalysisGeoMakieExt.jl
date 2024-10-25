@@ -48,7 +48,7 @@ function _geomakie_plot_on_globe!(
 )
     length(var.dims) == 2 || error("Can only plot 2D variables")
 
-    apply_mask = _find_mask_to_apply(mask)
+    viz_mask, apply_mask = _find_mask_to_apply(mask)
     !isnothing(apply_mask) && (var = apply_mask(var))
 
     lon_name = ""
@@ -77,7 +77,7 @@ function _geomakie_plot_on_globe!(
     coast_kwargs = get(more_kwargs, :coast, Dict(:color => :black))
     mask_kwargs = get(more_kwargs, :mask, Dict(:color => :white))
 
-    plot_mask = !isnothing(mask)
+    plot_mask = !isnothing(viz_mask)
 
     var.attributes["long_name"] =
         ClimaAnalysis.Utils.warp_string(var.attributes["long_name"])
@@ -87,7 +87,7 @@ function _geomakie_plot_on_globe!(
     ax = GeoMakie.GeoAxis(place[p_loc...]; title, axis_kwargs...)
 
     plot = plot_fn(ax, lon, lat, var.data; plot_kwargs...)
-    plot_mask && Makie.poly!(ax, mask; mask_kwargs...)
+    plot_mask && Makie.poly!(ax, viz_mask; mask_kwargs...)
     plot_coastline && Makie.lines!(ax, GeoMakie.coastlines(); coast_kwargs...)
 
     if plot_colorbar
@@ -263,6 +263,7 @@ end
                         plot_coastline = true,
                         plot_colorbar = true,
                         mask = nothing,
+                        apply_mask_to_var = nothing,
                         more_kwargs)
     plot_bias_on_globe!(grid_layout::Makie.GridLayout,
                         sim::ClimaAnalysis.OutputVar,
@@ -272,6 +273,7 @@ end
                         plot_coastline = true,
                         plot_colorbar = true,
                         mask = nothing,
+                        apply_mask_to_var = nothing,
                         more_kwargs)
 
 
@@ -285,11 +287,19 @@ based on the values of `cmap_extrema`.
 
 The dimensions have to be longitude and latitude.
 
-`mask` has to be an object that can be plotted by `Makie.poly`. `ClimaAnalysis` comes with
-predefined masks, check out [`Visualize.oceanmask`](@ref) and [`Visualize.landmask`](@ref).
-Also, the corresponding mask is applied to the `OutputVar`s. For instance, using
-`Visualize.landmask` means `ClimaAnalysis.apply_landmask` is applied to the `OutputVar`s
-when computing the bias.
+`mask` has to be an object that can be plotted by `Makie.poly` or a masking function.
+`ClimaAnalysis` comes with predefined masks, check out [`Visualize.oceanmask`](@ref) and
+[`Visualize.landmask`](@ref). Also, the corresponding mask is applied to the `OutputVar`s.
+For instance, using `Visualize.landmask` means `ClimaAnalysis.apply_landmask` is applied to
+the `OutputVar`s when computing the bias. One can also pass in `ClimaAnalysis.apply_landmask`
+or a custom masking function ([`ClimaAnalysis.Var.make_lonlat_mask`](@ref)).
+
+!!! note "Passing a masking function for `mask`"
+    ClimaAnalysis do not support mask keyword arguments for masking functions. If you want
+    the values of the mask to not show, then pass `true_val = NaN` as a keyword argument
+    to `make_lonlat_mask`. The color of `NaN` is controlled by the keyword `nan_color` which
+    can be passed for the plotting function (`:plot`).
+)
 
 Additional arguments to the plotting and axis functions
 =======================================================
@@ -323,7 +333,7 @@ function Visualize.plot_bias_on_globe!(
         :mask => Dict(),
     ),
 )
-    apply_mask = _find_mask_to_apply(mask)
+    _, apply_mask = _find_mask_to_apply(mask)
 
     bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
     global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
@@ -374,22 +384,23 @@ function Visualize.plot_bias_on_globe!(
 end
 
 """
-    Return the appropriate mask to apply to a `OutputVar` from the plotting `mask`.
+    _find_mask_to_apply(mask)
 
-If `mask` is `Visualize.landmask()`, return `ClimaAnalysis.apply_landmask`. If `mask` is
-`Visualize.oceanmask()`, return `ClimaAnalysis.apply_oceanmask`. In all other cases, return
-nothing.
+Return the appropriate mask for visualizing and applying to the `OutputVar` from `mask`. The
+return type is a Tuple.
 """
 function _find_mask_to_apply(mask)
     if isnothing(mask)
-        return nothing
+        return nothing, nothing
+    elseif mask isa Function
+        return nothing, mask
     elseif mask == Visualize.landmask()
-        return ClimaAnalysis.apply_landmask
+        return mask, ClimaAnalysis.apply_landmask
     elseif mask == Visualize.oceanmask()
-        return ClimaAnalysis.apply_oceanmask
+        return mask, ClimaAnalysis.apply_oceanmask
     else
         @warn "Mask not recognized, overplotting it. The colorbar will not be correct"
-        return nothing
+        return mask, nothing
     end
 end
 

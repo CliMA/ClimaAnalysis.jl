@@ -63,6 +63,16 @@ the units of a dimension.
 new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
 ```
 
+### Automatically generate a mask from a OutputVar
+Masking function can automatically be generated from the function `make_lonlat_mask`. See
+the example below of generating a masking function that mask out any data that is `NaN` in
+`var`.
+
+```julia
+mask_fn = ClimaAnalysis.make_lonlat_mask(var; set_to_zero = isnan)
+another_masked_var = mask_fn(another_var)
+```
+
 ## Bug fixes
 - Masking now affects the colorbar.
 - `Var.shift_to_start_of_previous_month` now checks for duplicate dates and throws an error

@@ -262,10 +262,10 @@ julia> units(se_var)
 "K^2"
 ```
 
-### Masking
-Bias and squared error can be computed only over the land or ocean through the `mask` parameter.
-As of now, the mask parameter takes in `apply_oceanmask` or `apply_oceanmask`. See the
-example below of this usage.
+## Masking
+Bias and squared error can be computed only over the land or ocean through the `mask`
+parameter. As of now, the mask parameter takes in `apply_oceanmask` or `apply_oceanmask`.
+See the example below of this usage.
 
 ```julia
 # Do not consider the ocean when computing the bias
@@ -276,4 +276,31 @@ ClimaAnalysis.global_bias(sim_var, obs_var; mask = apply_oceanmask)
 ClimaAnalysis.squared_error(sim_var, obs_var; mask = apply_landmask)
 ClimaAnalysis.global_mse(sim_var, obs_var; mask = apply_landmask)
 ClimaAnalysis.global_rmse(sim_var, obs_var; mask = apply_landmask)
+```
+
+In other cases, you may want to generate a masking function using a `OutputVar`. For
+instance, you are comparing against observational data over land and you can't use an ocean
+mask since not all of the observational data is defined over the land. The function
+`make_lonlat_mask` allows you to generate a masking function. If
+the data is already zeros and ones, then you can use `make_lonlat_mask(var)`. Otherwise, you
+can specify `set_to_val` which takes in an element of `var.data` and return a boolean. If
+`set_to_val` returns `true`, then the value will be `true_val` in the mask and if `set_to_val`
+returns `false`, then the value will be `false_val` in the mask. See the example below of this
+usage.
+
+```julia
+# Any points that are NaNs should be zero in the mask
+mask_fn = ClimaAnalysis.make_lonlat_mask(
+    var;
+    set_to_val = isnan,
+    true_val = 0.0, # default is NaN
+    false_val = 1.0,
+)
+
+# Apply mask to another OutputVar
+another_masked_var = mask_fn(another_var)
+
+# Compute squared error and global MSE with custom masking function
+ClimaAnalysis.squared_error(sim_var, obs_var; mask = mask_fn)
+ClimaAnalysis.global_mse(sim_var, obs_var; mask = mask_fn)
 ```

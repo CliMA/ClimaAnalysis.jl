@@ -93,3 +93,42 @@ CairoMakie.save("myfigure.pdf", fig)
 The output produces something like:
 
 ![biasplot_oceanmask](./assets/bias_plot_oceanmask.png)
+
+We can also plot the bias using a custom mask generated from `make_lonlat_mask`. This will
+override the masking function used by `Visualize.oceanmask()` and `Visualize.landmask()`
+when computing the bias.
+
+!!! note "Passing a masking function for `mask`"
+    ClimaAnalysis do not support mask keyword arguments for masking functions. If you want
+    the values of the mask to not show in a plot, then pass `true_val = NaN` as a keyword argument
+    to `make_lonlat_mask`. The color of `NaN` is controlled by the keyword `nan_color` which
+    can be passed for the plotting function (`:plot`).
+
+    Note that if the backend is CairoMakie, then keyword `nan_color` does nothing. See this
+    (issue)[https://github.com/MakieOrg/Makie.jl/issues/4524].
+
+```julia
+import ClimaAnalysis
+import ClimaAnalysis.Visualize: plot_bias_on_globe!, oceanmask
+import GeoMakie
+import CairoMakie
+
+mask_var = ClimaAnalysis.OutputVar("ocean_mask.nc")
+mask_fn = ClimaAnalysis.make_lonlat_mask(mask_var; set_to_zero =isnan)
+
+obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
+sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
+
+fig = CairoMakie.Figure()
+plot_bias_on_globe!(fig,
+                    var,
+                    mask = mask_fn
+                    more_kwargs = Dict(:mask => ca_kwargs(color = :blue)),
+                   )
+CairoMakie.save("myfigure.pdf", fig)
+```
+
+The output produces something like:
+
+![bias_with_custom_mask_plot](./assets/plot_bias_with_custom_mask.png)
+
