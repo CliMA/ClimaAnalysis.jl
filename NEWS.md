@@ -104,6 +104,7 @@ if duplicate dates are detected.
 - Add support for automatically converting CFTime.AbstractCFDateTime dates to seconds.
 - Treat `NaN`s as zeros when integrating (`integrate_lon, integrate_lat, integrate_lonlat`).
 - Fix duplicate values on colorbar for plotting bias.
+- Fix `NaN`s for colorbar when plotting bias.
 
 v0.5.10
 -------

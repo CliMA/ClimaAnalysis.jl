@@ -5,6 +5,8 @@ import GeoMakie: Makie
 import ClimaAnalysis
 import ClimaAnalysis: Visualize
 
+import NaNStatistics: nanextrema
+
 MakiePlace = Union{Makie.Figure, Makie.GridLayout}
 
 """
@@ -278,7 +280,7 @@ end
     plot_bias_on_globe!(fig::Makie.Figure,
                         sim::ClimaAnalysis.OutputVar,
                         obs::ClimaAnalysis.OutputVar;
-                        cmap_extrema = extrema(ClimaAnalysis.bias(sim, obs).data),
+                        cmap_extrema = nanextrema(ClimaAnalysis.bias(sim, obs).data),
                         p_loc = (1, 1),
                         plot_coastline = true,
                         plot_colorbar = true,
@@ -287,7 +289,7 @@ end
     plot_bias_on_globe!(grid_layout::Makie.GridLayout,
                         sim::ClimaAnalysis.OutputVar,
                         obs::ClimaAnalysis.OutputVar;
-                        cmap_extrema = extrema(ClimaAnalysis.bias(sim, obs).data),
+                        cmap_extrema = nanextrema(ClimaAnalysis.bias(sim, obs).data),
                         p_loc = (1, 1),
                         plot_coastline = true,
                         plot_colorbar = true,
@@ -339,7 +341,7 @@ function Visualize.plot_bias_on_globe!(
     place::MakiePlace,
     sim::ClimaAnalysis.OutputVar,
     obs::ClimaAnalysis.OutputVar;
-    cmap_extrema = extrema(ClimaAnalysis.bias(sim, obs).data),
+    cmap_extrema = nanextrema(ClimaAnalysis.bias(sim, obs).data),
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
