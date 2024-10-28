@@ -1280,7 +1280,7 @@ function split_by_season(var::OutputVar)
 end
 
 """
-    _check_sim_obs_units_consistent(sim::OutputVar, obs::OutputVar)
+    _check_sim_obs_units_consistent(sim::OutputVar, obs::OutputVar, num_dim)
 
 Check if the number of dimensions are two, the `data` in `sim` and `obs` is missing units or
 not, and if the units of data are the same in `sim` and `obs`.
@@ -1290,12 +1290,16 @@ because `integrate_lonlat` (in `bias` and `squared_error`) handles that. The fun
 does not check if the units of dimensions in `sim` and `obs` are the same because
 `resampled_as` (in `bias` and `squared_error`) handles that.
 """
-function _check_sim_obs_units_consistent(sim::OutputVar, obs::OutputVar)
+function _check_sim_obs_units_consistent(
+    sim::OutputVar,
+    obs::OutputVar,
+    num_dim,
+)
     # Check number of dimensions
     sim_num_dims = length(sim.dims)
     obs_num_dims = length(obs.dims)
-    ((sim_num_dims != 2) || (obs_num_dims != 2)) && error(
-        "There are not only two dimensions in sim ($sim_num_dims) or obs ($obs_num_dims).",
+    ((sim_num_dims != num_dim) || (obs_num_dims != num_dim)) && error(
+        "There are not only $num_dim dimensions in sim ($sim_num_dims) or obs ($obs_num_dims).",
     )
 
     # Check units for data is not missing
@@ -1331,7 +1335,7 @@ See also [`global_bias`](@ref), [`squared_error`](@ref), [`global_mse`](@ref),
 [`global_rmse`](@ref).
 """
 function bias(sim::OutputVar, obs::OutputVar; mask = nothing)
-    _check_sim_obs_units_consistent(sim, obs)
+    _check_sim_obs_units_consistent(sim, obs, 2)
 
     # Resample obs on sim to ensure the size of data in sim and obs are the same and the
     # dims are the same
@@ -1412,10 +1416,9 @@ and [`apply_oceanmask`](@ref).
 See also [`global_mse`](@ref), [`global_rmse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
 """
 function squared_error(sim::OutputVar, obs::OutputVar; mask = nothing)
-    _check_sim_obs_units_consistent(sim, obs)
+    _check_sim_obs_units_consistent(sim, obs, 2)
 
-    # Resample obs on sim to ensure the size of data in sim and obs are the same and the
-    # dims are the same
+    # Resample obs on sim to ensure the size of data in sim and obs are the same and the dims are the same
     obs_resampled = resampled_as(obs, sim)
 
     # Compute squared error
