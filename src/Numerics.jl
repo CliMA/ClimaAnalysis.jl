@@ -46,6 +46,25 @@ function _integrate_lat(data::AbstractArray, lat::AbstractVector; dims)
 end
 
 """
+    _integrate_dim(data::AbstractArray, dim::AbstractVector; dims)
+
+Integrate out a dimension `data`. `data` has to be discretized on `dim`.
+
+`dims` indicates which axis of `data` is `dim`.
+
+If the points are equispaced, it is assumed that each point correspond to the midpoint of a
+cell which results in rectangular integration using the midpoint rule. Otherwise, the
+integration being done is rectangular integration using the left endpoints.
+"""
+function _integrate_dim(data::AbstractArray, dim::AbstractVector; dims)
+    length(dim) == 1 && error("Cannot integrate when z is a single point")
+    _isequispaced(dim) ?
+    int_weights = _integration_weights_generic_equispaced(dim) :
+    int_weights = _integration_weights_generic_left(dim)
+    return _integrate_over_generic_dim(data, dim, dims, int_weights)
+end
+
+"""
     _integrate_over_generic_dim(
     data::AbstractArray,
     angle_arr::AbstractVector,
@@ -124,6 +143,27 @@ function _integration_weights_lat_equispaced(lat)
     d_lat = deg2rad.(lat[begin + 1] - lat[begin])
     cos_lat = cosd.(lat)
     return d_lat .* cos_lat
+end
+
+function _integration_weights_generic_left(arr)
+    # This is where we use the assumption that units are degrees
+    d_arr = diff(arr)
+    # We are doing integration using the left endpoints, so we weight the rightmost endpoint
+    # zero so that it make no contribution to the integral
+    push!(d_arr, zero(eltype(d_arr)))
+    return d_arr
+end
+
+"""
+    _integration_weights_generic_equispaced(arr)
+
+Return integration weights for rectangular integration when the points are equispaced for
+integrating along a generic dimension.
+"""
+function _integration_weights_generic_equispaced(arr)
+    # This is where we use the assumption that units are degrees
+    # Use fill to make a zero dimensional array so reshaping is possible
+    return fill(arr[begin + 1] - arr[begin])
 end
 
 end
