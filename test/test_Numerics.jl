@@ -22,6 +22,16 @@ import ClimaAnalysis
         ),
     )
 
+    # Integration weights for generic dim (not equispaced)
+    z = [-180.0, -45.0, 100.0, 180.0]
+    z_weights = [135.0, 145.0, 80.0, 0.0]
+    @test all(
+        isapprox.(
+            z_weights,
+            ClimaAnalysis.Numerics._integration_weights_generic_left(z),
+        ),
+    )
+
     # Integration weights for lon (not equispaced)
     lon = collect(range(-180.0, 180.0, 5))
     lon_weights = [90.0 for _ in lon] .* (π / 180.0)
@@ -32,12 +42,23 @@ import ClimaAnalysis
         ),
     )
 
+    # Integration weights for lat (not equispaced)
     lat = collect(range(-90.0, 90.0, 5))
     lat_weights = [45.0 for _ in lat] .* (π / 180.0) .* cosd.(lat)
     @test all(
         isapprox.(
             lat_weights,
             ClimaAnalysis.Numerics._integration_weights_lat_equispaced(lat),
+        ),
+    )
+
+    # Integration weights for generic dim (not equispaced)
+    z = collect(range(-180.0, 180.0, 5))
+    z_weights = [90.0 for _ in z]
+    @test all(
+        isapprox.(
+            z_weights,
+            ClimaAnalysis.Numerics._integration_weights_generic_equispaced(z),
         ),
     )
 end
@@ -124,5 +145,23 @@ end
         ClimaAnalysis.Numerics._integrate_lon(lon_data, lon, dims = 1)[1],
         1.0π,
         atol = 0.01,
+    )
+end
+
+@testset "Integrating on generic dimension" begin
+    # Integrating (equispaced)
+    z = [0.0, 1.0, 2.0]
+    z_data = ones(length(z))
+    @test isapprox(
+        ClimaAnalysis.Numerics._integrate_dim(z_data, z, dims = 1)[1],
+        3.0,
+    )
+
+    # Integrating (not equispaced)
+    z = [0.0, 1.0, 2.0, 2.5]
+    z_data = ones(length(z))
+    @test isapprox(
+        ClimaAnalysis.Numerics._integrate_dim(z_data, z, dims = 1)[1],
+        2.5,
     )
 end
