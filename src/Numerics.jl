@@ -21,7 +21,7 @@ function _integrate_lon(data::AbstractArray, lon::AbstractVector; dims)
     _isequispaced(lon) ?
     int_weights = _integration_weights_lon_equispaced(lon) :
     int_weights = _integration_weights_lon_left(lon)
-    return _integrate_over_angle(data, lon, dims, int_weights)
+    return _integrate_over_generic_dim(data, lon, dims, int_weights)
 end
 
 """
@@ -42,23 +42,23 @@ function _integrate_lat(data::AbstractArray, lat::AbstractVector; dims)
     _isequispaced(lat) ?
     int_weights = _integration_weights_lat_equispaced(lat) :
     int_weights = _integration_weights_lat_left(lat)
-    return _integrate_over_angle(data, lat, dims, int_weights)
+    return _integrate_over_generic_dim(data, lat, dims, int_weights)
 end
 
 """
-    _integrate_over_angle(
+    _integrate_over_generic_dim(
     data::AbstractArray,
     angle_arr::AbstractVector,
     angle_idx,
     int_weights::AbstractVector,
 )
 
-Integrate out angle (latitude or longitude) from `data` using the weights `int_weights`.
+Integrate out a generic dimension from `data` using the weights `int_weights`.
 `data` has to be discretized on `angle_arr`.
 
 `angle_idx` indicates which axis of `data` is angle.
 """
-function _integrate_over_angle(
+function _integrate_over_generic_dim(
     data::AbstractArray,
     angle_arr::AbstractVector,
     angle_idx,
