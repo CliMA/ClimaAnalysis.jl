@@ -475,6 +475,24 @@ end
     @test ClimaAnalysis.conventional_dim_name("date") == "date"
     @test ClimaAnalysis.conventional_dim_name("z") == "altitude"
     @test ClimaAnalysis.conventional_dim_name("hi") == "hi"
+    @test ClimaAnalysis.conventional_dim_name("pfull") == "pressure"
+
+    # Pressure dim
+    pressure = 0:100.0 |> collect
+    data = ones(length(pressure))
+
+    attribs = Dict("short_name" => "K")
+    dim_attribs = Dict{String, Any}()
+    pressure_var = ClimaAnalysis.OutputVar(
+        attribs,
+        Dict("pfull" => pressure),
+        dim_attribs,
+        data,
+    )
+
+    @test ClimaAnalysis.has_pressure(pressure_var) == true
+    @test ClimaAnalysis.pressures(pressure_var) == pressure
+    @test ClimaAnalysis.pressure_name(pressure_var) == "pfull"
 end
 
 @testset "Interpolation" begin

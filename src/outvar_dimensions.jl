@@ -4,22 +4,26 @@ LATITUDE_NAMES = ["lat", "latitude"]
 TIME_NAMES = ["t", "time"]
 DATE_NAMES = ["date"]
 ALTITUDE_NAMES = ["z", "z_reference", "z_physical"]
+PRESSURE_NAMES = ["pfull", "pressure_level"]
 
 export times,
     dates,
     longitudes,
     latitudes,
     altitudes,
+    pressures,
     time_name,
     date_name,
     longitude_name,
     latitude_name,
     altitude_name,
+    pressure_name,
     has_time,
     has_date,
     has_longitude,
     has_latitude,
     has_altitude,
+    has_pressure,
     conventional_dim_name
 
 """
@@ -78,6 +82,13 @@ Return whether `var` has a `altitude` dimesnion.
 has_altitude(var::OutputVar) =
     !isnothing(_dim_name(keys(var.dims), ALTITUDE_NAMES))
 
+"""
+    has_pressure(var::OutputVar)
+
+Return whether `var` has a `pressure` dimension.
+"""
+has_pressure(var::OutputVar) =
+    !isnothing(_dim_name(keys(var.dims), PRESSURE_NAMES))
 
 """
     find_dim_name(dim_names::Iterable, allowed_names::Iterable)
@@ -170,10 +181,24 @@ Return the `altitude` dimension in `var`.
 altitudes(var::OutputVar) = var.dims[altitude_name(var)]
 
 """
+    pressure_name(var::OutputVar)
+
+Return the name of the `pressure` dimension in `var`.
+"""
+pressure_name(var::OutputVar) = find_dim_name(keys(var.dims), PRESSURE_NAMES)
+
+"""
+    pressures(var::OutputVar)
+
+Return the `pressure` dimension in `var`.
+"""
+pressures(var::OutputVar) = var.dims[pressure_name(var)]
+
+"""
     conventional_dim_name(dim_name::AbstractString)
 
-Return the type of dimension as a string from longitude, latitude, time, date, or altitude
-if possible or `dim_name` as a string otherwise.
+Return the type of dimension as a string from longitude, latitude, time, date, altitude, or
+pressure if possible or `dim_name` as a string otherwise.
 """
 function conventional_dim_name(dim_name::AbstractString)
     dim_name in LONGITUDE_NAMES && return "longitude"
@@ -181,5 +206,6 @@ function conventional_dim_name(dim_name::AbstractString)
     dim_name in TIME_NAMES && return "time"
     dim_name in DATE_NAMES && return "date"
     dim_name in ALTITUDE_NAMES && return "altitude"
+    dim_name in PRESSURE_NAMES && return "pressure"
     return dim_name
 end
