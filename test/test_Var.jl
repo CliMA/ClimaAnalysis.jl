@@ -490,7 +490,7 @@ end
         data,
     )
 
-    @test ClimaAnalysis.has_pressure(pressure_var) == true
+    @test ClimaAnalysis.has_pressure(pressure_var)
     @test ClimaAnalysis.pressures(pressure_var) == pressure
     @test ClimaAnalysis.pressure_name(pressure_var) == "pfull"
 end

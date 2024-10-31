@@ -122,6 +122,7 @@ Utils.warp_string
 ```@docs
 Atmos
 Atmos.to_pressure_coordinates
+Atmos.global_rmse_pfull
 ```
 
 ## Makie
