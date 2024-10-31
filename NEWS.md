@@ -1,5 +1,31 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.12
+-------
+
+## Features
+
+### Compute global root mean squared error for 3D `OutputVar`s
+For 3D variables defined over longitude, latitude, and pressure, one can find the global
+RMSE in pressure space using `ClimaAnalysis.global_rmse_pfull`. See an example of this
+below, where global RMSE is computed between 3D variables in pressure space.
+
+```julia
+# Load in 3D temperature variable defined over longitude, latitude, and pressure
+julia> obs_var = OutputVar("era5_pfull_ta_data.nc"); # load in observational data
+
+# Load in 3D temperature variable defined over longitude, latitude, and z
+julia> sim_var = get(simdir("simulation_output"), "ta"); # load in simulation data
+
+# Load in 3D pressure variable defined over longitude, latitude, and z
+julia> pressure_3D_var = get(simdir("simulation_output"), "pfull"); # load in simulation data
+
+# This function will automatically converts to pressure coordinates for `sim_var` and
+# `obs_var` if the keywords `sim_pressure` and `obs_pressure` are supplied respectively
+julia> ClimaAnalysis.global_rmse_pfull(sim_var, obs_var, sim_pressure = pressure_3D_var)
+3.4
+```
+
 v0.5.11
 -------
 

@@ -131,3 +131,121 @@ import OrderedCollections: OrderedDict
         Zvar,
     )
 end
+
+@testset "RMSE of pressure coordinates" begin
+    lon = 0.5:1.0:359.5 |> collect
+    lat = -89.5:1.0:89.5 |> collect
+    zzz = 1.0:10.0 |> collect
+    var3D_func(lg, lt, zz) = zz
+    data = [var3D_func(lg, lt, zz) for lg in lon, lt in lat, zz in zzz]
+    dims = OrderedDict(["lon" => lon, "lat" => lat, "z" => zzz])
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "degrees_east"),
+        "lat" => Dict("units" => "degrees_north"),
+        "z" => Dict("units" => "m"),
+    ])
+    attribs = Dict("short_name" => "T", "units" => "K")
+    var3D = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    altitude = [zz for lg in lon, lt in lat, zz in zzz]
+    pdata3D = -1.0 .* altitude
+
+    pfull_attribs = Dict("short_name" => "pfull")
+    pfull_dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "degrees_east"),
+        "lat" => Dict("units" => "degrees_north"),
+        "z" => Dict("units" => "m"),
+    ])
+    pfull_attribs = Dict("short_name" => "pfull", "units" => "kg m^-2 s^-2")
+    pressure3D =
+        ClimaAnalysis.OutputVar(pfull_attribs, dims, pfull_dim_attribs, pdata3D)
+
+    global_rmse_pfull = ClimaAnalysis.Atmos.global_rmse_pfull(
+        var3D,
+        var3D,
+        sim_pressure = pressure3D,
+        obs_pressure = pressure3D,
+    )
+    @test global_rmse_pfull == 0.0
+
+    # Test if the computation is the same as a manual computation
+    zero_data = zeros(size(data))
+    zero_var3D = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, zero_data)
+    pressure3D =
+        ClimaAnalysis.OutputVar(pfull_attribs, dims, pfull_dim_attribs, pdata3D)
+    zero_var =
+        ClimaAnalysis.Atmos.to_pressure_coordinates(zero_var3D, pressure3D)
+
+    global_rmse_pfull = ClimaAnalysis.Atmos.global_rmse_pfull(
+        var3D,
+        zero_var,
+        sim_pressure = pressure3D,
+    )
+    min_pfull, max_pfull = extrema(zero_var.dims["pfull"])
+
+    # (4pi * (1:10 .|> x -> ^(x, 2))) is from finding the squared error and integrating with
+    # respect to lon and lat for each pressure level
+    # Multiply by (1 / 4pi) to normalize with respect to lon and lat
+    # Summing is integrating with respect to pressure
+    # Divide by (max_pfull - min_pfull + 1.0) to normalize with respect to pressure which gives
+    # MSE; the 1.0 comes from the pressure levels being equispaced
+    # Take square root to get RMSE
+    global_rmse_test = sqrt(
+        sum(((1 / 4pi) * 4pi * (1:10 .|> x -> ^(x, 2)))) /
+        (max_pfull - min_pfull + 1.0),
+    )
+    @test global_rmse_pfull ≈ global_rmse_test
+
+    # Test with data from era5; checking if we get no error
+    ncpath = joinpath(@__DIR__, "sample_nc/test_pfull.nc")
+    pfull_obs_var = ClimaAnalysis.OutputVar(ncpath, "t")
+    ClimaAnalysis.set_dim_units!(
+        pfull_obs_var,
+        "pressure_level",
+        "kg m^-2 s^-2",
+    )
+    pfull_obs_var =
+        ClimaAnalysis.window(pfull_obs_var, "pressure_level", left = -10)
+    global_rmse_pfull = ClimaAnalysis.Atmos.global_rmse_pfull(
+        var3D,
+        pfull_obs_var,
+        sim_pressure = pressure3D,
+    )
+    @test global_rmse_pfull >= 0.0
+
+    # Error handling
+    # OutputVars are not in pressure coordinates and no pressure OutputVar is supplied
+    @test_throws ErrorException ClimaAnalysis.Atmos.global_rmse_pfull(
+        var3D,
+        var3D,
+        sim_pressure = nothing,
+        obs_pressure = pressure3D,
+    )
+    @test_throws ErrorException ClimaAnalysis.Atmos.global_rmse_pfull(
+        var3D,
+        var3D,
+        sim_pressure = pressure3D,
+        obs_pressure = nothing,
+    )
+
+    # No pressure dimension
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var_latlon = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.Atmos.global_rmse_pfull(
+        var_latlon,
+        var3D,
+        obs_pressure = pressure3D,
+    )
+    @test_throws ErrorException ClimaAnalysis.Atmos.global_rmse_pfull(
+        var3D,
+        var_latlon,
+        sim_pressure = pressure3D,
+    )
+end

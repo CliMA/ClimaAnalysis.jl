@@ -8,6 +8,10 @@ import Interpolations as Intp
 import ..OutputVar, ..arecompatible
 import ..short_name
 import ..altitude_name
+import ..Var
+import ..Numerics
+
+export global_rmse_pfull
 
 """
     _resample_column!(dest, var1d, origin_pressure, target_pressure)
@@ -113,6 +117,93 @@ function to_pressure_coordinates(
     end
 
     return OutputVar(ret_attributes, ret_dims, ret_dim_attributes, ret_data)
+end
+
+"""
+    global_rmse_pfull(sim::OutputVar,
+                      obs::OutputVar;
+                      sim_pressure = nothing,
+                      obs_pressure = nothing,
+                      target_pressure = nothing)
+
+Return the global RMSE in pressure space as a number.
+
+The arguments `sim` and `obs` are defined as 3-dimensional `OutputVar`s with
+the dimensions longitude, latitude, and altitude or pressure. If altitude is a
+dimension, then `sim` and `obs` are converted to pressure coordinates using
+[`to_pressure_coordinates`](@ref) through the keywords `sim_pressure` and
+`obs_pressure`. Specific pressure levels can chosen by supplying a vector of
+pressure levels for the keyword `target_pressure`.
+
+Resampling is done automatically by resampling `obs` on `sim`.
+
+The global RMSE is calculated by computing the mean squared error over longitude
+and latitude, integrating and normalizing over pressure, and taking the square
+root of the resulting number.
+"""
+function global_rmse_pfull(
+    sim::OutputVar,
+    obs::OutputVar;
+    sim_pressure = nothing,
+    obs_pressure = nothing,
+    target_pressure = nothing,
+)
+    # Convert to pressure coordinates if necessary
+    if Var.has_altitude(sim)
+        isnothing(sim_pressure) && error(
+            "sim_pressure is not supplied; cannot convert to pressure coordinates",
+        )
+        sim = to_pressure_coordinates(
+            sim,
+            sim_pressure,
+            target_pressure = target_pressure,
+        )
+    end
+
+    if Var.has_altitude(obs)
+        isnothing(obs_pressure) && error(
+            "obs_pressure is not supplied; cannot convert to pressure coordinates",
+        )
+        obs = to_pressure_coordinates(
+            obs,
+            obs_pressure,
+            target_pressure = target_pressure,
+        )
+    end
+    # Check if presure is a dimension
+    Var.has_pressure(sim) || error("sim does not have pressure as a dimension")
+    Var.has_pressure(obs) || error("obs does not have pressure as a dimension")
+
+    # Follow the same template for squared_error
+    Var._check_sim_obs_units_consistent(sim, obs, 3)
+    obs_resampled = Var.resampled_as(obs, sim)
+
+    squared_error = (sim - obs_resampled) * (sim - obs_resampled)
+
+    # Compute global mse and global rmse and store it as an attribute
+    integrated_squared_error_var = Var.integrate_lonlat(squared_error)
+    integrated_squared_error = integrated_squared_error_var.data
+    ones_var = OutputVar(
+        squared_error.attributes,
+        squared_error.dims,
+        squared_error.dim_attributes,
+        ones(size(squared_error.data)),
+    )
+    normalization = Var.integrate_lonlat(ones_var).data
+    # Doing ./ because both quantities are vectors
+    mse = integrated_squared_error ./ normalization
+
+    pfull = Var.pressures(integrated_squared_error_var)
+    # Use first because the return type is an array
+    length_pfull =
+        first(Numerics._integrate_dim(ones(size(pfull)), pfull; dims = 1))
+
+    # Normalize and compute RMSE
+    # Use first because the return type is an array
+    return sqrt(
+        (1 / length_pfull) *
+        first(Numerics._integrate_dim(mse, pfull; dims = 1)),
+    )
 end
 
 end
