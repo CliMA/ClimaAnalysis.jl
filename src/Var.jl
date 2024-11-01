@@ -987,15 +987,21 @@ We also *do not* check units for `data`.
 function arecompatible(x::OutputVar, y::OutputVar)
     x_dims = collect(keys(x.dims))
     y_dims = collect(keys(y.dims))
+    x_dims_conventional_names = [conventional_dim_name(name) for name in x_dims]
+    y_dims_conventional_names = [conventional_dim_name(name) for name in x_dims]
+    x_dim_arrays = collect(values(x.dims))
+    y_dim_arrays = collect(values(y.dims))
     x_units = (dim_units(x, dim_name) for dim_name in x_dims)
     y_units = (dim_units(y, dim_name) for dim_name in y_dims)
+
 
     for (x_dim, x_unit, y_dim, y_unit) in zip(x_dims, x_units, y_dims, y_units)
         x_unit == "" && @warn "Missing units for dimension $x_dim in x"
         y_unit == "" && @warn "Missing units for dimension $y_dim in y"
         x_unit != y_unit && return false
     end
-    return x.dims == y.dims
+    x_dims_conventional_names != y_dims_conventional_names && return false
+    return x_dim_arrays == y_dim_arrays
 end
 
 """
