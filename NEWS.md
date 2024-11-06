@@ -26,6 +26,9 @@ julia> ClimaAnalysis.global_rmse_pfull(sim_var, obs_var, sim_pressure = pressure
 3.4
 ```
 
+## Bug fixes
+- `Atmos.to_pressure_coordinates` now works with Unitful units.
+
 v0.5.11
 -------
 
