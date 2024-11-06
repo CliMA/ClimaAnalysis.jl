@@ -4,6 +4,7 @@ with atmospheric simulations.
 """
 module Atmos
 
+import OrderedCollections: OrderedDict
 import Interpolations as Intp
 import ..OutputVar, ..arecompatible
 import ..short_name
@@ -86,7 +87,11 @@ function to_pressure_coordinates(
         k != z_name ? k => v : pressure_name => target_pressure for
         (k, v) in var.dims
     )
-    TypeOfDimAttributes = typeof(var.dim_attributes)
+
+    TypeOfDimAttributes = OrderedDict{
+        keytype(var.dim_attributes),
+        Union{valtype(var.dim_attributes), typeof(pressure.attributes)},
+    }
     ret_dim_attributes = TypeOfDimAttributes(
         k != z_name ? k => v : pressure_name => pressure.attributes for
         (k, v) in var.dim_attributes

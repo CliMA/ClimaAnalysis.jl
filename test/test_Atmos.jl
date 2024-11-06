@@ -95,13 +95,21 @@ import OrderedCollections: OrderedDict
     var3D_func(lg, lt, zz) = 2lg + 3lt + 4zz
     data = [var3D_func(lg, lt, zz) for lg in long, lt in lat, zz in zzz]
     dims = OrderedDict(["lon" => long, "lat" => lat, "z" => zzz])
-    dim_attribs = Dict{String, Any}()
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+        "z" => Dict("units" => "m"),
+    ])
     var3D = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     altitude = [zz for lg in long, lt in lat, zz in zzz]
     pdata3D = exp.(-0.01 .* altitude)
 
-    attribs = Dict("short_name" => "pfull")
-    dim_attribs = Dict{String, Any}()
+    attribs = Dict("short_name" => "pfull", "units" => "kg * m^-2 * s^-2")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+        "z" => Dict("units" => "m"),
+    ])
     pressure3D = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, pdata3D)
 
     my3Dvar_in_exp_pressure_coordinates =
