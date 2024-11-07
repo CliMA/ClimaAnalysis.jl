@@ -3,6 +3,12 @@ import ClimaAnalysis
 import OrderedCollections: OrderedDict
 
 @testset "To pressure coordinates" begin
+    # Define function to make it easier to test by getting equispaced pressure levels
+    find_pressure_range(var, pressure) = range(
+        minimum(pressure.data),
+        maximum(pressure.data),
+        length = length(var.dims["z"]),
+    )
 
     # Let start with testing a single column
     z_alt = 0:100.0 |> collect
@@ -20,7 +26,11 @@ import OrderedCollections: OrderedDict
         ClimaAnalysis.OutputVar(attribs, Dict("z" => z_alt), dim_attribs, pdata)
 
     pressure_in_pressure_coordinates =
-        ClimaAnalysis.Atmos.to_pressure_coordinates(pressure_var, pressure_var)
+        ClimaAnalysis.Atmos.to_pressure_coordinates(
+            pressure_var,
+            pressure_var,
+            target_pressure = find_pressure_range(pressure_var, pressure_var),
+        )
 
     @test collect(keys(pressure_in_pressure_coordinates.dims)) == ["pfull"]
     # reverse because we go from min to max for pressure (to have it increasing
@@ -44,8 +54,11 @@ import OrderedCollections: OrderedDict
         mydata,
     )
 
-    myvar_in_pressure_coordinates =
-        ClimaAnalysis.Atmos.to_pressure_coordinates(myvar, pressure_var)
+    myvar_in_pressure_coordinates = ClimaAnalysis.Atmos.to_pressure_coordinates(
+        myvar,
+        pressure_var,
+        target_pressure = find_pressure_range(myvar, pressure_var),
+    )
 
     @test collect(keys(myvar_in_pressure_coordinates.dims)) == ["pfull"]
     @test myvar_in_pressure_coordinates.dims["pfull"] == reverse(pdata)
@@ -64,7 +77,11 @@ import OrderedCollections: OrderedDict
     )
 
     myvar_in_exp_pressure_coordinates =
-        ClimaAnalysis.Atmos.to_pressure_coordinates(myvar, exp_pressure_var)
+        ClimaAnalysis.Atmos.to_pressure_coordinates(
+            myvar,
+            exp_pressure_var,
+            target_pressure = find_pressure_range(myvar, exp_pressure_var),
+        )
 
     # Linear range from min to max
     expected_range = collect(
@@ -113,7 +130,11 @@ import OrderedCollections: OrderedDict
     pressure3D = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, pdata3D)
 
     my3Dvar_in_exp_pressure_coordinates =
-        ClimaAnalysis.Atmos.to_pressure_coordinates(var3D, pressure3D)
+        ClimaAnalysis.Atmos.to_pressure_coordinates(
+            var3D,
+            pressure3D,
+            target_pressure = find_pressure_range(var3D, pressure3D),
+        )
 
     # Linear range from min to max
     overall_range =
@@ -126,6 +147,28 @@ import OrderedCollections: OrderedDict
         p in overall_range
     ]
     @test my3Dvar_in_exp_pressure_coordinates.data ≈ expected_output rtol = 1e-5
+
+    # Test z to pressure level conversion
+    z_alt = 0:100.0 |> collect
+    data = copy(z_alt)
+
+    zvar = ClimaAnalysis.OutputVar(Dict("z" => z_alt), data)
+
+    # Fake pressure, linearly decreasing, so that we can check precisely
+    pressure = 300.0:-2.0:100.0 |> collect
+    pdata = copy(pressure)
+
+    attribs = Dict("short_name" => "pfull")
+    dim_attribs = Dict{String, Any}()
+    pressure_var =
+        ClimaAnalysis.OutputVar(attribs, Dict("z" => z_alt), dim_attribs, pdata)
+
+    pressure_in_pressure_coordinates =
+        ClimaAnalysis.Atmos.to_pressure_coordinates(pressure_var, pressure_var)
+    H_EARTH = 7000.0
+    P0 = 1e5
+    Plvl(z) = P0 * exp(-z / H_EARTH)
+    @test reverse(Plvl.(z_alt)) ≈ pressure_in_pressure_coordinates.dims["pfull"]
 
     # Error checking
     @test_throws ErrorException ClimaAnalysis.Atmos.to_pressure_coordinates(
@@ -141,6 +184,12 @@ import OrderedCollections: OrderedDict
 end
 
 @testset "RMSE of pressure coordinates" begin
+    find_pressure_range(var, pressure) = range(
+        minimum(pressure.data),
+        maximum(pressure.data),
+        length = length(var.dims["z"]),
+    )
+
     lon = 0.5:1.0:359.5 |> collect
     lat = -89.5:1.0:89.5 |> collect
     zzz = 1.0:10.0 |> collect
@@ -180,13 +229,17 @@ end
     zero_var3D = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, zero_data)
     pressure3D =
         ClimaAnalysis.OutputVar(pfull_attribs, dims, pfull_dim_attribs, pdata3D)
-    zero_var =
-        ClimaAnalysis.Atmos.to_pressure_coordinates(zero_var3D, pressure3D)
+    zero_var = ClimaAnalysis.Atmos.to_pressure_coordinates(
+        zero_var3D,
+        pressure3D,
+        target_pressure = find_pressure_range(zero_var3D, pressure3D),
+    )
 
     global_rmse_pfull = ClimaAnalysis.Atmos.global_rmse_pfull(
         var3D,
         zero_var,
         sim_pressure = pressure3D,
+        target_pressure = find_pressure_range(var3D, pressure3D),
     )
     min_pfull, max_pfull = extrema(zero_var.dims["pfull"])
 
@@ -217,6 +270,7 @@ end
         var3D,
         pfull_obs_var,
         sim_pressure = pressure3D,
+        target_pressure = find_pressure_range(var3D, pressure3D),
     )
     @test global_rmse_pfull >= 0.0
 
