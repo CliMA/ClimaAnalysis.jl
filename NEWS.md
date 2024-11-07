@@ -28,6 +28,10 @@ julia> ClimaAnalysis.global_rmse_pfull(sim_var, obs_var, sim_pressure = pressure
 
 ## Bug fixes
 - `Atmos.to_pressure_coordinates` now works with Unitful units.
+- `Atmos.to_pressure_coordinates` now uses reasonable pressure values when `target_pressure`
+  is not specified. In particular, the vertical dimension is mapped to pressure levels by z
+  -> P0 * exp(-z / H_EARTH), where P0 = 10000 and H_EARTH = 7000.0, following a simple
+  hydrostatic model for the atmosphere.
 
 v0.5.11
 -------

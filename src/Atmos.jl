@@ -43,8 +43,8 @@ end
 Change the vertical dimension of `var` to be in pressure coordinates.
 
 If `target_pressure` is nothing, the target pressure levels are computed by
-linearly sampling the interval `minimum(pressure), maximum(pressure)`. Then, for
-each column in `var`, the values are linearly interpolate onto this new grid.
+Plvl(z) = P0 * exp(-z / H_EARTH), where H_EARTH = 7000.0 and P0 = 1e5, following
+a simple hydrostatic model for the atmosphere.
 
 `target_pressure` can be set to a `Vector` to specify custom pressure levels.
 
@@ -66,18 +66,16 @@ function to_pressure_coordinates(
     z_index = var.dim2index[z_name]
     pressure_name = short_name(pressure)
 
-    # First, we construct the target pressure grid. For this, we take the
-    # extrema of pressure and divide the interval linearly with the same number
-    # of points we originally had in z
+    # First, we construct the target pressure grid. For this, we use the mapping
+    # Plvl(z) = P0 * exp(-z / H_EARTH), where H_EARTH = 7000.0 and P0 = 1e5.
 
     if isnothing(target_pressure)
-        # TODO: Pick this more sensibly
-        # TODO: Make it go from max to min? (This is not supported by Interpolations.jl...)
-        target_pressure = range(
-            minimum(pressure.data),
-            maximum(pressure.data),
-            length = length(var.dims[z_name]),
-        )
+        H_EARTH = 7000.0
+        P0 = 1e5
+        Plvl(z) = P0 * exp(-z / H_EARTH)
+
+        # Reverse vector because Interpolations.jl require increasing knots
+        target_pressure = reverse(Plvl.(var.dims[z_name]))
     end
 
     # Then, we prepare the output variable
