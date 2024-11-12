@@ -112,6 +112,15 @@ function _make_interpolant(dims, data)
         return nothing
     end
 
+    # Dimensions are all 1D, check that the knots are in increasing order (as required by
+    # Interpolations.jl)
+    for (dim_name, dim_array) in dims
+        if !issorted(dim_array)
+            @warn "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim if the dimension is in decreasing order"
+            return nothing
+    end
+    end
+
     # Dimensions are all 1D, check that they are compatible with data
     size_data = size(data)
     for (dim_index, (dim_name, dim_array)) in enumerate(dims)
