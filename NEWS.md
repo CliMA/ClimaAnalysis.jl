@@ -26,6 +26,18 @@ julia> ClimaAnalysis.global_rmse_pfull(sim_var, obs_var, sim_pressure = pressure
 3.4
 ```
 
+### Reversing a dimension
+Before, a `OutputVar` will not be created, if the dimensions are not in increasing order.
+This is because an interpolant cannot be made in this case. With this release, the condition
+is relaxed, so that a `OutputVar` can be made, but an interpolant is not made. The function
+`Var.reverse_dim` is provided to reverse the order of a dimension by name. See the example
+below.
+
+```julia
+# Reversing pressure levels so that an interpolant can be made
+var_reversed = ClimaAnalysis.reverse_dim(var, "pressure_level")
+```
+
 ## Bug fixes
 - `Atmos.to_pressure_coordinates` now works with Unitful units.
 - `Atmos.to_pressure_coordinates` now uses reasonable pressure values when `target_pressure`

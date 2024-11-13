@@ -1867,3 +1867,30 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test_throws ErrorException ClimaAnalysis.make_lonlat_mask(var)
 end
+
+@testset "Reverse dimensions" begin
+    lat = reverse(collect(range(-89.5, 89.5, 180)))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = reshape(collect(1:(360 * 180)), (180, 360))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    @test isnothing(var.interpolant)
+
+    reverse_var = ClimaAnalysis.reverse_dim(var, "lat")
+    @test reverse(lat) == reverse_var.dims["lat"]
+    @test reverse(data, dims = 1) == reverse_var.data
+
+    # Error handling
+    @test_throws ErrorException ClimaAnalysis.reverse_dim(var, "pressure_level")
+
+    arb_dim = reshape(collect(range(-89.5, 89.5, 16)), (4, 4))
+    data = collect(1:16)
+    dims = OrderedDict(["arb_dim" => arb_dim])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["arb_dim" => Dict("units" => "idk")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException ClimaAnalysis.reverse_dim(var, "arb_dim")
+end
