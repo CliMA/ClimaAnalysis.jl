@@ -123,7 +123,7 @@ dimensions in either `OutputVar`s are missing units, the dimensions between the
 `OutputVar`s do not agree, or the data in `src_var` is not defined everywhere on
 the dimensions in `dest_var`.
 
-```@julia resampled_as
+```julia
 julia> src_var.data
 3×4 Matrix{Float64}:
  1.0  4.0  7.0  10.0
@@ -160,16 +160,26 @@ respectively, in a `OutputVar`. The result of `apply_landmask(var)` is data of `
 any coordinate corresponding to land is zero. Similarly, the result of `apply_oceanmask(var)` is
 data of `var`, where any coordinate corresponding to ocean is zero.
 
-```@julia masks
+```julia masks
 var_no_land = ClimaAnalysis.apply_landmask(var)
 var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
 ```
 
 ## How do I replace `NaN` and `missing` values in the data of a `OutputVar` with 0.0?
 
-You can use `replace` to replace all `NaN` and `missing` values in the  data of a
+You can use `replace` to replace all `NaN` and `missing` values in the data of a
 `OutputVar` with 0.0. See the example below of this usage.
 
 ```julia
 var_no_nan_and_missing = ClimaAnalysis.replace(var, missing => 0.0, NaN => 0.0)
+```
+
+## How do I reverse a dimension so that an interpolant can be made?
+
+You can use `reverse_dim` to reverse a dimension by name. See the example below of this
+usage.
+
+```julia
+# Reversing pressure levels so that an interpolant can be made
+var_reversed = reverse_dim(var, "pressure_level")
 ```
