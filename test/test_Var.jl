@@ -525,12 +525,13 @@ end
     dims = OrderedDict(["time" => time, "x" => x, "y" => y])
     dim_attributes = OrderedDict([
         "time" => Dict("units" => "seconds"),
-        "x" => Dict("units" => "km"),
+        "x" => Dict("units" => u"km"),
     ])
     attribs = Dict("long_name" => "hi")
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
 
     @test ClimaAnalysis.dim_units(var, "y") == ""
+    @test ClimaAnalysis.dim_units(var, "time") == "seconds"
     @test ClimaAnalysis.dim_units(var, "x") == "km"
     @test ClimaAnalysis.range_dim(var, "x") == (0.0, 180.0)
     @test_throws ErrorException(

@@ -771,7 +771,7 @@ function dim_units(var::OutputVar, dim_name)
     !haskey(var.dims, dim_name) &&
         error("Var does not have dimension $dim_name, found $(keys(var.dims))")
     # Double get because var.dim_attributes is a dictionry whose values are dictionaries
-    get(get(var.dim_attributes, dim_name, Dict()), "units", "")
+    string(get(get(var.dim_attributes, dim_name, Dict()), "units", ""))
 end
 
 """
