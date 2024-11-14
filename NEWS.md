@@ -44,6 +44,7 @@ var_reversed = ClimaAnalysis.reverse_dim(var, "pressure_level")
   is not specified. In particular, the vertical dimension is mapped to pressure levels by z
   -> P0 * exp(-z / H_EARTH), where P0 = 10000 and H_EARTH = 7000.0, following a simple
   hydrostatic model for the atmosphere.
+- `Var.dim_units` returns a string even if the type of the units is Unitful.
 
 v0.5.11
 -------
