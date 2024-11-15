@@ -42,6 +42,7 @@ export OutputVar,
     resampled_as,
     has_units,
     convert_units,
+    convert_dim_units,
     integrate_lonlat,
     integrate_lon,
     integrate_lat,
@@ -518,6 +519,46 @@ julia> extrema(var_lols.data)
 Failure to specify the `conversion_function` will produce an error.
 """
 function convert_units end
+
+"""
+    Var.convert_dim_units(var, dim_name, new_units; conversion_function = nothing)
+
+Return a new OutputVar with converted physical units of `dim_name` to `new_units` using
+`conversion_function`
+
+This function does not support Unitful, so the parameter `conversion_function` must be
+supplied.
+"""
+function convert_dim_units(
+    var,
+    dim_name,
+    new_units;
+    conversion_function = nothing,
+)
+    !haskey(var.dims, dim_name) &&
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    (
+        !haskey(var.dim_attributes, dim_name) ||
+        !haskey(var.dim_attributes[dim_name], "units")
+    ) && error(
+        "Units do not exist for $dim_name. Use Var.set_dim_units! instead",
+    )
+    isnothing(conversion_function) && error(
+        "Provide a conversion function. Converting units for dimensions using Unitful is not currently supported",
+    )
+
+    # Convert to new units
+    ret_dims = deepcopy(var.dims)
+    ret_dims[dim_name] = conversion_function.(ret_dims[dim_name])
+
+    # Set units
+    ret_dim_attribs = deepcopy(var.dim_attributes)
+    ret_dim_attribs[dim_name]["units"] = new_units
+
+    ret_attribs = deepcopy(var.attributes)
+    ret_data = copy(var.data)
+    return OutputVar(ret_attribs, ret_dims, ret_dim_attribs, ret_data)
+end
 
 """
     set_units(var::OutputVar, units::AbstractString)

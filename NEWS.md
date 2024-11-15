@@ -38,6 +38,18 @@ below.
 var_reversed = ClimaAnalysis.reverse_dim(var, "pressure_level")
 ```
 
+### Converting the units of a dimension
+Similar to converting the units of data, you can convert the units of a dimension with
+`ClimaAnalysis.convert_dim_units`. See the example below.
+```julia
+new_var = ClimaAnalysis.convert_dim_units(
+        var,
+        "lat",
+        "rads",
+        conversion_function = x -> x * π / 180.0,
+    )
+```
+
 ## Bug fixes
 - `Atmos.to_pressure_coordinates` now works with Unitful units.
 - `Atmos.to_pressure_coordinates` now uses reasonable pressure values when `target_pressure`
