@@ -167,6 +167,10 @@ function _find_extp_bound_cond(dim_name, dim_array)
         isapprox(dim_size + dsize, 360.0)
     ) && return Intp.Periodic()
     (
+        conventional_dim_name(dim_name) == "longitude" &&
+        (dim_array[end] - dim_array[begin]) ≈ 360.0
+    ) && return Intp.Periodic()
+    (
         conventional_dim_name(dim_name) == "latitude" &&
         _isequispaced(dim_array) &&
         isapprox(dim_size + dsize, 180.0)
