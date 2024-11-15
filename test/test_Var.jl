@@ -121,6 +121,13 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test var.interpolant.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
 
+    # Lon is exactly 360 degrees
+    lon = 0.0:1.0:360.0 |> collect
+    data = ones(length(lon))
+    dims = OrderedDict(["lon" => lon])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test var.interpolant.et == (Intp.Periodic(),)
+
     # Dates for the time dimension
     lon = 0.5:1.0:359.5 |> collect
     lat = -89.5:1.0:89.5 |> collect

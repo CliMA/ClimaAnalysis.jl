@@ -45,6 +45,8 @@ var_reversed = ClimaAnalysis.reverse_dim(var, "pressure_level")
   -> P0 * exp(-z / H_EARTH), where P0 = 10000 and H_EARTH = 7000.0, following a simple
   hydrostatic model for the atmosphere.
 - `Var.dim_units` returns a string even if the type of the units is Unitful.
+- Add periodic boundary condition when extrapolating on longitude dimension when it is
+  exactly 360 degrees
 
 v0.5.11
 -------
