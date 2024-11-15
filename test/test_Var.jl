@@ -1902,3 +1902,46 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test_throws ErrorException ClimaAnalysis.reverse_dim(var, "arb_dim")
 end
+
+@testset "Convert units of dimensions" begin
+    # Convert units of one dimension
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-179.5, 179.5, 360))
+    data = ones(length(lat), length(lon))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lat" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_units = ClimaAnalysis.convert_dim_units(
+        var,
+        "lat",
+        "rads",
+        conversion_function = x -> x * π / 180.0,
+    )
+    @test ClimaAnalysis.latitudes(var_units) == lat .* π ./ 180.0
+    @test ClimaAnalysis.dim_units(var_units, "lat") == "rads"
+
+    # Error handling
+    # Dimension doesn't exists
+    @test_throws ErrorException ClimaAnalysis.convert_dim_units(
+        var,
+        "dim do not exists",
+        "idk",
+        conversion_function = identity,
+    )
+
+    # Units do not exists for the dimension
+    @test_throws ErrorException ClimaAnalysis.convert_dim_units(
+        var,
+        "lon",
+        "idk",
+        conversion_function = identity,
+    )
+
+    # Conversion function is not supplied
+    @test_throws ErrorException ClimaAnalysis.convert_dim_units(
+        var,
+        "lat",
+        "rads",
+    )
+end

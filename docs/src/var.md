@@ -45,7 +45,7 @@ Then, we called [`ClimaAnalysis.convert_units`](@ref) to convert the units to
 centimeters per second.
 
 Sometimes, this automatic unit conversion is not possible (e.g., when you want
-to transform between incompatible units). In this case, you an pass a function
+to transform between incompatible units). In this case, you can pass a function
 that specify how to apply this transformation. For example, in the previous
 case, we can assume that we are talking about water and transform units into a
 mass flux:
@@ -55,19 +55,34 @@ new_var = ClimaAnalysis.convert_units(var, "kg m/s", conversion_function = (x) -
 
 !!! note If you find some unparseable units, please open an issue. We can fix them!
 
-If units do not exist or you want to change the name of the units, then one can use the
+
+If units do not exist, or you want to change the name of the units, then one can use the
 `set_units` function.
 ```julia
 new_var = ClimaAnalysis.set_units(var, "kg m s^-1")
 ```
 
-Similarly, to set the units of a dimension, one can use the `dim_set_units!` function.
+For converting the units of a dimension, you can use
+[`ClimaAnalysis.convert_dim_units`](@ref). As of now, automatic conversion is not supported
+which means you need to supply the conversion function. See the example below.
+```julia
+new_var = ClimaAnalysis.convert_dim_units(
+        var,
+        "lat",
+        "rads",
+        conversion_function = x -> x * π / 180.0,
+    )
+```
+
+Similarly, to set the units of a dimension, you can use the `dim_set_units!` function.
 ```julia
 new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
 ```
 
 !!! warning "Override existing units"
     If units already exist, this will override the units for data or the dimension in `var`.
+
+
 
 ## Interpolations and extrapolations
 
