@@ -1692,32 +1692,21 @@ end
 """
     apply_landmask(var::OutputVar)
 
-Apply a land mask to `var` by zeroing any data whose coordinates are located on land.
+Apply a land mask to `var` by NaNing any data whose coordinates are located on land.
 """
 function apply_landmask(var::OutputVar)
-    _apply_lonlat_mask(var, LAND_MASK)
+    mask_fn = make_lonlat_mask(LAND_MASK)
+    return mask_fn(var)
 end
 
 """
     apply_oceanmask(var::OutputVar)
 
-Apply an ocean mask to `var` by zeroing any data whose coordinates are in the ocean.
+Apply an ocean mask to `var` by NaNing any data whose coordinates are in the ocean.
 """
 function apply_oceanmask(var::OutputVar)
-    _apply_lonlat_mask(var, OCEAN_MASK)
-end
-
-"""
-    _apply_lonlat_mask(var, mask::AbstractString)
-
-Apply a mask using the NCDataset found at `mask`.
-
-The dimensions of the mask should only contain longitude and latitude and are in that order.
-"""
-function _apply_lonlat_mask(var, mask::AbstractString)
-    mask_var = OutputVar(mask)
-    apply_mask = make_lonlat_mask(mask_var)
-    return apply_mask(var)
+    mask_fn = make_lonlat_mask(OCEAN_MASK)
+    return mask_fn(var)
 end
 
 """

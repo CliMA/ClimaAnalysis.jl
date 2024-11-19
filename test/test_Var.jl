@@ -1589,8 +1589,8 @@ end
     ocean_var_lonlat = ClimaAnalysis.apply_oceanmask(var_lonlat)
     land_var_latlon = ClimaAnalysis.apply_landmask(var_latlon)
     ocean_var_latlon = ClimaAnalysis.apply_oceanmask(var_latlon)
-    @test land_var_lonlat.data == land_var_latlon.data'
-    @test ocean_var_lonlat.data == ocean_var_latlon.data'
+    @test isequal(land_var_lonlat.data, land_var_latlon.data')
+    @test isequal(ocean_var_lonlat.data, ocean_var_latlon.data')
 
     # Testing with another dimension
     lat = collect(range(-89.5, 89.5, 180))
@@ -1607,8 +1607,8 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     land_var = ClimaAnalysis.apply_landmask(var) |> ClimaAnalysis.average_time
     ocean_var = ClimaAnalysis.apply_oceanmask(var) |> ClimaAnalysis.average_time
-    @test land_var.data |> transpose == land_var_lonlat.data
-    @test ocean_var.data |> transpose == ocean_var_lonlat.data
+    @test isequal(land_var.data |> transpose, land_var_lonlat.data)
+    @test isequal(ocean_var.data |> transpose, ocean_var_lonlat.data)
 
     # Test error handling
     times = collect(range(0.0, 100, 2 * 180))
@@ -1623,8 +1623,12 @@ end
 
 @testset "Bias and RMSE with masks" begin
     # Test bias and global_bias
-    land_var = ClimaAnalysis.OutputVar(ClimaAnalysis.Var.LAND_MASK)
-    ocean_var = ClimaAnalysis.OutputVar(ClimaAnalysis.Var.OCEAN_MASK)
+    land_var = ClimaAnalysis.Var.LAND_MASK
+    land_var = ClimaAnalysis.replace(land_var, NaN => 0.0)
+    ocean_var = ClimaAnalysis.Var.OCEAN_MASK
+    ocean_var = ClimaAnalysis.replace(ocean_var, NaN => 0.0)
+    land_var = ClimaAnalysis.set_units(land_var, "idk")
+    ocean_var = ClimaAnalysis.set_units(ocean_var, "idk")
     data_zero = zeros(land_var.data |> size)
     zero_var = ClimaAnalysis.OutputVar(
         land_var.attributes,
@@ -1634,22 +1638,28 @@ end
     )
 
     # Trim data because periodic boundary condition on the edges
-    @test ClimaAnalysis.bias(
-        land_var,
-        zero_var,
-        mask = ClimaAnalysis.apply_oceanmask,
-    ).data[
-        begin:(end - 1),
-        :,
-    ] == data_zero[begin:(end - 1), :]
-    @test ClimaAnalysis.bias(
-        ocean_var,
-        zero_var,
-        mask = ClimaAnalysis.apply_landmask,
-    ).data[
-        begin:(end - 1),
-        :,
-    ] == data_zero[begin:(end - 1), :]
+    @test isequal(
+        ClimaAnalysis.bias(
+            land_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_oceanmask,
+        ).data[
+            begin:(end - 1),
+            :,
+        ] |> A -> replace(A, NaN => 0.0),
+        data_zero[begin:(end - 1), :],
+    )
+    @test isequal(
+        ClimaAnalysis.bias(
+            ocean_var,
+            zero_var,
+            mask = ClimaAnalysis.apply_landmask,
+        ).data[
+            begin:(end - 1),
+            :,
+        ] |> A -> replace(A, NaN => 0.0),
+        data_zero[begin:(end - 1), :],
+    )
 
     # Not exactly zero because of the periodic boundary condition on the edges
     # which results in some ones in the data
@@ -1681,7 +1691,7 @@ end
     ).data[
         begin:(end - 1),
         :,
-    ] == data_zero[begin:(end - 1), :]
+    ] |> A -> replace(A, NaN => 0.0) == data_zero[begin:(end - 1), :]
     @test ClimaAnalysis.squared_error(
         ocean_var,
         zero_var,
@@ -1689,7 +1699,7 @@ end
     ).data[
         begin:(end - 1),
         :,
-    ] == data_zero[begin:(end - 1), :]
+    ] |> A -> replace(A, NaN => 0.0) == data_zero[begin:(end - 1), :]
 
     # Not exactly zero because of the periodic boundary condition on the edges
     # which results in some ones in the data

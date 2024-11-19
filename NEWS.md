@@ -58,7 +58,8 @@ new_var = ClimaAnalysis.convert_dim_units(
   hydrostatic model for the atmosphere.
 - `Var.dim_units` returns a string even if the type of the units is Unitful.
 - Add periodic boundary condition when extrapolating on longitude dimension when it is
-  exactly 360 degrees
+  exactly 360 degrees.
+- Update land-sea mask to use the land-sea mask [here](https://github.com/CliMA/ClimaArtifacts/tree/main/landsea_mask).
 
 v0.5.11
 -------
