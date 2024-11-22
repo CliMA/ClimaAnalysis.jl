@@ -1945,3 +1945,22 @@ end
         "rads",
     )
 end
+
+@testset "Slice by interpolating" begin
+    lat = collect(range(-89.5, 89.5, 180))
+    lon = collect(range(-42.0, 42.0, 360))
+    data = reshape(collect(1:(360 * 180)), (180, 360))
+    dims = OrderedDict(["lat" => lat, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # Check slice and slice_intp produces the same result when the value already exists
+    var_nearest = ClimaAnalysis.slice(var, lat = lat[1])
+    var_intp = ClimaAnalysis.slice_intp(var, lat = lat[1])
+
+    @test var_nearest.dims == var_intp.dims
+    @test var_nearest.data == var_intp.data
+    @test var_nearest.attributes == var_intp.attributes
+    @test var_nearest.dim_attributes == var_nearest.dim_attributes
+end
