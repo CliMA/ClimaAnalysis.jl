@@ -1,0 +1,5 @@
+[landsea_mask_30arcseconds]
+git-tree-sha1 = "517c925535981f9d17ac9e7a65e2c35c3ce9597d"
+    [[landsea_mask_30arcseconds.download]]
+    sha256 = "11eaf6b7606056d198f3735f7b76ead76269cced186de78075f415101cf39088"
+    url = "https://caltech.box.com/shared/static/z013ay1k6oqofnw69bv5held9x374sux.gz"
