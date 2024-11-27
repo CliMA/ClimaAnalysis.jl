@@ -28,8 +28,8 @@ import Dates
         data,
     )
 
-    @test ClimaAnalysis.units(var_with_unitful) == "m s^-1"
-    @test var_with_unitful.attributes["units"] == u"m" / u"s"
+    @test ClimaAnalysis.units(var_with_unitful) == "m/s"
+    @test var_with_unitful.attributes["units"] == "m/s"
 
     # Unparsable unit
     attribs = Dict("long_name" => "hi", "units" => "bob")
@@ -1160,7 +1160,7 @@ end
     @test squared_error_var.data == (data_ones - data_threes) .^ 2
     @test ClimaAnalysis.short_name(squared_error_var) == "(sim-obs)^2_short"
     @test ClimaAnalysis.long_name(squared_error_var) == "(SIM - OBS)^2 short"
-    @test ClimaAnalysis.units(squared_error_var) == "kg^2"
+    @test ClimaAnalysis.units(squared_error_var) == "(kg)^2"
 
     # Flip order in squared_error and check computations
     squared_error_var = ClimaAnalysis.squared_error(var_threes, var_ones)
@@ -1201,7 +1201,7 @@ end
     var_unitful = ClimaAnalysis.squared_error(var_unitful, var_unitful)
     var_not_unitful =
         ClimaAnalysis.squared_error(var_not_unitful, var_not_unitful)
-    @test ClimaAnalysis.units(var_unitful) == "(kg^2 m^-1)^2"
+    @test ClimaAnalysis.units(var_unitful) == "(kg^2/m)^2"
     @test ClimaAnalysis.units(var_not_unitful) == "(wacky/weird^2)^2"
 end
 

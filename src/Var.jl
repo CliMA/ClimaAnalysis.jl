@@ -186,18 +186,6 @@ function OutputVar(attribs, dims, dim_attribs, data)
         end
     end
 
-    function _maybe_process_key_value(k, v)
-        k != "units" && return k => v
-        return k => _maybe_convert_to_unitful(v)
-    end
-
-    # Recreating an object to ensure that the type is correct
-    if !isempty(attribs)
-        attribs = Dict(_maybe_process_key_value(k, v) for (k, v) in attribs)
-    end
-
-    # TODO: Support units for dimensions too
-
     return OutputVar(
         attribs,
         OrderedDict(dims),
