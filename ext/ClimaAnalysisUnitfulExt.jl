@@ -49,8 +49,9 @@ function Var.convert_units(
     new_units::AbstractString;
     conversion_function = nothing,
 )
-    has_unitful_units =
-        Var.has_units(var) && (var.attributes["units"] isa Unitful.Units)
+    maybe_unitful_units =
+        Var.has_units(var) && (Var.units(var) |> Var._maybe_convert_to_unitful)
+    has_unitful_units = maybe_unitful_units isa Unitful.Units
     new_units_maybe_unitful = Var._maybe_convert_to_unitful(new_units)
     new_units_are_unitful = new_units_maybe_unitful isa Unitful.Units
 
@@ -60,7 +61,7 @@ function Var.convert_units(
         convert_function =
             data -> _converted_data_unitful(
                 data,
-                var.attributes["units"],
+                maybe_unitful_units,
                 new_units_maybe_unitful,
             )
     else
@@ -72,7 +73,7 @@ function Var.convert_units(
 
     new_data = convert_function(var.data)
     new_attribs = copy(var.attributes)
-    # The constructor will take care of converting new_units to Unitful
+    # Units will be a string and not Unitful
     new_attribs["units"] = new_units
 
     return Var.OutputVar(new_attribs, var.dims, var.dim_attributes, new_data)
