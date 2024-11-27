@@ -65,7 +65,7 @@ export OutputVar,
 """
     Representing an output variable
 """
-struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, ITP}
+struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
@@ -84,9 +84,6 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C, ITP}
 
     "Array that maps name array index to the dimension name"
     index2dim::Vector{String}
-
-    "Interpolant from Interpolations.jl, used to evaluate the OutputVar onto any given point."
-    interpolant::ITP
 end
 
 """
@@ -120,18 +117,6 @@ function _make_interpolant(dims, data)
         if !issorted(dim_array)
             @warn "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim if the dimension is in decreasing order"
             return nothing
-        end
-    end
-
-    # Dimensions are all 1D, check that they are compatible with data
-    size_data = size(data)
-    for (dim_index, (dim_name, dim_array)) in enumerate(dims)
-        dim_length = length(dim_array)
-        data_length = size_data[dim_index]
-        if dim_length != data_length
-            error(
-                "Dimension $dim_name has inconsistent size with provided data ($dim_length != $data_length)",
-            )
         end
     end
 
@@ -184,9 +169,22 @@ function OutputVar(attribs, dims, dim_attribs, data)
     dim2index =
         Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
 
-    # TODO: Make this lazy: we should compute the spline the first time we use
-    # it, not when we create the object
-    itp = _make_interpolant(dims, data)
+    # Check if the size of data matches with the size of dims
+    if !(
+        isempty(dims) ||
+        any(d -> ndims(d) != 1 || length(d) == 1, values(dims))
+    )
+        size_data = size(data)
+        for (dim_index, (dim_name, dim_array)) in enumerate(dims)
+            dim_length = length(dim_array)
+            data_length = size_data[dim_index]
+            if dim_length != data_length
+                error(
+                    "Dimension $dim_name has inconsistent size with provided data ($dim_length != $data_length)",
+                )
+            end
+        end
+    end
 
     function _maybe_process_key_value(k, v)
         k != "units" && return k => v
@@ -207,7 +205,6 @@ function OutputVar(attribs, dims, dim_attribs, data)
         data,
         dim2index,
         index2dim,
-        itp,
     )
 end
 
@@ -1020,10 +1017,8 @@ julia> var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data); va
 ```
 """
 function (x::OutputVar)(target_coord)
-    isnothing(x.interpolant) && error(
-        "Splines cannot be constructed because one (or more) of the dimensions of variable is not 1D",
-    )
-    return x.interpolant(target_coord...)
+    itp = _make_interpolant(x.dims, x.data)
+    return itp(target_coord...)
 end
 
 """
@@ -1160,8 +1155,9 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     src_var = reordered_as(src_var, dest_var)
     _check_dims_consistent(src_var, dest_var)
 
+    itp = _make_interpolant(src_var.dims, src_var.data)
     src_resampled_data =
-        [src_var(pt) for pt in Base.product(values(dest_var.dims)...)]
+        [itp(pt...) for pt in Base.product(values(dest_var.dims)...)]
 
     # Construct new OutputVar to return
     src_var_ret_dims = empty(src_var.dims)
@@ -1772,9 +1768,10 @@ function make_lonlat_mask(
 
         # Resample so that the mask match up with the grid of var
         # Round because linear resampling is done and we want the mask to be only ones and zeros
+        intp = _make_interpolant(mask_var.dims, mask_var.data)
         mask_arr =
             [
-                mask_var(pt) for pt in Base.product(
+                intp(pt...) for pt in Base.product(
                     input_var.dims[longitude_name(input_var)],
                     input_var.dims[latitude_name(input_var)],
                 )

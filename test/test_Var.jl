@@ -86,7 +86,7 @@ import Dates
     )
 end
 
-@testset "Interpolant boundary conditions" begin
+@testset "Interpolant boundary conditions and error handling" begin
     # Check boundary condtions for lon (equispaced and span), lat (equispaced and span), and
     # time
     lon = 0.5:1.0:359.5 |> collect
@@ -94,14 +94,8 @@ end
     time = 1.0:100 |> collect
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "long" => Dict("units" => "test_units1"),
-        "lat" => Dict("units" => "test_units2"),
-        "time" => Dict("units" => "test_units3"),
-    ])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test var.interpolant.et == (Intp.Periodic(), Intp.Flat(), Intp.Throw())
+    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
+    @test intp.et == (Intp.Periodic(), Intp.Flat(), Intp.Throw())
 
     # Not equispaced for lon and lat
     lon = 0.5:1.0:359.5 |> collect |> x -> push!(x, 42.0) |> sort
@@ -109,8 +103,8 @@ end
     time = 1.0:100 |> collect
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test var.interpolant.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
+    @test intp.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
 
     # Does not span entire range for and lat
     lon = 0.5:1.0:350.5 |> collect
@@ -118,15 +112,15 @@ end
     time = 1.0:100 |> collect
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test var.interpolant.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
+    @test intp.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
 
     # Lon is exactly 360 degrees
     lon = 0.0:1.0:360.0 |> collect
     data = ones(length(lon))
     dims = OrderedDict(["lon" => lon])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test var.interpolant.et == (Intp.Periodic(),)
+    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
+    @test intp.et == (Intp.Periodic(),)
 
     # Dates for the time dimension
     lon = 0.5:1.0:359.5 |> collect
@@ -138,14 +132,15 @@ end
     ]
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "long" => Dict("units" => "test_units1"),
-        "lat" => Dict("units" => "test_units2"),
-        "time" => Dict("units" => "test_units3"),
-    ])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test isnothing(var.interpolant)
+    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
+    @test isnothing(intp)
+
+    # 2D dimensions
+    arb_dim = reshape(collect(range(-89.5, 89.5, 16)), (4, 4))
+    data = collect(1:16)
+    dims = OrderedDict(["arb_dim" => arb_dim])
+    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
+    @test isnothing(intp)
 end
 
 @testset "empty" begin
@@ -550,7 +545,7 @@ end
 end
 
 @testset "Long name updates" begin
-    # Setup to test x_avg, y_avg, xy_avg  
+    # Setup to test x_avg, y_avg, xy_avg
     x = 0.0:180.0 |> collect
     y = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
@@ -1894,8 +1889,7 @@ end
     attribs = Dict("long_name" => "hi")
     dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-
-    @test isnothing(var.interpolant)
+    @test isnothing(ClimaAnalysis.Var._make_interpolant(dims, data))
 
     reverse_var = ClimaAnalysis.reverse_dim(var, "lat")
     @test reverse(lat) == reverse_var.dims["lat"]

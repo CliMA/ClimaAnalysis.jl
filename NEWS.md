@@ -1,5 +1,17 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.13
+-------
+
+## Remove interpolant from OutputVar
+With this release, the field `interpolant` is removed from `OutputVar`. This was done to
+prevent the largely unnecessary construction of an interpolant every time a `OutputVar` is
+constructed. With this change, a `OutputVar` take up about 50% less memory.
+
+However, functions like `resampled_as` and interpolating using a `OutputVar` will be slower
+as an interpolant must be generated. This means repeated calls to these functions will be
+slower compared to the previous versions of ClimaAnalysis.
+
 v0.5.12
 -------
 
