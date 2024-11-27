@@ -4,6 +4,11 @@ v0.5.12
 -------
 
 ## Features
+This release introduces the following features and bug fixes
+- [Compute global root mean squared error for 3D `OutputVar`s](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#compute-global-root-mean-squared-error-for-3d-outputvars)
+- [Reversing a dimension](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#reversing-a-dimension)
+- [Converting the units of a dimension](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#converting-the-units-of-a-dimension)
+- [Bug fixes](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#bug-fixes)
 
 ### Compute global root mean squared error for 3D `OutputVar`s
 For 3D variables defined over longitude, latitude, and pressure, one can find the global
