@@ -26,6 +26,7 @@ Var.long_name
 Var.units
 Var.has_units
 Var.slice
+Var.slice_intp
 Var.average_lat
 Var.weighted_average_lat
 Var.average_lon

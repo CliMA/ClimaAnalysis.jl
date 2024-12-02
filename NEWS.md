@@ -67,6 +67,15 @@ new_var = ClimaAnalysis.convert_dim_units(
     )
 ```
 
+### Slicing by interpolating
+Slicing is possible by nearest value using `ClimaAnalysis.slice`. There is now support by
+slicing using linear interpolation through `ClimaAnalysis.slice_intp`. See the example
+below.
+
+```julia
+ClimaAnalysis.slice_intp(var, lat = 30, lon = 20, time = 100)
+```
+
 ## Bug fixes
 - `Atmos.to_pressure_coordinates` now works with Unitful units.
 - `Atmos.to_pressure_coordinates` now uses reasonable pressure values when `target_pressure`

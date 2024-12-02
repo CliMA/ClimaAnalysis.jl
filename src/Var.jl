@@ -30,6 +30,7 @@ export OutputVar,
     average_time,
     is_z_1D,
     slice,
+    slice_intp,
     window,
     arecompatible,
     center_longitude!,
@@ -916,6 +917,9 @@ end
 
 Return a new OutputVar by slicing across dimensions as defined by the keyword arguments.
 
+Slicing is done by using the nearest value. See [`slice_intp`](@ref) for slicing by linear
+interpolation.
+
 Example
 ===========
 ```julia
@@ -926,6 +930,75 @@ function slice(var; kwargs...)
     sliced_var = var
     for (dim_name, val) in kwargs
         sliced_var = _slice_general(sliced_var, val, String(dim_name))
+    end
+    return sliced_var
+end
+
+"""
+    _slice_intp_general(var::OutputVar, val, dim_name)
+
+Return a new OutputVar by interpolating to the given `val` for the given dimension and
+slicing across it.
+"""
+function _slice_intp_general(var::OutputVar, val, dim_name)
+    haskey(var.dims, dim_name) ||
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+
+    reduced_var = _reduce_over(_slice_intp_over, dim_name, var, var, val)
+
+    # Let's try adding this operation to the long_name, if possible (ie, if the correct
+    # attributes are available)
+    if haskey(var.attributes, "long_name") &&
+       haskey(var.dim_attributes, dim_name) &&
+       haskey(var.dim_attributes[dim_name], "units")
+        dim_units = var.dim_attributes[dim_name]["units"]
+        if (dim_name == "time" || dim_name == "t") && dim_units == "s"
+            # Dimension is time and units are seconds. Let's convert them to something nicer
+            pretty_timestr = seconds_to_prettystr(val)
+            reduced_var.attributes["long_name"] *= " $dim_name = $pretty_timestr"
+        else
+            reduced_var.attributes["long_name"] *= " $dim_name = $val $dim_units"
+        end
+        reduced_var.attributes["slice_$dim_name"] = "$val"
+        reduced_var.attributes["slice_$(dim_name)_units"] = dim_units
+    end
+    return reduced_var
+end
+
+"""
+    _slice_intp_over(data, var::OutputVar, val; dims)
+
+Slice a `OutputVar` by using its interpolat at `val` for the dimension whose index is
+`dims`.
+
+The argument `data` is included, but we do not use `data` in the function. This is because
+`_reduce_over` requires the first argument to be `data`.
+"""
+function _slice_intp_over(data, var::OutputVar, val; dims)
+    dim_arrays = [values(var.dims)...]
+    dim_arrays[dims] = [val]
+    ret_data = [var(pt) for pt in Base.product(dim_arrays...)]
+    return ret_data
+end
+
+"""
+    slice_intp(var::OutputVar, kwargs...)
+
+Return a new OutputVar by slicing across dimensions as defined by the keyword arguments.
+
+Slicing is done by linear interpolation. See [`slice`](@ref) for slicing by using the
+nearest value.
+
+Example
+===========
+```julia
+slice_intp(var, lat = 30, lon = 20, time = 100)
+```
+"""
+function slice_intp(var::OutputVar; kwargs...)
+    sliced_var = var
+    for (dim_name, val) in kwargs
+        sliced_var = _slice_intp_general(sliced_var, val, String(dim_name))
     end
     return sliced_var
 end
