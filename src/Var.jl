@@ -9,6 +9,7 @@ import Statistics: mean
 import NaNStatistics: nanmean
 
 import ..Numerics
+import ..Interpolations
 import ..Utils:
     nearest_index,
     seconds_to_prettystr,
@@ -88,51 +89,94 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
 end
 
 """
-    _make_interpolant(dims, data)
+    _check_interpolant(dims, data)
 
-Make a linear interpolant from `dims`, a dictionary mapping dimension name to array and
-`data`, an array containing data. Used in constructing a `OutputVar`.
+Check if it is possible to create an interpolant.
 
-If any element of the arrays in `dims` is a Dates.DateTime, then no interpolant is returned.
-Interpolations.jl does not support interpolating on dates. If the longitudes span the entire
-range and are equispaced, then a periodic boundary condition is added for the longitude
-dimension. If the latitudes span the entire range and are equispaced, then a flat boundary
-condition is added for the latitude dimension. In all other cases, an error is thrown when
-extrapolating outside of `dim_array`.
+If any element of the arrays in `dims` is a Dates.DateTime, then an error is returned. If
+ the longitudes span the entire range and are equispaced, then a periodic boundary condition
+is added for the longitude dimension. If the latitudes span the entire range and are
+equispaced, then a flat boundary condition is added for the latitude dimension. In all other
+cases, an error is thrown when extrapolating outside of `dim_array`.
 """
-function _make_interpolant(dims, data)
-    # If any element is DateTime, then return nothing for the interpolant because
-    # Interpolations.jl do not support DateTimes
+function _check_interpolant(dims)
+    # If any element is DateTime, then return an error
+    # ClimaAnalysis does not support interpolating on dates
     for dim_array in values(dims)
-        eltype(dim_array) <: Dates.DateTime && return nothing
+        eltype(dim_array) <: Dates.DateTime && return error(
+            "An interpolant cannot be made because interpolating on dates is not possible",
+        )
     end
 
     # We can only create interpolants when we have 1D dimensions
     if isempty(dims) || any(d -> ndims(d) != 1 || length(d) == 1, values(dims))
-        return nothing
+        return error(
+            "An interpolant cannot be made because the dimensions are not 1D",
+        )
     end
 
     # Dimensions are all 1D, check that the knots are in increasing order (as required by
-    # Interpolations.jl)
+    # our interpolation routine)
     for (dim_name, dim_array) in dims
         if !issorted(dim_array)
-            @warn "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim if the dimension is in decreasing order"
-            return nothing
+            return error(
+                "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim if the dimension is in decreasing order",
+            )
         end
     end
+    return nothing
+end
 
-    # Find boundary conditions for extrapolation
-    extp_bound_conds = (
+"""
+    interpolate_point(point, dims, data)
+
+Linearly interpolate the point using `dims` and `data`.
+
+Extrapolation conditions are determined by `_find_extp_bound_conds`.
+"""
+function interpolate_point(point, dims, data)
+    _check_interpolant(dims)
+    extp_bound_conds = _find_extp_bound_conds(dims)
+    return Interpolations.linear_interpolate(
+        point,
+        Tuple(values(dims)),
+        data,
+        extp_bound_conds,
+    )
+end
+
+"""
+    interpolate_points(points, dims, data)
+
+Linearly interpolate the points using `dims` and `data`.
+
+Extrapolation conditions are determined by `_find_extp_bound_conds`.
+"""
+function interpolate_points(points, dims, data)
+    _check_interpolant(dims)
+    extp_bound_conds = _find_extp_bound_conds(dims)
+    dim_arrays_tuple = Tuple(values(dims))
+    interpolated_arr = [
+        Interpolations.linear_interpolate(
+            point,
+            dim_arrays_tuple,
+            data,
+            extp_bound_conds,
+        ) for point in points
+    ]
+    return interpolated_arr
+end
+
+"""
+    _find_extp_bound_conds(dims)
+
+Find the appropriate boundary conditions given the `dims` of an `OutputVar`.
+"""
+function _find_extp_bound_conds(dims)
+    return (
         _find_extp_bound_cond(dim_name, dim_array) for
         (dim_name, dim_array) in dims
-    )
-
-    dims_tuple = tuple(values(dims)...)
-    extp_bound_conds_tuple = tuple(extp_bound_conds...)
-    return Intp.extrapolate(
-        Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
-        extp_bound_conds_tuple,
-    )
+    ) |> Tuple
 end
 
 """
@@ -152,17 +196,17 @@ function _find_extp_bound_cond(dim_name, dim_array)
         conventional_dim_name(dim_name) == "longitude" &&
         _isequispaced(dim_array) &&
         isapprox(dim_size + dsize, 360.0)
-    ) && return Intp.Periodic()
+    ) && return Interpolations.extp_cond_periodic()
     (
         conventional_dim_name(dim_name) == "longitude" &&
         (dim_array[end] - dim_array[begin]) ≈ 360.0
-    ) && return Intp.Periodic()
+    ) && return Interpolations.extp_cond_periodic()
     (
         conventional_dim_name(dim_name) == "latitude" &&
         _isequispaced(dim_array) &&
         isapprox(dim_size + dsize, 180.0)
-    ) && return Intp.Flat()
-    return Intp.Throw()
+    ) && return Interpolations.extp_cond_flat()
+    return Interpolations.extp_cond_throw()
 end
 
 function OutputVar(attribs, dims, dim_attribs, data)
@@ -998,11 +1042,11 @@ multilinear interpolation.
 Extrapolation is now allowed and will throw a `BoundsError` in most cases.
 
 If any element of the arrays of the dimensions is a Dates.DateTime, then interpolation is
-not possible. Interpolations.jl do not support making interpolations for dates. If the
-longitudes span the entire range and are equispaced, then a periodic boundary condition is
-added for the longitude dimension. If the latitudes span the entire range and are
-equispaced, then a flat boundary condition is added for the latitude dimension. In all other
-cases, an error is thrown when extrapolating outside of the array of the dimension.
+not possible. If the longitudes span the entire range and are equispaced, then a periodic
+boundary condition is added for the longitude dimension. If the latitudes span the entire
+range and are equispaced, then a flat boundary condition is added for the latitude
+dimension. In all other cases, an error is thrown when extrapolating outside of the array of
+the dimension.
 
 Example
 =======
@@ -1022,8 +1066,7 @@ julia> var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data); va
 ```
 """
 function (x::OutputVar)(target_coord)
-    itp = _make_interpolant(x.dims, x.data)
-    return itp(target_coord...)
+    return interpolate_point(target_coord, x.dims, x.data)
 end
 
 """
@@ -1164,9 +1207,8 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     src_var = reordered_as(src_var, dest_var)
     _check_dims_consistent(src_var, dest_var)
 
-    itp = _make_interpolant(src_var.dims, src_var.data)
-    src_resampled_data =
-        [itp(pt...) for pt in Base.product(values(dest_var.dims)...)]
+    coords = Base.product(values(dest_var.dims)...)
+    src_resampled_data = interpolate_points(coords, src_var.dims, src_var.data)
 
     # Construct new OutputVar to return
     src_var_ret_dims = empty(src_var.dims)
@@ -1770,14 +1812,14 @@ function make_lonlat_mask(
 
         # Resample so that the mask match up with the grid of var
         # Round because linear resampling is done and we want the mask to be only ones and zeros
-        intp = _make_interpolant(mask_var.dims, mask_var.data)
-        mask_arr =
-            [
-                intp(pt...) for pt in Base.product(
-                    input_var.dims[longitude_name(input_var)],
-                    input_var.dims[latitude_name(input_var)],
-                )
-            ] .|> round
+        coords = [
+            pt for pt in Base.product(
+                input_var.dims[longitude_name(input_var)],
+                input_var.dims[latitude_name(input_var)],
+            )
+        ]
+        mask_arr = interpolate_points(coords, mask_var.dims, mask_var.data)
+        mask_arr .= mask_arr .|> round
 
         # Reshape data for broadcasting
         lon_idx = input_var.dim2index[longitude_name(input_var)]

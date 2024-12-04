@@ -246,7 +246,7 @@ end
         sim_pressure = pressure3D,
         obs_pressure = pressure3D,
     )
-    @test global_rmse_pfull == 0.0
+    @test isapprox(global_rmse_pfull, 0.0, atol = 1e-11)
 
     # Test if the computation is the same as a manual computation
     zero_data = zeros(size(data))
