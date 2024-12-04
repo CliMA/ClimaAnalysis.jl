@@ -12,6 +12,11 @@ However, functions like `resampled_as` and interpolating using a `OutputVar` wil
 as an interpolant must be generated. This means repeated calls to these functions will be
 slower compared to the previous versions of ClimaAnalysis.
 
+## Add interpolation routine
+With this release, any functions that rely on interpolation now uses the interpolation
+routine written for ClimaAnalysis instead of Interpolations.jl. This substantially reduce
+the number and size of allocations when using these functions.
+
 v0.5.12
 -------
 
