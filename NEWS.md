@@ -12,6 +12,11 @@ However, functions like `resampled_as` and interpolating using a `OutputVar` wil
 as an interpolant must be generated. This means repeated calls to these functions will be
 slower compared to the previous versions of ClimaAnalysis.
 
+## Better error messages
+There is now error hints when using a function that requires another package such as Makie
+or GeoMakie to be loaded as well. The error hint tells the user which package need to be
+loaded in, so that the function can be used.
+
 v0.5.12
 -------
 
