@@ -60,7 +60,8 @@ export OutputVar,
     apply_oceanmask,
     make_lonlat_mask,
     replace,
-    reverse_dim
+    reverse_dim,
+    remake
 
 """
     Representing an output variable
@@ -581,6 +582,22 @@ function set_dim_units!(
         var.dim_attributes[dim_name] = Dict("units" => units)
     end
     return nothing
+end
+
+"""
+    remake(var; attributes, dims, dim_attributes, data)
+
+remake a `OutputVar`. If a keyword argument is not supplied, then it defaults
+to `attributes`, `dims`, `dim_attributes`, or `data` of `var`.
+"""
+function remake(
+    var;
+    attributes = var.attributes |> deepcopy,
+    dims = var.dims,
+    dim_attributes = var.dim_attributes |> deepcopy,
+    data = var.data |> copy,
+)
+    return OutputVar(attributes, dims, dim_attributes, data)
 end
 
 """

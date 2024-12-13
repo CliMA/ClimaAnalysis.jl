@@ -25,6 +25,7 @@ Var.short_name
 Var.long_name
 Var.units
 Var.has_units
+Var.remake
 Var.slice
 Var.average_lat
 Var.weighted_average_lat
