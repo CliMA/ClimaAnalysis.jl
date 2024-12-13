@@ -17,6 +17,11 @@ There is now error hints when using a function that requires another package suc
 or GeoMakie to be loaded as well. The error hint tells the user which package need to be
 loaded in, so that the function can be used.
 
+## Remake OutputVars
+With this release, you can remake a `OutputVar` using an already existing `OutputVar`. This
+is helpful if you need to construct a new `OutputVar` from an already existing one, but only
+need to modify one field while leaving the other fields the same.
+
 v0.5.12
 -------
 
