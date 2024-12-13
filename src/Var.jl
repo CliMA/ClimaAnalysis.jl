@@ -1129,7 +1129,6 @@ function reordered_as(src_var::OutputVar, dest_var::OutputVar)
     # Reorder dims, dim_attribs, and data, but not attribs
     ret_dims = deepcopy(src_var.dims)
     ret_dims = OrderedDict(collect(ret_dims)[reorder_indices])
-    ret_attribs = deepcopy(src_var.attributes)
 
     # Cannot assume that every dimension is present in dim_attribs so we loop to reorder the
     # best we can and merge with src_var.dim_attributes to add any remaining pairs to
@@ -1146,7 +1145,12 @@ function reordered_as(src_var::OutputVar, dest_var::OutputVar)
 
     ret_data = copy(src_var.data)
     ret_data = permutedims(ret_data, reorder_indices)
-    return OutputVar(ret_attribs, ret_dims, ret_dim_attribs, ret_data)
+    return remake(
+        src_var,
+        dims = ret_dims,
+        data = ret_data,
+        dim_attributes = ret_dim_attribs,
+    )
 end
 
 """
@@ -1172,14 +1176,7 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     for (dim_name, dim_data) in zip(keys(src_var.dims), values(dest_var.dims))
         src_var_ret_dims[dim_name] = copy(dim_data)
     end
-    scr_var_ret_attribs = deepcopy(src_var.attributes)
-    scr_var_ret_dim_attribs = deepcopy(src_var.dim_attributes)
-    return OutputVar(
-        scr_var_ret_attribs,
-        src_var_ret_dims,
-        scr_var_ret_dim_attribs,
-        src_resampled_data,
-    )
+    return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
 end
 
 """
@@ -1334,10 +1331,8 @@ function split_by_season(var::OutputVar)
             return OutputVar(dims, data)
         end
         ret_dims = deepcopy(var.dims)
-        ret_attribs = deepcopy(var.attributes)
-        ret_dim_attribs = deepcopy(var.dim_attributes)
         ret_dims[time_name(var)] = time
-        OutputVar(ret_attribs, ret_dims, ret_dim_attribs, data)
+        remake(var, dims = ret_dims, data = data)
     end
 end
 
@@ -1633,8 +1628,12 @@ function _dates_to_seconds(
         dim_name => dim_data for (dim_name, dim_data) in var_dims
     )
     ret_dims = OrderedDict(ret_dims_generator...)
-    ret_data = copy(var.data)
-    return OutputVar(ret_attribs, ret_dims, ret_dim_attribs, ret_data)
+    return remake(
+        var,
+        attributes = ret_attribs,
+        dims = ret_dims,
+        dim_attributes = ret_dim_attribs,
+    )
 end
 
 """
@@ -1685,9 +1684,7 @@ function shift_to_start_of_previous_month(var::OutputVar)
     ret_attribs["start_date"] = string(start_date)
     ret_dims = deepcopy(var.dims)
     ret_dims["time"] = time_arr
-    ret_dim_attributes = deepcopy(var.dim_attributes)
-    ret_data = copy(var.data)
-    return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, ret_data)
+    return remake(var, attributes = ret_attribs, dims = ret_dims)
 end
 
 """
@@ -1804,11 +1801,7 @@ function make_lonlat_mask(
         mask_arr = reshape(mask_arr, size_to_reshape...)
         masked_data = input_var.data .* mask_arr
 
-        # Remake OutputVar with new data
-        ret_attribs = deepcopy(input_var.attributes)
-        ret_dims = deepcopy(input_var.dims)
-        ret_dim_attributes = deepcopy(input_var.dim_attributes)
-        return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, masked_data)
+        return remake(input_var, data = masked_data)
     end
 end
 
@@ -1824,12 +1817,7 @@ you want to use the ocean mask, but there are `NaN`s in the ocean. You can repla
 """
 function Base.replace(var::OutputVar, old_new::Pair...)
     replaced_data = replace(var.data, old_new...)
-
-    # Remake OutputVar with replaced_data
-    ret_attribs = deepcopy(var.attributes)
-    ret_dims = deepcopy(var.dims)
-    ret_dim_attributes = deepcopy(var.dim_attributes)
-    return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, replaced_data)
+    return remake(var, data = replaced_data)
 end
 
 """
@@ -1855,10 +1843,7 @@ function reverse_dim(var::OutputVar, dim_name)
     dim_idx = get(var.dim2index, dim_name, dim_name)
     ret_data = var.data |> copy |> (A -> reverse(A, dims = dim_idx))
 
-    # Remake OutputVar
-    ret_attribs = deepcopy(var.attributes)
-    ret_dim_attributes = deepcopy(var.dim_attributes)
-    return OutputVar(ret_attribs, ret_dims, ret_dim_attributes, ret_data)
+    return remake(var, dims = ret_dims, data = ret_data)
 end
 
 """
