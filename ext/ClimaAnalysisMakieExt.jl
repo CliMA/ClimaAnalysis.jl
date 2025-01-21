@@ -81,7 +81,7 @@ function Visualize.heatmap2D!(
 
     ax = Makie.Axis(place[p_loc...]; title, xlabel, ylabel, axis_kwargs...)
 
-    plot = Makie.heatmap!(ax, dim1, dim2, var.data; plot_kwargs...)
+    plot = Makie.contourf!(ax, dim1, dim2, var.data; plot_kwargs...)
 
     p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
     Makie.Colorbar(
