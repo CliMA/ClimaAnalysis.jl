@@ -22,11 +22,17 @@ Linearly interpolate `var1d` from `origin_pressure` to `target_pressure`.
 Note: Values outside of the range are linearly extrapolated
 """
 function _resample_column!(dest, var1d, origin_pressure, target_pressure)
+    reverse_origin_pressure = reverse(origin_pressure)
+    isunique =
+        length(unique(reverse_origin_pressure)) ==
+        length(reverse_origin_pressure)
+    !(isunique && issorted(reverse_origin_pressure)) &&
+        error("P(z) is not bijective, cannot resample column")
     # Interpolations.jl require increasing knots, but pressure is decreasing, so
     # we have to reverse it
     var1d_of_P = Intp.extrapolate(
         Intp.interpolate(
-            (reverse(origin_pressure),),
+            (reverse_origin_pressure,),
             reverse(var1d),
             Intp.Gridded(Intp.Linear()),
         ),
