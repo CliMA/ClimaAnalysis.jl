@@ -181,6 +181,30 @@ import OrderedCollections: OrderedDict
         Zvar,
         Zvar,
     )
+
+    # P(z) is not bijective (not sorted)
+    pressure_var = ClimaAnalysis.OutputVar(
+        attribs,
+        Dict("z" => z_alt),
+        dim_attribs,
+        reverse(pdata),
+    )
+    @test_throws ErrorException ClimaAnalysis.Atmos.to_pressure_coordinates(
+        pressure_var,
+        pressure_var,
+    )
+    pressure = 300.0:-2.0:100.0 |> collect
+    pressure[2] = 300.0
+    pressure_var = ClimaAnalysis.OutputVar(
+        attribs,
+        Dict("z" => z_alt),
+        dim_attribs,
+        pressure,
+    )
+    @test_throws ErrorException ClimaAnalysis.Atmos.to_pressure_coordinates(
+        pressure_var,
+        pressure_var,
+    )
 end
 
 @testset "RMSE of pressure coordinates" begin
