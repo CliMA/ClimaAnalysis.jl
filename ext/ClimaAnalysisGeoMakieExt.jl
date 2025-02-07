@@ -106,7 +106,7 @@ function _geomakie_plot_on_globe!(
             label = colorbar_label,
             vertical = false, # horizontal colorbar
             flipaxis = false, # label underneath colorbar
-            width = 300, # a little smaller
+            width = 400, # a little smaller
             tellwidth = false; # make colorbar width indep of plot width
             cb_kwargs...,
         )
