@@ -124,35 +124,43 @@ end
     lon = 0.5:1.0:359.5 |> collect
     lat = -89.5:1.0:89.5 |> collect
     time = 1.0:100 |> collect
-    data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Periodic(), Intp.Flat(), Intp.Throw())
+    extp_conds = ClimaAnalysis.Var._find_extp_bound_conds(dims)
+    @test extp_conds == (
+        ClimaAnalysis.Interpolations.extp_cond_periodic(),
+        ClimaAnalysis.Interpolations.extp_cond_flat(),
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+    )
 
     # Not equispaced for lon and lat
     lon = 0.5:1.0:359.5 |> collect |> x -> push!(x, 42.0) |> sort
     lat = -89.5:1.0:89.5 |> collect |> x -> push!(x, 42.0) |> sort
     time = 1.0:100 |> collect
-    data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+    extp_conds = ClimaAnalysis.Var._find_extp_bound_conds(dims)
+    @test extp_conds == (
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+    )
 
     # Does not span entire range for and lat
     lon = 0.5:1.0:350.5 |> collect
     lat = -89.5:1.0:80.5 |> collect
     time = 1.0:100 |> collect
-    data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+    extp_conds = ClimaAnalysis.Var._find_extp_bound_conds(dims)
+    @test extp_conds == (
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+        ClimaAnalysis.Interpolations.extp_cond_throw(),
+    )
 
     # Lon is exactly 360 degrees
     lon = 0.0:1.0:360.0 |> collect
-    data = ones(length(lon))
     dims = OrderedDict(["lon" => lon])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Periodic(),)
+    extp_conds = ClimaAnalysis.Var._find_extp_bound_conds(dims)
+    @test extp_conds == (ClimaAnalysis.Interpolations.extp_cond_periodic(),)
 
     # Dates for the time dimension
     lon = 0.5:1.0:359.5 |> collect
@@ -162,17 +170,18 @@ end
         Dates.DateTime(2020, 3, 1, 1, 2),
         Dates.DateTime(2020, 3, 1, 1, 3),
     ]
-    data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test isnothing(intp)
+    @test_throws ErrorException ClimaAnalysis.Var._check_interpolant(dims)
 
     # 2D dimensions
     arb_dim = reshape(collect(range(-89.5, 89.5, 16)), (4, 4))
-    data = collect(1:16)
     dims = OrderedDict(["arb_dim" => arb_dim])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test isnothing(intp)
+    @test_throws ErrorException ClimaAnalysis.Var._check_interpolant(dims)
+
+    # Dimensions are not in increasing order
+    lon = [0.5, 42.0, 1.5, 110.0]
+    dims = OrderedDict(["lon" => lon])
+    @test_throws ErrorException ClimaAnalysis.Var._check_interpolant(dims)
 end
 
 @testset "empty" begin
@@ -529,6 +538,7 @@ end
     @test ClimaAnalysis.pressure_name(pressure_var) == "pfull"
 end
 
+# FIX THIS
 @testset "Interpolation" begin
     # 1D interpolation with linear data, should yield correct results
     long = -175.0:175.0 |> collect
@@ -539,7 +549,7 @@ end
     @test longvar.([10.5, 20.5]) == [10.5, 20.5]
 
     # Test error for data outside of range
-    @test_throws BoundsError longvar(200.0)
+    @test_throws ErrorException longvar(200.0)
 
     # 2D interpolation with linear data, should yield correct results
     time = 100.0:110.0 |> collect
@@ -822,7 +832,7 @@ end
     @test src_var.data == ClimaAnalysis.resampled_as(src_var, src_var).data
     resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
     @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
-    @test_throws BoundsError ClimaAnalysis.resampled_as(dest_var, src_var)
+    @test_throws ErrorException ClimaAnalysis.resampled_as(dest_var, src_var)
 
     # BoundsError check
     src_long = 90.0:120.0 |> collect
@@ -838,7 +848,7 @@ end
     dest_var =
         ClimaAnalysis.remake(dest_var, data = dest_data, dims = dest_dims)
 
-    @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test_throws ErrorException ClimaAnalysis.resampled_as(src_var, dest_var)
 end
 
 @testset "Units" begin
@@ -1869,7 +1879,6 @@ end
     attribs = Dict("long_name" => "hi")
     dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test isnothing(ClimaAnalysis.Var._make_interpolant(dims, data))
 
     reverse_var = ClimaAnalysis.reverse_dim(var, "lat")
     @test reverse(lat) == reverse_var.dims["lat"]

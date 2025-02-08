@@ -22,6 +22,11 @@ With this release, you can remake a `OutputVar` using an already existing `Outpu
 is helpful if you need to construct a new `OutputVar` from an already existing one, but only
 need to modify one field while leaving the other fields the same.
 
+## Add interpolation routine
+With this release, any functions that rely on interpolation now uses the interpolation
+routine written for ClimaAnalysis instead of Interpolations.jl. This substantially reduce
+the number and size of allocations when using these functions.
+
 v0.5.12
 -------
 

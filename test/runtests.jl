@@ -8,6 +8,7 @@ using Test
 
 @safetestset "Utils" begin @time include("test_Utils.jl") end
 @safetestset "Numerics" begin @time include("test_Numerics.jl") end
+@safetestset "Interpolations" begin @time include("test_Interpolations.jl") end
 @safetestset "SimDir" begin @time include("test_Sim.jl") end
 @safetestset "Atmos" begin @time include("test_Atmos.jl") end
 @safetestset "Leaderboard" begin @time include("test_Leaderboard.jl") end
