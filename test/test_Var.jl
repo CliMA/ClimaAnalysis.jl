@@ -602,7 +602,7 @@ end
     @test xy_avg.attributes["long_name"] ==
           "hi averaged horizontally over x (0.0 to 180.0km) and y (0.0 to 90.0km)"
 
-    # Setup to test average_lat and average_lon 
+    # Setup to test average_lat and average_lon
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
@@ -1834,6 +1834,17 @@ end
         true_val = 0.0,
         false_val = 1.0,
     )
+    var1 = mask_fn(ones_var)
+    @test var1.data[1] == 0.0
+
+    # Check with a different longitude name
+    ones_var = ClimaAnalysis.remake(
+        ones_var,
+        dims = OrderedDict(["latitude" => lat, "longitude" => lon]),
+        dim_attributes = OrderedDict(["longitude" => Dict("units" => "deg")]),
+    )
+    # ones_var.dims = OrderedDict(["latitude" => lat, "longitude" => lon])
+    # ones_var.dim_attributes = OrderedDict(["longitude" => Dict("units" => "deg")])
     var1 = mask_fn(ones_var)
     @test var1.data[1] == 0.0
 
