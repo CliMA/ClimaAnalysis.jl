@@ -703,7 +703,7 @@ function average_lat(var; ignore_nan = true, weighted = false)
         lat_index = var.dim2index[latitude_name(var)]
         weights = ones(size(var.data))
         # Create a bitmask for the NaN's, we use this to remove weights in the normalization (with nanmean)
-        nan_mask = ifelse.(isnan.(var.data), NaN, 1)
+        nan_mask = eltype(weights).(ifelse.(isnan.(var.data), NaN, 1))
         for index in CartesianIndices(weights)
             index_tuple =
                 ntuple(d -> d == lat_index ? Colon() : index[d], ndims(weights))
@@ -1782,8 +1782,8 @@ function make_lonlat_mask(
         # Reshape data for broadcasting
         lon_idx = input_var.dim2index[longitude_name(input_var)]
         lat_idx = input_var.dim2index[latitude_name(input_var)]
-        lon_length = input_var.dims[longitude_name(mask_var)] |> length
-        lat_length = input_var.dims[latitude_name(mask_var)] |> length
+        lon_length = input_var.dims[longitude_name(input_var)] |> length
+        lat_length = input_var.dims[latitude_name(input_var)] |> length
         if lon_idx > lat_idx
             mask_arr = transpose(mask_arr)
         end
