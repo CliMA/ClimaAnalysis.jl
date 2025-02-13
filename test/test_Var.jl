@@ -84,6 +84,15 @@ import Dates
         Dict("time" => time),
         [1],
     )
+
+    # Centering at 0 doesn't work - I would expect this to produce longitude in [-180, 180]
+    long = 0.0:360.0 |> collect
+    data = copy(long)
+    longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
+
+    @test extrema(longvar.dims["long"]) == (0.0, 360.0)
+    ClimaAnalysis.center_longitude!(longvar, 0.0)
+    @test_broken extrema(longvar.dims["long"]) == (-180.0, 180.0)
 end
 
 @testset "Remake" begin
@@ -602,7 +611,7 @@ end
     @test xy_avg.attributes["long_name"] ==
           "hi averaged horizontally over x (0.0 to 180.0km) and y (0.0 to 90.0km)"
 
-    # Setup to test average_lat and average_lon 
+    # Setup to test average_lat and average_lon
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
