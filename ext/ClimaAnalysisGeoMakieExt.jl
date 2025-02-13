@@ -283,7 +283,6 @@ function Visualize.contour2D_on_globe!(
         p_loc,
         plot_coastline,
         plot_colorbar,
-        colorbar_label,
         mask,
         more_kwargs,
         plot_fn = Makie.contourf!,
@@ -388,7 +387,7 @@ function Visualize.plot_bias_on_globe!(
         max_level;
         categorical = true,
     )
-    nlevels = 11
+    nlevels = 10 # make colorbar less crowded
     # Offset so that it covers 0
     levels = collect(range(min_level, max_level, length = nlevels))
     offset = levels[argmin(abs.(levels))]
