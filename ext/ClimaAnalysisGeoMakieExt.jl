@@ -38,6 +38,7 @@ function _geomakie_plot_on_globe!(
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
+    colorbar_label = "",
     mask = nothing,
     more_kwargs = Dict(
         :plot => Dict(),
@@ -71,7 +72,7 @@ function _geomakie_plot_on_globe!(
 
     units = ClimaAnalysis.units(var)
     short_name = var.attributes["short_name"]
-    colorbar_label = "$short_name [$units]"
+    # colorbar_label = "$short_name [$units]"
 
     axis_kwargs = get(more_kwargs, :axis, Dict())
     plot_kwargs = get(more_kwargs, :plot, Dict())
@@ -93,13 +94,18 @@ function _geomakie_plot_on_globe!(
     plot_coastline && Makie.lines!(ax, GeoMakie.coastlines(); coast_kwargs...)
 
     if plot_colorbar
-        p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
+        p_loc_cb = Tuple([p_loc[1] + 1, p_loc[2]]) # place the colorbar on the bottom
         Makie.Colorbar(
             place[p_loc_cb...],
             plot,
-            label = colorbar_label;
+            label = colorbar_label,
+            vertical = false, # horizontal colorbar
+            flipaxis = false, # label underneath colorbar
+            width = 400, # a little smaller
+            tellwidth = false; # make colorbar width indep of plot width
             cb_kwargs...,
         )
+        Makie.rowgap!(place.layout, 0) # move colorbar closer to plot
     end
 end
 
@@ -166,6 +172,7 @@ function Visualize.heatmap2D_on_globe!(
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
+    colorbar_label = "",
     mask = nothing,
     more_kwargs = Dict(
         :plot => Dict(),
@@ -184,6 +191,7 @@ function Visualize.heatmap2D_on_globe!(
         p_loc,
         plot_coastline,
         plot_colorbar,
+        colorbar_label,
         mask,
         more_kwargs = default_and_more_kwargs,
         plot_fn = Makie.surface!,
@@ -374,7 +382,7 @@ function Visualize.plot_bias_on_globe!(
         max_level;
         categorical = true,
     )
-    nlevels = 11
+    nlevels = 10 # make colorbar less crowded
     # Offset so that it covers 0
     levels = collect(range(min_level, max_level, length = nlevels))
     offset = levels[argmin(abs.(levels))]
