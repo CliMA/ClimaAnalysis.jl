@@ -286,6 +286,11 @@ using OrderedCollections
             "CliMA" => "units",
         ),
     )
+    # Test that reordering will not result in an error in plot_leaderboard!
+    rmse_var2_reordered = ClimaAnalysis.Leaderboard.reorder_categories(
+        rmse_var2,
+        ["ANN", "MAM", "JJA", "SON", "DJF"],
+    )
 
 
     # Normalized RMSEs should improve going from ta to ta1 to ta2 for CliMA model
@@ -297,7 +302,7 @@ using OrderedCollections
         fig,
         rmse_var,
         rmse_var1,
-        rmse_var2,
+        rmse_var2_reordered,
         best_category_name = "ANN",
     )
     output_name = joinpath(tmp_dir, "test_leaderboard.png")

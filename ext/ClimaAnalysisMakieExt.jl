@@ -804,14 +804,20 @@ function Visualize.plot_leaderboard!(
     model_names = ["CliMA"],
     best_category_name = "ANN",
 )
-    # Check if rmse_model_vars all have the same categories
-    categories_names = ClimaAnalysis.category_names.(rmse_vars)
+    # Check if rmse_model_vars all have the same categories (order does not matter)
+    categories_names = Set.(ClimaAnalysis.category_names.(rmse_vars))
     categories_same = length(unique(categories_names)) == 1
     categories_same ||
         error("Categories are not all the same across the RMSEVariable")
 
-    rmse_var = first(rmse_vars)
-    categ_names = ClimaAnalysis.category_names(rmse_var)
+    # Reorder categories since the order can be different
+    first_rmse_var = first(rmse_vars)
+    rmse_vars = collect(
+        ClimaAnalysis.match_category_order(rmse_var, first_rmse_var) for
+        rmse_var in rmse_vars
+    )
+
+    categ_names = ClimaAnalysis.category_names(first_rmse_var)
     num_variables = length(rmse_vars)
     num_boxes = length(categ_names) # number of categories
     num_models = 1 + length(model_names)  # best model plus the other models in model_names
