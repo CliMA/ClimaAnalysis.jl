@@ -336,3 +336,72 @@ end
     @test val == [7.0, 9.0, 11.0, 13.0, 15.0] ./ 2.0
     @test val |> size == (5,)
 end
+
+@testset "Reordering categories" begin
+    csv_file_path = joinpath(@__DIR__, "sample_data/test_csv.csv")
+    rmse_var = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var[:, :] = [[1.0 2.0 3.0 4.0 5.0]; [6.0 7.0 8.0 9.0 10.0]]
+
+    # Identity reordering
+    rmse_var_reordered = ClimaAnalysis.reorder_categories(
+        rmse_var,
+        ["DJF", "MAM", "JJA", "SON", "ANN"],
+    )
+    @test rmse_var_reordered.RMSEs == rmse_var.RMSEs
+    @test ClimaAnalysis.category_names(rmse_var_reordered) ==
+          ClimaAnalysis.category_names(rmse_var)
+    @test ClimaAnalysis.model_names(rmse_var_reordered) ==
+          ClimaAnalysis.model_names(rmse_var)
+
+    # Shift everything by one
+    rmse_var_reordered = ClimaAnalysis.reorder_categories(
+        rmse_var,
+        ["ANN", "DJF", "MAM", "JJA", "SON"],
+    )
+    @test rmse_var_reordered.RMSEs == rmse_var.RMSEs[:, [5, 1, 2, 3, 4]]
+    @test ClimaAnalysis.category_names(rmse_var_reordered) ==
+          ClimaAnalysis.category_names(rmse_var)[[5, 1, 2, 3, 4]]
+    @test ClimaAnalysis.model_names(rmse_var_reordered) ==
+          ClimaAnalysis.model_names(rmse_var)
+
+    # Matching the order of two different RMSE vars
+    rmse_var1 = ClimaAnalysis.read_rmses(csv_file_path, "ta")
+    rmse_var1[:, :] = [[11.0 12.0 13.0 14.0 15.0]; [16.0 17.0 18.0 19.0 20.0]]
+
+    # Order are the same
+    rmse_var_reordered = ClimaAnalysis.match_category_order(rmse_var, rmse_var1)
+    @test rmse_var_reordered.RMSEs == rmse_var.RMSEs
+    @test ClimaAnalysis.category_names(rmse_var_reordered) ==
+          ClimaAnalysis.category_names(rmse_var)
+    @test ClimaAnalysis.model_names(rmse_var_reordered) ==
+          ClimaAnalysis.model_names(rmse_var)
+
+    # Order are different
+    rmse_var1 = ClimaAnalysis.reorder_categories(
+        rmse_var,
+        ["ANN", "DJF", "MAM", "JJA", "SON"],
+    )
+    rmse_var_reordered = ClimaAnalysis.match_category_order(rmse_var, rmse_var1)
+    @test rmse_var_reordered.RMSEs == rmse_var.RMSEs[:, [5, 1, 2, 3, 4]]
+    @test ClimaAnalysis.category_names(rmse_var_reordered) ==
+          ClimaAnalysis.category_names(rmse_var)[[5, 1, 2, 3, 4]]
+    @test ClimaAnalysis.model_names(rmse_var_reordered) ==
+          ClimaAnalysis.model_names(rmse_var)
+
+    # Test for error handling
+    @test_throws ErrorException ClimaAnalysis.reorder_categories(
+        rmse_var,
+        ["This", "should", "not", "work!"],
+    )
+    rmse_var_diff_cats = ClimaAnalysis.Leaderboard.RMSEVariable(
+        rmse_var.short_name,
+        ClimaAnalysis.model_names(rmse_var),
+        ["!", "work", "not", "should", "This"],
+        rmse_var.RMSEs,
+        rmse_var.units,
+    )
+    @test_throws ErrorException ClimaAnalysis.match_category_order(
+        rmse_var,
+        rmse_var_diff_cats,
+    )
+end
