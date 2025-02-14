@@ -105,6 +105,8 @@ Leaderboard.add_unit!
 Leaderboard.find_best_single_model
 Leaderboard.find_worst_single_model
 Leaderboard.median
+Leaderboard.reorder_categories
+Leaderboard.match_category_order
 ```
 
 ## Utilities
