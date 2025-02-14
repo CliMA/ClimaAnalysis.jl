@@ -22,6 +22,10 @@ With this release, you can remake a `OutputVar` using an already existing `Outpu
 is helpful if you need to construct a new `OutputVar` from an already existing one, but only
 need to modify one field while leaving the other fields the same.
 
+## Reordering categories
+There is now support for reordering the categories in a `RMSEVariable`. This is helpful
+when making plots using `Visualize.plot_boxplot!` and `Visualize.plot_leaderboard!`.
+
 v0.5.12
 -------
 

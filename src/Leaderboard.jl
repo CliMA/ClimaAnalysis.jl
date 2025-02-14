@@ -15,7 +15,9 @@ export RMSEVariable,
     add_unit!,
     find_best_single_model,
     find_worst_single_model,
-    median
+    median,
+    reorder_categories,
+    match_category_order
 
 """
     Holding root mean squared errors over multiple categories and models for a single
@@ -450,6 +452,59 @@ function add_category(rmse_var::RMSEVariable, categories::String...)
         rmses,
         rmse_var.units |> deepcopy,
     )
+end
+
+"""
+    reorder_categories(rmse_var::RMSEVariable, categories::Vector{String})
+
+Reorder the categories in `rmse_var` to match `categories`.
+
+If a category in `categories` is not present in as a category in `rmse_var`, then an error
+is thrown. This function is helpful when changing the order of the categories in the plot
+produced by `ClimaAnalysis.Visualize.plot_boxplot!`.
+"""
+function reorder_categories(rmse_var::RMSEVariable, categories::Vector{String})
+    # Check if it is possible to reorder the categories
+    rmse_var_categories = category_names(rmse_var)
+    same_categories = Set(categories) == Set(rmse_var_categories)
+    same_categories || error(
+        "Categories in $(rmse_var_categories) is not the same as $categories",
+    )
+
+    # Reorder RMSEs to match `categories`
+    perm = indexin(categories, rmse_var_categories)
+    return RMSEVariable(
+        rmse_var.short_name,
+        model_names(rmse_var),
+        categories,
+        rmse_var.RMSEs[:, perm],
+        rmse_var.units,
+    )
+end
+
+"""
+    match_category_order(rmse_var1::RMSEVariable, rmse_var2::RMSEVariable)
+
+Make the order of categories of `rmse_var_src` matches the order of the categories of
+`rmse_var_dest`.
+
+This function is helpful when changing the order of the categories in the plot produced by
+`ClimaAnalysis.Visualize.plot_boxplot!`.
+"""
+function match_category_order(
+    rmse_var_src::RMSEVariable,
+    rmse_var_dest::RMSEVariable,
+)
+    rmse_var_src_categories = category_names(rmse_var_src)
+    rmse_var_dest_categories = category_names(rmse_var_dest)
+
+    same_categories =
+        Set(rmse_var_src_categories) == Set(rmse_var_dest_categories)
+    same_categories || error(
+        "Categories in $rmse_var_src_categories (src) is not the same as $rmse_var_dest_categories (dest)",
+    )
+
+    return reorder_categories(rmse_var_src, rmse_var_dest_categories)
 end
 
 """
