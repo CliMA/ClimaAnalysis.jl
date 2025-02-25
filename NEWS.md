@@ -26,6 +26,10 @@ need to modify one field while leaving the other fields the same.
 There is now support for reordering the categories in a `RMSEVariable`. This is helpful
 when making plots using `Visualize.plot_boxplot!` and `Visualize.plot_leaderboard!`.
 
+## Pretty print
+`OutputVar`s now display information about the attributes, dimension attributes, and the
+dimensions that the data is defined over in the terminal.
+
 v0.5.12
 -------
 

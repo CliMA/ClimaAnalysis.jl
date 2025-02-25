@@ -1847,6 +1847,68 @@ function reverse_dim(var::OutputVar, dim_name)
 end
 
 """
+    Base.show(io::IO, var::OutputVar)
+
+Pretty print the contents of an `OutputVar`.
+
+Print the attributes, dimension attributes, and dimensions that the data is defined
+over.
+"""
+function Base.show(io::IO, var::OutputVar)
+    # Print the key value pairs of attributes
+    printstyled(io, "Attributes:\n", bold = true, color = :green)
+    # Find spacing to pad out key of var.attributes
+    max_length_attribs = maximum(length(x) for (x, _) in var.attributes)
+    for (key, val) in var.attributes
+        print(io, "  " * rpad(key, max_length_attribs) * " => ")
+        printstyled(io, "$(val)\n", color = :light_cyan)
+    end
+
+    # Print the key value pairs of dimension attributes recursively
+    printstyled(io, "Dimension attributes:\n", bold = true, color = :green)
+    # Find spacing to pad out key of var.attributes
+    for (dim, dim_attrib) in var.dim_attributes
+        printstyled(io, "  $dim:\n", color = :light_green)
+        max_length_dim_attribs = maximum(length(x) for (x, _) in dim_attrib)
+        for (key, val) in dim_attrib
+            print(io, "    " * rpad(key, max_length_dim_attribs) * " => ")
+            printstyled(io, "$(val)\n", color = :light_cyan)
+        end
+    end
+
+    # Print the dimensions that the data is defined over
+    printstyled(io, "Data defined over:\n", bold = true, color = :green)
+    max_length_dims = maximum(length(x) for (x, _) in var.dims)
+    for (dim, array) in var.dims
+        printstyled(io, "  " * rpad(dim, max_length_dims), color = :light_green)
+        print(io, " with ")
+        printstyled(io, "$(length(array)) ", color = :light_cyan)
+        if length(array) >= 2
+            print(io, "elements")
+            sorted_at_all = issorted(array) || issorted(array, rev = true)
+            if sorted_at_all
+                print(io, " (")
+                printstyled(io, "$(array[begin])", color = :light_cyan)
+                print(io, " to ")
+                printstyled(io, "$(array[end])", color = :light_cyan)
+                print(io, ")")
+            else
+                print(io, " (")
+                printstyled(io, "not sorted", color = :red)
+                print(io, ")")
+            end
+        end
+        if length(array) == 1
+            print(io, "element")
+            print(io, " (")
+            printstyled(io, "$(array[begin])", color = :light_cyan)
+            print(io, ")")
+        end
+        print(io, "\n")
+    end
+end
+
+"""
     overload_binary_op(op)
 
 Add methods to overload the given binary `op`erator for `OutputVars` and `Real`s.
