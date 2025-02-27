@@ -1197,13 +1197,60 @@ function reordered_as(src_var::OutputVar, dest_var::OutputVar)
 end
 
 """
-    resampled_as(src_var::OutputVar, dest_var::OutputVar)
+    resampled_as(src_var::OutputVar, dest_var::OutputVar, dim_names = nothing)
 
 Resample `data` in `src_var` to `dims` in `dest_var`.
 
 The resampling performed here is a 1st-order linear resampling.
+
+If the string or iterable `dim_names` is `nothing`, then resampling is done over all
+dimensions. Otherwise, resampling is done over the dimensions in `dim_names`.
+
+!!! note "Automatic reordering"
+    If resampling is done over all dimensions, then reordering the dimensions of the
+    resulting `OutputVar` is automatically done.
+
+The correct dimension to resample on is identified by using `conventional_dim_name`.
+For example, if `src_var` has a longitude dimension named `lon`, `dest_var` has a longitude
+dimension named `long`, and `dim_names` is `longitude`, then resampling is done on the
+longitude dimension because `conventional_dim_name` maps `lon`, `long`, and `longitude` to
+`longitude`.
+
+!!! compat "`dim_names` keyword argument"
+    The keyword argument `dim_names` is introduced in ClimaAnalysis v0.5.14.
+
 """
-function resampled_as(src_var::OutputVar, dest_var::OutputVar)
+function resampled_as(
+    src_var::OutputVar,
+    dest_var::OutputVar;
+    dim_names = nothing,
+)
+    # If dim_names is nothing, then resample over all dimensions
+    if isnothing(dim_names)
+        return _resampled_as_all(src_var, dest_var)
+    end
+
+    # If the dimensions are the same between both OutputVars and dim_names are the same as
+    # well, then resample over all dimensions
+    src_var_dim_names = Set(conventional_dim_name.(keys(src_var.dims)))
+    dest_var_dim_names = Set(conventional_dim_name.(keys(dest_var.dims)))
+    conventional_dim_names = Set(conventional_dim_name.(dim_names))
+    if (src_var_dim_names == dest_var_dim_names) &&
+       (src_var_dim_names == conventional_dim_names)
+        return _resampled_as_all(src_var, dest_var)
+    end
+
+    return _resampled_as_partial(src_var, dest_var, dim_names)
+end
+
+"""
+    _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
+
+Resample `data` in `src_var` to `dims` in `dest_var` over all dimensions.
+
+Reordering is automatically done.
+"""
+function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
     src_var = reordered_as(src_var, dest_var)
     _check_dims_consistent(src_var, dest_var)
 
@@ -1211,7 +1258,7 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     src_resampled_data =
         [itp(pt...) for pt in Base.product(values(dest_var.dims)...)]
 
-    # Construct new OutputVar to return
+    # Make new dimensions for OutputVar
     src_var_ret_dims = empty(src_var.dims)
 
     # Loop because names could be different in src_var compared to dest_var
@@ -1219,6 +1266,48 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     for (dim_name, dim_data) in zip(keys(src_var.dims), values(dest_var.dims))
         src_var_ret_dims[dim_name] = copy(dim_data)
     end
+    return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
+end
+
+"""
+    _resampled_as_partial(src_var::OutputVar, dest_var::OutputVar, dim_names...)
+
+Resample `data` in `src_var` to `dim_names` in `dest_var`.
+
+!!! note "No reordering"
+    Dimensions are not reordered in `src_var` to match the order of the dimensions in
+    `dest_var` because the dimensions in `dest_var` and `src_var` respectively are not
+    necessarily the same.
+"""
+function _resampled_as_partial(
+    src_var::OutputVar,
+    dest_var::OutputVar,
+    dim_names,
+)
+    if dim_names isa AbstractString
+        dim_names = [dim_names]
+    end
+    dim_names = conventional_dim_name.(collect(dim_names))
+
+    _check_dims_consistent(src_var, dest_var, dim_names = dim_names)
+
+    # Build grid to resample over
+    src_var_ret_dims = empty(src_var.dims)
+    for (dim_name, dim) in src_var.dims
+        if conventional_dim_name(dim_name) in dim_names
+            corresponding_dim_name =
+                find_corresponding_dim_name(dim_name, keys(dest_var.dims))
+            src_var_ret_dims[dim_name] =
+                copy(dest_var.dims[corresponding_dim_name])
+        else
+            src_var_ret_dims[dim_name] = copy(dim)
+        end
+    end
+
+    itp = _make_interpolant(src_var.dims, src_var.data)
+    src_resampled_data =
+        [itp(pt...) for pt in Base.product(values(src_var_ret_dims)...)]
+
     return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
 end
 
