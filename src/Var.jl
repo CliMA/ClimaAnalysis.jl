@@ -1062,49 +1062,90 @@ function arecompatible(x::OutputVar, y::OutputVar)
 end
 
 """
-    _check_dims_consistent(x::OutputVar, y::OutputVar)
+    _check_dims_consistent(x::OutputVar, y::OutputVar, dim_names = nothing)
 
 Check if the number, name, and unit of dimensions in `x` and `y` are consistent.
+Order of the dimensions is not checked.
 
 If the unit for a dimension is missing, then the unit is not consistent for that dimension.
+
+If the iterable or string `dim_names` is supplied, then the dimensions in `dim_names` are
+the dimensions that are checked.
 """
-function _check_dims_consistent(x::OutputVar, y::OutputVar)
+function _check_dims_consistent(x::OutputVar, y::OutputVar; dim_names = nothing)
+    x_dims = x.dims
+    y_dims = y.dims
+    if dim_names isa AbstractString
+        dim_names = [dim_names]
+    end
+    if !isnothing(dim_names)
+        # Determine if dim_names are in both x and y
+        x_dim_names = conventional_dim_name.(keys(x.dims))
+        y_dim_names = conventional_dim_name.(keys(y.dims))
+        dim_names = conventional_dim_name.(collect(dim_names))
+        for dim_name in dim_names
+            dim_name in x_dim_names || error(
+                "Cannot find $dim_name in the dimension names of x ($x_dim_names)",
+            )
+            dim_name in y_dim_names || error(
+                "Cannot find $dim_name in the dimension names of y ($y_dim_names)",
+            )
+        end
+        # Keep only the dimensions we care about
+        keep_dim_name(dim_name) = conventional_dim_name(dim_name) in dim_names
+        x_dims =
+            filter(dim_name_arr -> keep_dim_name(first(dim_name_arr)), x_dims)
+        y_dims =
+            filter(dim_name_arr -> keep_dim_name(first(dim_name_arr)), y_dims)
+    end
+
     # Check if the number of dimensions is the same
-    x_num_dims = length(x.dims)
-    y_num_dims = length(y.dims)
+    x_num_dims = length(x_dims)
+    y_num_dims = length(y_dims)
     x_num_dims != y_num_dims && error(
         "Number of dimensions do not match between x ($x_num_dims) and y ($y_num_dims)",
     )
 
-    # Check if the dimensions agree with each other
-    conventional_dim_name_x = conventional_dim_name.(keys(x.dims))
-    conventional_dim_name_y = conventional_dim_name.(keys(y.dims))
+    # Check if the dimensions agree with each other (order does not matter)
+    conventional_dim_name_x = Set(conventional_dim_name.(keys(x_dims)))
+    conventional_dim_name_y = Set(conventional_dim_name.(keys(y_dims)))
     mismatch_conventional_dim_name =
-        conventional_dim_name_x .!= conventional_dim_name_y
-    any(mismatch_conventional_dim_name) && error(
+        conventional_dim_name_x != conventional_dim_name_y
+    mismatch_conventional_dim_name && error(
         "Dimensions do not agree between x ($conventional_dim_name_x) and y ($conventional_dim_name_y)",
     )
 
-    x_dims = collect(keys(x.dims))
-    y_dims = collect(keys(y.dims))
-    x_units = [dim_units(x, dim_name) for dim_name in x_dims]
-    y_units = [dim_units(y, dim_name) for dim_name in y_dims]
+    # Reorder dimensions to check for units
+    # We only care about the name of the dimensions
+    x_dim_names_reordered = collect(keys(x_dims))
+    y_dim_names_reordered = empty(collect(keys(y_dims)))
+    for dim_name in keys(x_dims)
+        push!(
+            y_dim_names_reordered,
+            find_corresponding_dim_name(dim_name, keys(y_dims)),
+        )
+    end
+
+    x_units = [dim_units(x, dim_name) for dim_name in x_dim_names_reordered]
+    y_units = [dim_units(y, dim_name) for dim_name in y_dim_names_reordered]
 
     # Check for any missing units (missing units are represented with an empty string)
     missing_x = (x_units .== "")
     missing_y = (y_units .== "")
     (any(missing_x) && any(missing_y)) && error(
-        "Units for dimensions $(x_dims[missing_x]) are missing in x and units for dimensions $(y_dims[missing_y]) are missing in y",
+        "Units for dimensions $(x_dim_names_reordered[missing_x]) are missing in x and units for dimensions $(y_dim_names_reordered[missing_y]) are missing in y",
     )
-    any(missing_x) &&
-        error("Units for dimensions $(x_dims[missing_x]) are missing in x")
-    any(missing_y) &&
-        error("Units for dimensions $(x_dims[missing_y]) are missing in y")
+    any(missing_x) && error(
+        "Units for dimensions $(x_dim_names_reordered[missing_x]) are missing in x",
+    )
+    any(missing_y) && error(
+        "Units for dimensions $(y_dim_names_reordered[missing_y]) are missing in y",
+    )
 
     # Check if units match between dimensions
     not_consistent_units = (x_units .!= y_units)
     any(not_consistent_units) && error(
-        "Units for dimensions $(x_dims[not_consistent_units]) in x is not consistent with units for dimensions $(y_dims[not_consistent_units]) in y",
+        "Units for dimensions $(x_dim_names_reordered[not_consistent_units]) in x is not consistent with units for dimensions $(y_dim_names_reordered[not_consistent_units]) in y",
     )
     return nothing
 end
