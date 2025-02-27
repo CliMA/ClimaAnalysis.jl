@@ -983,7 +983,7 @@ end
     @test_throws ErrorException ClimaAnalysis.reordered_as(src_var, dest_var)
 end
 
-@testset "Resampling" begin
+@testset "Resampling over all dimensions" begin
     src_long = 0.0:180.0 |> collect
     src_lat = 0.0:90.0 |> collect
     src_data = reshape(1.0:(181 * 91), (181, 91))
@@ -1026,6 +1026,172 @@ end
         ClimaAnalysis.remake(dest_var, data = dest_data, dims = dest_dims)
 
     @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
+end
+
+@testset "Resampling with dim_names keyword" begin
+    src_long = 0.0:180.0 |> collect
+    src_lat = 0.0:90.0 |> collect
+    src_data = reshape(1.0:(181 * 91), (181, 91))
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+
+    dest_long = 0.0:90.0 |> collect
+    dest_lat = 0.0:45.0 |> collect
+    dest_data = reshape(1.0:(91 * 46), (91, 46))
+    dest_dims = OrderedDict(["long" => dest_long, "lat" => dest_lat])
+    dest_var = ClimaAnalysis.remake(src_var, data = dest_data, dims = dest_dims)
+
+    # Resampling over all dimensions with dim_names (should be the same as resampled_as)
+    resampled_src_var1 = ClimaAnalysis.resampled_as(
+        src_var,
+        dest_var,
+        dim_names = ["latitude", "longitude"],
+    )
+    resampled_src_var2 = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test resampled_src_var1.data == resampled_src_var2.data
+    @test resampled_src_var1.dims == resampled_src_var2.dims
+
+    # Resampling an OutputVar with small number of dimensions (src_var) on an OutputVar with a large number of dimensions (dest_var)
+    dest_time = 0.0:3.0 |> collect
+    dest_long = 0.0:42.0 |> collect
+    dest_pfull = 0.0:10.0 |> collect
+    dest_data = reshape(
+        1.0:(length(dest_time) * length(dest_long) * length(dest_pfull)),
+        (length(dest_time), length(dest_long), length(dest_pfull)),
+    )
+    dest_dims = OrderedDict([
+        "time" => dest_time,
+        "lon" => dest_long,
+        "pfull" => dest_pfull,
+    ])
+    dest_attribs = Dict("long_name" => "hi")
+    dest_dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+    resampled_src_var =
+        ClimaAnalysis.resampled_as(src_var, dest_var, dim_names = "longitude")
+    @test resampled_src_var.data == src_var.data[1:43, :]
+    @test resampled_src_var.dims["long"] == dest_var.dims["lon"]
+
+    # Resample OutputVar with 2 dimensions (src_var) on an OutputVar
+    # with 3 dimensions (dest_var) with two dimensions being
+    # resampled and in different order in both OutputVars
+    dest_lat = 0.0:3.0 |> collect
+    dest_long = 0.0:42.0 |> collect
+    dest_pull = 0.0:10.0 |> collect
+    dest_data = reshape(
+        1.0:(length(dest_lat) * length(dest_long) * length(dest_pfull)),
+        (length(dest_lat), length(dest_long), length(dest_pfull)),
+    )
+    dest_dims = OrderedDict([
+        "latitude" => dest_lat,
+        "longitude" => dest_long,
+        "pfull" => dest_pfull,
+    ])
+    dest_attribs = Dict("long_name" => "hi")
+    dest_dim_attribs = OrderedDict([
+        "latitude" => Dict("units" => "test_units2"),
+        "longitude" => Dict("units" => "test_units1"),
+    ])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+    resampled_src_var = ClimaAnalysis.resampled_as(
+        src_var,
+        dest_var,
+        dim_names = ["lon", "latitude"],
+    )
+    @test resampled_src_var.data == src_var.data[1:43, 1:4]
+    @test resampled_src_var.dims["lat"] == dest_var.dims["latitude"]
+    @test resampled_src_var.dims["long"] == dest_var.dims["longitude"]
+
+    # Resample OutputVar with 3 dimensions (src_var) on an OutputVar
+    # with 2 dimensions (dest_var) with two dimensions being
+    # resampled and in different order in both OutputVars
+    src_long = 0.0:60.0 |> collect
+    src_lat = 0.0:30.0 |> collect
+    src_time = 0.0:5.0 |> collect
+    src_data = reshape(
+        1.0:(length(src_long) * length(src_lat) * length(src_time)),
+        (length(src_long), length(src_lat), length(src_time)),
+    )
+    src_dims =
+        OrderedDict(["long" => src_long, "lat" => src_lat, "time" => src_time])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+        "time" => Dict("units" => "seconds"),
+    ])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+
+    dest_t = 0.0:3.0 |> collect
+    dest_longitude = 0.0:45.0 |> collect
+    dest_data = reshape(
+        1.0:(length(dest_t) * length(dest_longitude)),
+        (length(dest_t), length(dest_longitude)),
+    )
+    dest_dims = OrderedDict(["t" => dest_t, "longitude" => dest_longitude])
+    dest_attribs = Dict("long_name" => "hi")
+    dest_dim_attribs = OrderedDict([
+        "t" => Dict("units" => "seconds"),
+        "longitude" => Dict("units" => "test_units1"),
+    ])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+    resampled_src_var =
+        ClimaAnalysis.resampled_as(src_var, dest_var, dim_names = ["long", "t"])
+    @test resampled_src_var.data == src_var.data[1:46, :, 1:4]
+    @test resampled_src_var.dims["time"] == dest_var.dims["t"]
+    @test resampled_src_var.dims["long"] == dest_var.dims["longitude"]
+
+    # Error handling
+    # Out of bound errors
+    dest_long = 0.0:200.0 |> collect
+    dest_data = ones(length(dest_long))
+    dest_dims = OrderedDict(["long" => dest_long])
+    dest_attribs = Dict("long_name" => "hi")
+    dest_dim_attribs = OrderedDict(["long" => Dict("units" => "test_units1")])
+    dest_var = ClimaAnalysis.OutputVar(
+        dest_attribs,
+        dest_dims,
+        dest_dim_attribs,
+        dest_data,
+    )
+    @test_throws BoundsError ClimaAnalysis.resampled_as(
+        src_var,
+        dest_var,
+        dim_names = "longitude",
+    )
 end
 
 @testset "Units" begin

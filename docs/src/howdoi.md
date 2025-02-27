@@ -118,39 +118,43 @@ You can use the `resampled_as(src_var, dest_var)` function where `src_var` is a
 OutputVar with the data you want to resample using the dimensions in another
 OutputVar `dest_var`. If resampling is possible, then a new `OutputVar` is
 returned where the data in `src_var` is resampled using a linear interpolation
-to fit the dimensions in `dest_var`. Resampling is not possible when the
+to fit the dimensions in `dest_var`. Resampling only over selected dimensions is
+possible with the keyword `dim_names`. Resampling is not possible when the
 dimensions in either `OutputVar`s are missing units, the dimensions between the
 `OutputVar`s do not agree, or the data in `src_var` is not defined everywhere on
 the dimensions in `dest_var`.
 
-```julia
-julia> src_var.data
-3×4 Matrix{Float64}:
- 1.0  4.0  7.0  10.0
- 2.0  5.0  8.0  11.0
- 3.0  6.0  9.0  12.0
+```@setup resampled_as
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
 
-julia> src_var.dims
-OrderedDict{String, Vector{Float64}} with 2 entries:
-  "lon"      => [0.0, 1.0, 2.0]
-  "latitude" => [0.0, 1.0, 2.0, 3.0]
+src_lon = [0.0, 1.0, 2.0]
+src_lat = [0.0, 1.0, 2.0, 3.0]
+src_var_data = reshape(1.0:12.0, (3,4)) |> Array
+src_dims = OrderedDict("lon" => src_lon, "latitude" => src_lat)
+src_dim_attribs = OrderedDict("lon" => Dict("units" => "degrees"), "latitude" => Dict("units" => "degrees"))
+src_attribs = Dict("long_name" => "hi")
+src_var = ClimaAnalysis.OutputVar(src_attribs, src_dims, src_dim_attribs, src_var_data)
 
-julia> dest_var.dims # dims that src_var.data should be resampled on
-OrderedDict{String, Vector{Float64}} with 2 entries:
-  "long" => [0.0, 1.0]
-  "lat"  => [0.0, 1.0, 2.0]
+dest_long = [0.0, 1.0]
+dest_lat = [0.0, 1.0, 2.0]
+dest_var_data = [[1.0, 2.0]  [4.0, 5.0]  [7.0, 8.0]]
+dest_dims = OrderedDict("long" => dest_long, "lat" => dest_lat)
+dest_dim_attribs = OrderedDict("long" => Dict("units" => "degrees"), "lat" => Dict("units" => "degrees"))
+dest_attribs = Dict("long_name" => "hi")
+dest_var = ClimaAnalysis.OutputVar(dest_attribs, dest_dims, dest_dim_attribs, dest_var_data)
+```
 
-julia> resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var);
-
-julia> resampled_var.data
-2×3 Matrix{Float64}:
- 1.0  4.0  7.0
- 2.0  5.0  8.0
-
-julia> resampled_var.dims # updated dims that are the same as the dims in dest_var
-OrderedDict{String, Vector{Float64}} with 2 entries:
-  "lon"      => [0.0, 1.0]
-  "latitude" => [0.0, 1.0, 2.0]
+```@repl resampled_as
+src_var.data
+src_var.dims
+resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var);
+resampled_var.data
+resampled_var.dims # updated dims that are the same as the dims in dest_var
+partial_resampled_var = # dim_names is either a string or an iterable
+    ClimaAnalysis.resampled_as(src_var, dest_var, dim_names = "longitude");
+partial_resampled_var.data
+partial_resampled_var.dims
 ```
 
 ## How do I apply a land or sea mask to a `OutputVar`?
