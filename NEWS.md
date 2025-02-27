@@ -1,5 +1,16 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.14
+-------
+
+## Partial resampling
+Sometimes, it is necessary to resample over a subset of all the dimensions of a variable
+(e.g., resample the spatial dimensions while preserving the temporal ones). `resampled_as`
+now includes a new keyword argument to allow this. When called with `dim_names`,
+`resampled_as` will resample only the specified dimensions. For example, if one wants to
+resample only over longitude and latitude, then one can use
+`resampled_as(src_var, dest_var, dim_names = ["longitude, "latitude"])`.
+
 v0.5.13
 -------
 
