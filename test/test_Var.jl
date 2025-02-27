@@ -302,6 +302,20 @@ end
     expected_avg = dropdims(nanmean(data .* weights, dims = 3), dims = 3)
     @test wei_lat_avg.data ≈ expected_avg
 
+    # Test weighted average lat with Float32 and NaN
+    # We are testing that no error is thrown and do not care about correctness
+    # here
+    f32_long = Float32.(0.0:180.0 |> collect)
+    f32_lat = Float32.(0.0:90.0 |> collect)
+    f32_time = Float32.(0.0:10.0 |> collect)
+    data_with_NaN = collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
+    data_with_NaN[1, 1, 1] = NaN
+    dims =
+        OrderedDict(["time" => f32_time, "lon" => f32_long, "lat" => f32_lat])
+    wei_lat_avg =
+        ClimaAnalysis.remake(var, dims = dims, data = data_with_NaN) |>
+        ClimaAnalysis.weighted_average_lat
+
     # Test reduction with NaN
     latnan = [1, 2, 3]
     datanan = [10.0, 20.0, NaN]

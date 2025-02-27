@@ -703,7 +703,7 @@ function average_lat(var; ignore_nan = true, weighted = false)
         lat_index = var.dim2index[latitude_name(var)]
         weights = ones(size(var.data))
         # Create a bitmask for the NaN's, we use this to remove weights in the normalization (with nanmean)
-        nan_mask = ifelse.(isnan.(var.data), NaN, 1)
+        nan_mask = ifelse.(isnan.(var.data), NaN, 1.0)
         for index in CartesianIndices(weights)
             index_tuple =
                 ntuple(d -> d == lat_index ? Colon() : index[d], ndims(weights))
