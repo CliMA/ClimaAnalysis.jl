@@ -24,7 +24,8 @@ export times,
     has_latitude,
     has_altitude,
     has_pressure,
-    conventional_dim_name
+    conventional_dim_name,
+    find_corresponding_dim_name
 
 """
     _dim_name(dim_names, allowed_names)
@@ -208,4 +209,27 @@ function conventional_dim_name(dim_name::AbstractString)
     dim_name in ALTITUDE_NAMES && return "altitude"
     dim_name in PRESSURE_NAMES && return "pressure"
     return dim_name
+end
+
+"""
+    find_corresponding_dim_name(dim_name::AbstractString, dim_names::Iterable)
+
+Find the corresponding dimension name in `dim_names` that match `dim_name`.
+
+Example
+==========
+
+```jldoctest
+julia> ClimaAnalysis.Var.find_corresponding_dim_name("longitude", ["lat", "lon"])
+"lon"
+```
+"""
+function find_corresponding_dim_name(dim_name::AbstractString, dim_names)
+    dim_names = collect(dim_names)
+    standard_dim_name = conventional_dim_name(dim_name)
+    corresponding_dim_name =
+        _dim_name([standard_dim_name], conventional_dim_name.(dim_names))
+    isnothing(corresponding_dim_name) &&
+        error("Cannot find correspond dimension for $dim_name in $dim_names")
+    return dim_names[corresponding_dim_name]
 end

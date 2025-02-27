@@ -510,6 +510,22 @@ end
     @test ClimaAnalysis.conventional_dim_name("z") == "altitude"
     @test ClimaAnalysis.conventional_dim_name("hi") == "hi"
     @test ClimaAnalysis.conventional_dim_name("pfull") == "pressure"
+    @test ClimaAnalysis.find_corresponding_dim_name(
+        "lat",
+        ["latitude", "longitude"],
+    ) == "latitude"
+    @test ClimaAnalysis.find_corresponding_dim_name(
+        "lat",
+        ["longitude", "latitude"],
+    ) == "latitude"
+    @test ClimaAnalysis.find_corresponding_dim_name(
+        "hi",
+        ["longitude", "hi"],
+    ) == "hi"
+    @test_throws ErrorException ClimaAnalysis.find_corresponding_dim_name(
+        "lat",
+        ["longitude", "pfull"],
+    )
 
     # Pressure dim
     pressure = 0:100.0 |> collect
