@@ -352,9 +352,10 @@ Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.plot_bias_on_globe!(
     place::MakiePlace,
-    sim::ClimaAnalysis.OutputVar,
+    var::ClimaAnalysis.OutputVar,
     obs::ClimaAnalysis.OutputVar;
     cmap_extrema = nanextrema(ClimaAnalysis.bias(sim, obs).data),
+    color_scheme = :PRGn_9,
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
@@ -369,20 +370,20 @@ function Visualize.plot_bias_on_globe!(
 )
     _, apply_mask = _find_mask_to_apply(mask)
 
-    bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
-    global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
-    rmse = round(
-        ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
-        sigdigits = 3,
-    )
-    units = ClimaAnalysis.units(bias_var)
+    # bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
+    # global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
+    # rmse = round(
+    #     ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
+    #     sigdigits = 3,
+    # )
+    # units = ClimaAnalysis.units(bias_var)
 
-    bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
+    # bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
     min_level, max_level = cmap_extrema
 
     # Make sure that 0 is at the center
     cmap = Visualize._constrained_cmap(
-        Makie.cgrad(:vik).colors,
+        Makie.cgrad(color_scheme).colors,
         min_level,
         max_level;
         categorical = true,
@@ -398,7 +399,7 @@ function Visualize.plot_bias_on_globe!(
     # Take the maximum with 0 because log(0.1, 0.1 * (max_level - min_level)) is negative
     # when the difference is greater than or equal to 100
     digits_to_round = max(0, ceil(Int, log(0.1, 0.1 * (max_level - min_level))))
-    ticklabels = map(x -> string(round(x; digits = digits_to_round)), levels)
+    ticklabels = map(x -> string(Int(round(x))), levels)#; digits = digits_to_round)), levels)
     ticks = (levels, ticklabels)
 
     default_kwargs = Dict(
@@ -414,7 +415,7 @@ function Visualize.plot_bias_on_globe!(
         ClimaAnalysis.Utils._recursive_merge(default_kwargs, more_kwargs)
     return Visualize.contour2D_on_globe!(
         place,
-        bias_var;
+        var;
         p_loc = p_loc,
         plot_coastline = plot_coastline,
         plot_colorbar = plot_colorbar,

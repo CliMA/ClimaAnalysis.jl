@@ -637,6 +637,7 @@ function Visualize._constrained_cmap(
     # Values on [0,1] where the new colors are defined
     new_colsvals = _to_unitrange.(filter_colsvals, lo_m, hi_m)
     cmap = Makie.cgrad(newcols, new_colsvals; categorical, rev = false)
+   # Main.@infiltrate
     return cmap
 end
 
@@ -889,7 +890,7 @@ function Visualize.plot_leaderboard!(
         ax_bottom_and_left,
         rmse_normalized_arr,
         colormap = colormap,
-        # Trick to exclude the zeros
+        # Tri    ck to exclude the zeros
         lowclip = :white,
         colorrange = (1e-10, maximum(rmse_no_nan_vec)),
     )
