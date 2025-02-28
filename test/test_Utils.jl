@@ -105,6 +105,22 @@ end
     @test Utils.split_by_season(dates) == expected_dates
 end
 
+@testset "find season and year" begin
+    dates = [Dates.DateTime(2010, i) for i in 1:12]
+    @test Utils.find_season_and_year(dates[1]) == ("DJF", 2009)
+    @test Utils.find_season_and_year(dates[2]) == ("DJF", 2009)
+    @test Utils.find_season_and_year(dates[3]) == ("MAM", 2010)
+    @test Utils.find_season_and_year(dates[4]) == ("MAM", 2010)
+    @test Utils.find_season_and_year(dates[5]) == ("MAM", 2010)
+    @test Utils.find_season_and_year(dates[6]) == ("JJA", 2010)
+    @test Utils.find_season_and_year(dates[7]) == ("JJA", 2010)
+    @test Utils.find_season_and_year(dates[8]) == ("JJA", 2010)
+    @test Utils.find_season_and_year(dates[9]) == ("SON", 2010)
+    @test Utils.find_season_and_year(dates[10]) == ("SON", 2010)
+    @test Utils.find_season_and_year(dates[11]) == ("SON", 2010)
+    @test Utils.find_season_and_year(dates[12]) == ("DJF", 2010)
+end
+
 @testset "equispaced" begin
     equispaced = Utils._isequispaced([1.0, 2.0, 3.0])
     @test equispaced == true
