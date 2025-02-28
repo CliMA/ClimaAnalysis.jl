@@ -1032,6 +1032,101 @@ end
     )
 end
 
+@testset "_check_time_dim" begin
+    # Satisfies all conditions
+    time = 0.0:10.0 |> collect
+    data = ones(length(time))
+    dims = OrderedDict(["time" => time])
+    attribs = Dict("start_date" => Dates.DateTime(2010))
+    dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
+    time_var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test time_var |> ClimaAnalysis.Var._check_time_dim |> isnothing
+
+    # Time dimension does not exist
+    no_time_var = ClimaAnalysis.average_time(time_var)
+    @test_throws ErrorException ClimaAnalysis.Var._check_time_dim(no_time_var)
+
+    # Unit for the time dimension is not second
+    dim_attribs = OrderedDict(["time" => Dict("units" => "min")])
+    minute_var = ClimaAnalysis.remake(time_var, dim_attributes = dim_attribs)
+    @test_throws ErrorException ClimaAnalysis.Var._check_time_dim(no_time_var)
+
+    # Start date is not present
+    attribs = Dict("no start date" => "idk")
+    no_date_var = ClimaAnalysis.remake(time_var, attributes = attribs)
+    @test_throws ErrorException ClimaAnalysis.Var._check_time_dim(no_date_var)
+end
+
+@testset "split along dim" begin
+    lat = collect(range(-89.5, 89.5, 10))
+    lon = collect(range(-179.5, 179.5, 10))
+    time = collect(range(0.0, 10.0, 11))
+    data = reshape(
+        1.0:1.0:(length(lat) * length(lon) * length(time)),
+        (length(lat), length(lon), length(time)),
+    )
+    dims = OrderedDict(["lat" => lat, "lon" => lon, "time" => time])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+        "time" => Dict("units" => "s"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # Empty case
+    empty_var = ClimaAnalysis.Var._split_along_dim(var, "lon", [[]]) |> first
+    @test isempty(empty_var)
+
+    # No splitting
+    no_split_var =
+        ClimaAnalysis.Var._split_along_dim(var, "time", [time]) |> first
+    @test var.dims == no_split_var.dims
+    @test var.data == no_split_var.data
+    @test var.attributes == no_split_var.attributes
+    @test var.dim_attributes == no_split_var.dim_attributes
+
+    # Split along time dimension
+    time_split_vars = ClimaAnalysis.Var._split_along_dim(
+        var,
+        "time",
+        [[0.0, 5.0], [2.0, 7.0], []],
+    )
+    first_var = time_split_vars[begin]
+    second_var = time_split_vars[begin + 1]
+    third_var = time_split_vars[end]
+    @test isempty(third_var)
+    @test first_var.dims["time"] == [0.0, 5.0]
+    @test second_var.dims["time"] == [2.0, 7.0]
+    @test first_var.dims["lon"] == lon
+    @test second_var.dims["lon"] == lon
+    @test first_var.dims["lat"] == lat
+    @test second_var.dims["lat"] == lat
+    @test first_var.data == data[:, :, [1, 6]]
+    @test second_var.data == data[:, :, [3, 8]]
+    @test first_var.dim_attributes == var.dim_attributes
+    @test second_var.dim_attributes == var.dim_attributes
+
+    # Split along latitude dimension
+    lat_split_vars = ClimaAnalysis.Var._split_along_dim(
+        var,
+        "lat",
+        [lat[begin:5], lat[6:end]],
+    )
+    first_var = lat_split_vars[begin]
+    second_var = lat_split_vars[end]
+    @test first_var.dims["lat"] == lat[begin:5]
+    @test second_var.dims["lat"] == lat[6:end]
+    @test first_var.dims["lon"] == lon
+    @test second_var.dims["lon"] == lon
+    @test first_var.dims["time"] == time
+    @test second_var.dims["time"] == time
+    @test first_var.data == data[begin:5, :, :]
+    @test second_var.data == data[6:end, :, :]
+    @test first_var.dim_attributes == var.dim_attributes
+    @test second_var.dim_attributes == var.dim_attributes
+end
+
 @testset "split_by_season" begin
     lon = collect(range(-179.5, 179.5, 360))
     lat = collect(range(-89.5, 89.5, 180))
