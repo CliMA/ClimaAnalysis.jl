@@ -121,6 +121,24 @@ end
     @test Utils.find_season_and_year(dates[12]) == ("DJF", 2010)
 end
 
+@testset "split by season across time" begin
+    # Test empty array
+    @test Utils.split_by_season_across_time(Dates.DateTime[]) == []
+
+    # Test every first day and last day of each month in 2010
+    dates_first_day = [Dates.DateTime(2010, i, 1) for i in 1:12]
+    dates_last_day = [Dates.lastdayofmonth(date) for date in dates_first_day]
+    dates = vcat(dates_first_day, dates_last_day)
+    # Should work without sorting first
+    splits = Utils.split_by_season_across_time(dates)
+    dates = dates |> sort
+    @test splits[1] == dates[1:4] # 1/1, 1/31, 2/1, 2/28
+    @test splits[2] == dates[5:10] # 3/1, 3/31, 4/1, 4/30, 5/1, 5/31
+    @test splits[3] == dates[11:16] # 6/1, 6/30, 7/1, 7/31, 8/1, 8/31
+    @test splits[4] == dates[17:22] # 9/1, 9/30, 10/1, 10/31, 11/1, 11/30
+    @test splits[5] == dates[23:24] # 12/1
+end
+
 @testset "equispaced" begin
     equispaced = Utils._isequispaced([1.0, 2.0, 3.0])
     @test equispaced == true
