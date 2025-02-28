@@ -303,6 +303,31 @@ function split_by_season(dates::AbstractArray{<:Dates.DateTime})
 
     return (MAM, JJA, SON, DJF)
 end
+"""
+    find_season_and_year(date::Dates.DateTime)
+
+Return a tuple of the year and season belong to `date`. The variable `year` is
+an integer and `season` is a string.
+
+The months of the seasons are March to May, June to August, September to
+November, and December to February. If a date is in December to February, the
+year is chosen to be the year that the season starts.
+"""
+function find_season_and_year(date::Dates.DateTime)
+    if Dates.Month(3) <= Dates.Month(date) <= Dates.Month(5)
+        return ("MAM", Dates.year(date))
+    elseif Dates.Month(6) <= Dates.Month(date) <= Dates.Month(8)
+        return ("JJA", Dates.year(date))
+    elseif Dates.Month(9) <= Dates.Month(date) <= Dates.Month(11)
+        return ("SON", Dates.year(date))
+    else
+        # ambiguous what year should be used, so we use the convention that
+        # it is the year of December
+        corrected_year =
+            Dates.month(date) == 12 ? Dates.year(date) : Dates.year(date) - 1
+        return ("DJF", corrected_year)
+    end
+end
 
 """
     _isequispaced(arr::Vector)
