@@ -1,5 +1,12 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.14
+-------
+
+## Split by seasons across time
+It may be the case that you want to split seasons, but also want to retain the order that
+the seasons appear in across time. This can be done by using `split_by_season_across_time`.
+
 v0.5.13
 -------
 

@@ -218,6 +218,47 @@ ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September 
 [MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
 [MAM.data, JJA.data, DJF.data]
 ```
+
+It may be the case that you want to split seasons, but also want to retain the order that
+the seasons appear in across time. This can be done by using `split_by_season_across_time`.
+See the example below.
+
+```@setup split_by_season_across_time
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
+
+lon = collect(range(-179.5, 179.5, 36))
+lat = collect(range(-89.5, 89.5, 18))
+time = [0.0]
+push!(time, 5_184_000.0) # correspond to 2024-3-1
+push!(time, 13_132_800.0) # correspond to 2024-6-1
+push!(time, 21_081_600.0) # correspond to 2024-9-1
+push!(time, 28_944_000.0) # correspond to 2024-12-1
+
+data = reshape(
+    1.0:1.0:(length(lat) * length(time) * length(lon)),
+    (length(lat), length(time), length(lon)),
+)
+dims = OrderedDict(["lat" => lat, "time" => time, "lon" => lon])
+attribs = Dict("long_name" => "hi", "start_date" => "2024-1-1")
+dim_attribs = OrderedDict([
+    "lat" => Dict("units" => "deg"),
+    "time" => Dict("units" => "s"),
+    "lon" => Dict("units" => "deg"),
+])
+var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+```
+
+```@repl split_by_season_across_time
+var.attributes["start_date"]
+ClimaAnalysis.times(var) # dates from January, March, June, August, and December
+split_var = ClimaAnalysis.split_by_season_across_time(var);
+length(split_var) # months span over 5 seasons
+ClimaAnalysis.times(split_var[1]) # correspond to 1/1 (middle of DJF)
+ClimaAnalysis.times(split_var[2]) # correspond to 3/1 (start of MAM)
+ClimaAnalysis.times(split_var[3]) # correspond to 6/1 (start of JJA)
+ClimaAnalysis.times(split_var[4]) # correspond to 9/1 (start of SON)
+ClimaAnalysis.times(split_var[5]) # correspond to 12/1 (start of DJF)
 ```
 
 ## Bias and squared error
