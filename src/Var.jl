@@ -1858,7 +1858,8 @@ function Base.show(io::IO, var::OutputVar)
     # Print the key value pairs of attributes
     printstyled(io, "Attributes:\n", bold = true, color = :green)
     # Find spacing to pad out key of var.attributes
-    max_length_attribs = maximum(length(x) for (x, _) in var.attributes)
+    max_length_attribs =
+        maximum(length(x) for (x, _) in var.attributes; init = 0)
     for (key, val) in var.attributes
         print(io, "  " * rpad(key, max_length_attribs) * " => ")
         printstyled(io, "$(val)\n", color = :light_cyan)
@@ -1869,7 +1870,8 @@ function Base.show(io::IO, var::OutputVar)
     # Find spacing to pad out key of var.attributes
     for (dim, dim_attrib) in var.dim_attributes
         printstyled(io, "  $dim:\n", color = :light_green)
-        max_length_dim_attribs = maximum(length(x) for (x, _) in dim_attrib)
+        max_length_dim_attribs =
+            maximum(length(x) for (x, _) in dim_attrib; init = 0)
         for (key, val) in dim_attrib
             print(io, "    " * rpad(key, max_length_dim_attribs) * " => ")
             printstyled(io, "$(val)\n", color = :light_cyan)
@@ -1877,12 +1879,16 @@ function Base.show(io::IO, var::OutputVar)
     end
 
     # Print the dimensions that the data is defined over
-    printstyled(io, "Data defined over:\n", bold = true, color = :green)
-    max_length_dims = maximum(length(x) for (x, _) in var.dims)
-    for (dim, array) in var.dims
+    printstyled(io, "Data defined over:", bold = true, color = :green)
+    # Do not add a new line if there is nothing to print in var.dims
+    !isempty(var.dims) && print(io, "\n")
+    max_length_dims = maximum(length(x) for (x, _) in var.dims; init = 0)
+    for (i, (dim, array)) in enumerate(var.dims)
         printstyled(io, "  " * rpad(dim, max_length_dims), color = :light_green)
         print(io, " with ")
         printstyled(io, "$(length(array)) ", color = :light_cyan)
+
+        # Print contents depending on size of the dimension
         if length(array) >= 2
             print(io, "elements")
             sorted_at_all = issorted(array) || issorted(array, rev = true)
@@ -1897,14 +1903,18 @@ function Base.show(io::IO, var::OutputVar)
                 printstyled(io, "not sorted", color = :red)
                 print(io, ")")
             end
-        end
-        if length(array) == 1
+        elseif length(array) == 1
             print(io, "element")
             print(io, " (")
             printstyled(io, "$(array[begin])", color = :light_cyan)
             print(io, ")")
+        elseif length(array) == 0
+            print(io, "element")
         end
-        print(io, "\n")
+        # Do not add a new line on the last dimension
+        if i != length(var.dims)
+            print(io, "\n")
+        end
     end
 end
 
