@@ -1,5 +1,18 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.14
+-------
+
+## Split by seasons across time
+It may be the case that you want to split a `OutputVar` by season, while keeping each year
+separate. This is different from `split_by_season`, which ignores that seasons can come from
+different years. This can be done by using `split_by_season_across_time`. For example, if a
+`OutputVar` contains times corresponding to 2010-01-01, 2010-03-01, 2010-06-01, 2010-09-01,
+and 2010-12-01, then the result of `split_by_season_across_time` is five `OutputVar`s, each
+corresponding to a distinct date. Even though 2010-01-01 and 2010-12-01 are in the same
+season, there are two `OutputVar`s, because the dates do not belong in the same season and
+year.
+
 v0.5.13
 -------
 
