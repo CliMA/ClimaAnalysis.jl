@@ -1,7 +1,7 @@
 # Customize these variables to allow other names
 LONGITUDE_NAMES = ["long", "lon", "longitude"]
 LATITUDE_NAMES = ["lat", "latitude"]
-TIME_NAMES = ["t", "time"]
+TIME_NAMES = ["t", "time", "valid_time"]
 DATE_NAMES = ["date"]
 ALTITUDE_NAMES = ["z", "z_reference", "z_physical"]
 PRESSURE_NAMES = ["pfull", "pressure_level"]
