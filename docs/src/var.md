@@ -197,35 +197,27 @@ the seasons are March to May, June to August, September to November, and Decembe
 February. The order of the vector is MAM, JJA, SON, and DJF. If there are no dates found for
 a season, then the `OutputVar` for that season will be an empty `OutputVar`.
 
-```@julia split_by_season
-julia> attribs = Dict("start_date" => "2024-1-1");
+```@setup split_by_season
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
 
-julia> time = [0.0, 5_184_000.0, 13_132_800.0]; # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+attribs = Dict("start_date" => "2024-1-1");
+time = [0.0, 5_184_000.0, 13_132_800.0]; # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+dims = OrderedDict(["time" => time]);
+dim_attribs = OrderedDict(["time" => Dict("units" => "s")]); # unit is second
+data = [1.0, 2.0, 3.0];
+var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
+```
 
-julia> dims = OrderedDict(["time" => time]);
-
-julia> dim_attribs = OrderedDict(["time" => Dict("units" => "s")]); # unit is second
-
-julia> data = [1.0, 2.0, 3.0];
-
-julia> var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
-
-julia> MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
-
-julia> ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
-true
-
-julia> [MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
-3-element Vector{Vector{Float64}}:
- [5.184e6]
- [1.31328e7]
- [0.0]
-
-julia> [MAM.data, JJA.data, DJF.data]
-3-element Vector{Vector{Float64}}:
- [2.0]
- [3.0]
- [1.0]
+```@repl split_by_season
+var.attributes
+ClimaAnalysis.times(var) # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+var.data
+MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
+ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
+[MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
+[MAM.data, JJA.data, DJF.data]
+```
 ```
 
 ## Bias and squared error

@@ -1297,41 +1297,68 @@ expected to be second. Also, the interpolations will be inaccurate in time inter
 outside of their respective season for the returned `OutputVar`s.
 """
 function split_by_season(var::OutputVar)
-    # Check time exists and unit is second
-    has_time(var) || error("Time is not a dimension in var")
-    dim_units(var, time_name(var)) == "s" ||
-        error("Unit for time is not second")
-
-    # Check start date exists
-    haskey(var.attributes, "start_date") ?
-    start_date = Dates.DateTime(var.attributes["start_date"]) :
-    error("Start date is not found in var")
+    _check_time_dim(var::OutputVar)
+    start_date = Dates.DateTime(var.attributes["start_date"])
 
     season_dates = split_by_season(time_to_date.(start_date, times(var)))
     season_times =
         (date_to_time.(start_date, season) for season in season_dates)
 
-    # Split data according to seasons
-    season_data = (
+    return _split_along_dim(var, time_name(var), season_times)
+end
+"""
+    check_time_dim(var::OutputVar)
+
+Check time dimension exists, unit for the time dimension is second, and a
+start date is present.
+"""
+function _check_time_dim(var::OutputVar)
+    has_time(var) || error("Time is not a dimension in var")
+    dim_units(var, time_name(var)) == "s" ||
+        error("Unit for time is not second")
+    haskey(var.attributes, "start_date") ||
+        error("Start date is not found in var")
+    return nothing
+end
+
+"""
+    _split_along_dim(var::OutputVar, dim_name, split_vectors)
+
+Given `dim_name` in `var`, split the `OutputVar` by the values in `split_vectors`
+and return a vector of `OutputVar`s.
+
+For example, if `dim_name = "time" and `split_vectors = [[0.0, 3.0], [2.0,
+4.0]]`, the result is a vector of two `OutputVar`s, where the first OutputVar
+has a time dimension of `[0.0, 3.0]` and the second OutputVar has a time
+dimension of `[2.0, 4.0]`.
+
+If the vector in `split_vectors` is empty, then an empty OutputVar is returned.
+Additonally, there is no checks that are performed in the values in the vectors
+in `split_vectors` as the nearest values in `var.dims[dim_name]` are used for
+splitting.
+"""
+function _split_along_dim(var::OutputVar, dim_name, split_vectors)
+    # Split data by vectors in split_vectors
+    split_data = (
         collect(
             _data_at_dim_vals(
                 var.data,
-                times(var),
-                var.dim2index[time_name(var)],
-                season_time,
+                var.dims[dim_name],
+                var.dim2index[dim_name],
+                split,
             ),
-        ) for season_time in season_times
+        ) for split in split_vectors
     )
 
     # Construct an OutputVar for each season
-    return map(season_times, season_data) do time, data
-        if isempty(time)
+    return map(split_vectors, split_data) do split, data
+        if isempty(split)
             dims = empty(var.dims)
             data = similar(var.data, 0)
             return OutputVar(dims, data)
         end
         ret_dims = deepcopy(var.dims)
-        ret_dims[time_name(var)] = time
+        ret_dims[dim_name] = split
         remake(var, dims = ret_dims, data = data)
     end
 end
