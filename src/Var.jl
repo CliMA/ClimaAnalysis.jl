@@ -14,6 +14,7 @@ import ..Utils:
     seconds_to_prettystr,
     squeeze,
     split_by_season,
+    split_by_season_across_time,
     time_to_date,
     date_to_time,
     _data_at_dim_vals,
@@ -48,6 +49,7 @@ export OutputVar,
     integrate_lat,
     isempty,
     split_by_season,
+    split_by_season_across_time,
     bias,
     global_bias,
     squared_error,
@@ -1306,6 +1308,39 @@ function split_by_season(var::OutputVar)
 
     return _split_along_dim(var, time_name(var), season_times)
 end
+
+"""
+    split_by_season_across_time(var::OutputVar)
+
+Split `var` into `OutputVar`s representing seasons, sorted in chronological order. Each
+`OutputVar` corresponds to a single season, and the ordering of the `OutputVar`s is
+determined by the dates of the season. The return type is a vector of `OutputVar`s.
+
+The months of the seasons are March to May (MAM), June to August (JJA),
+September to November (SON), and December to February (DJF). If there are no
+dates found for a season, then the `OutputVar` for that season will be an empty
+`OutputVar`. The first `OutputVar` is guaranteed to not be empty.
+
+The function will use the start date in `var.attributes["start_date"]`. The unit of time is
+expected to be second.
+
+This function differs from `split_by_season` as `split_by_season` splits dates by
+season and ignores that seasons can come from different years.
+"""
+function split_by_season_across_time(var::OutputVar)
+    _check_time_dim(var::OutputVar)
+    start_date = Dates.DateTime(var.attributes["start_date"])
+
+    seasons_across_year_dates =
+        split_by_season_across_time(time_to_date.(start_date, times(var)))
+    seasons_across_year_times = (
+        date_to_time.(start_date, season) for
+        season in seasons_across_year_dates
+    )
+
+    return _split_along_dim(var, time_name(var), seasons_across_year_times)
+end
+
 """
     check_time_dim(var::OutputVar)
 
