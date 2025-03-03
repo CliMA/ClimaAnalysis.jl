@@ -1062,49 +1062,90 @@ function arecompatible(x::OutputVar, y::OutputVar)
 end
 
 """
-    _check_dims_consistent(x::OutputVar, y::OutputVar)
+    _check_dims_consistent(x::OutputVar, y::OutputVar, dim_names = nothing)
 
 Check if the number, name, and unit of dimensions in `x` and `y` are consistent.
+Order of the dimensions is not checked.
 
 If the unit for a dimension is missing, then the unit is not consistent for that dimension.
+
+If the iterable or string `dim_names` is supplied, then the dimensions in `dim_names` are
+the dimensions that are checked.
 """
-function _check_dims_consistent(x::OutputVar, y::OutputVar)
+function _check_dims_consistent(x::OutputVar, y::OutputVar; dim_names = nothing)
+    x_dims = x.dims
+    y_dims = y.dims
+    if dim_names isa AbstractString
+        dim_names = [dim_names]
+    end
+    if !isnothing(dim_names)
+        # Determine if dim_names are in both x and y
+        x_dim_names = conventional_dim_name.(keys(x.dims))
+        y_dim_names = conventional_dim_name.(keys(y.dims))
+        dim_names = conventional_dim_name.(collect(dim_names))
+        for dim_name in dim_names
+            dim_name in x_dim_names || error(
+                "Cannot find $dim_name in the dimension names of x ($x_dim_names)",
+            )
+            dim_name in y_dim_names || error(
+                "Cannot find $dim_name in the dimension names of y ($y_dim_names)",
+            )
+        end
+        # Keep only the dimensions we care about
+        keep_dim_name(dim_name) = conventional_dim_name(dim_name) in dim_names
+        x_dims =
+            filter(dim_name_arr -> keep_dim_name(first(dim_name_arr)), x_dims)
+        y_dims =
+            filter(dim_name_arr -> keep_dim_name(first(dim_name_arr)), y_dims)
+    end
+
     # Check if the number of dimensions is the same
-    x_num_dims = length(x.dims)
-    y_num_dims = length(y.dims)
+    x_num_dims = length(x_dims)
+    y_num_dims = length(y_dims)
     x_num_dims != y_num_dims && error(
         "Number of dimensions do not match between x ($x_num_dims) and y ($y_num_dims)",
     )
 
-    # Check if the dimensions agree with each other
-    conventional_dim_name_x = conventional_dim_name.(keys(x.dims))
-    conventional_dim_name_y = conventional_dim_name.(keys(y.dims))
+    # Check if the dimensions agree with each other (order does not matter)
+    conventional_dim_name_x = Set(conventional_dim_name.(keys(x_dims)))
+    conventional_dim_name_y = Set(conventional_dim_name.(keys(y_dims)))
     mismatch_conventional_dim_name =
-        conventional_dim_name_x .!= conventional_dim_name_y
-    any(mismatch_conventional_dim_name) && error(
+        conventional_dim_name_x != conventional_dim_name_y
+    mismatch_conventional_dim_name && error(
         "Dimensions do not agree between x ($conventional_dim_name_x) and y ($conventional_dim_name_y)",
     )
 
-    x_dims = collect(keys(x.dims))
-    y_dims = collect(keys(y.dims))
-    x_units = [dim_units(x, dim_name) for dim_name in x_dims]
-    y_units = [dim_units(y, dim_name) for dim_name in y_dims]
+    # Reorder dimensions to check for units
+    # We only care about the name of the dimensions
+    x_dim_names_reordered = collect(keys(x_dims))
+    y_dim_names_reordered = empty(collect((keys(y_dims))))
+    for dim_name in keys(x_dims)
+        push!(
+            y_dim_names_reordered,
+            find_corresponding_dim_name(dim_name, keys(y_dims)),
+        )
+    end
+
+    x_units = [dim_units(x, dim_name) for dim_name in x_dim_names_reordered]
+    y_units = [dim_units(y, dim_name) for dim_name in y_dim_names_reordered]
 
     # Check for any missing units (missing units are represented with an empty string)
     missing_x = (x_units .== "")
     missing_y = (y_units .== "")
     (any(missing_x) && any(missing_y)) && error(
-        "Units for dimensions $(x_dims[missing_x]) are missing in x and units for dimensions $(y_dims[missing_y]) are missing in y",
+        "Units for dimensions $(x_dim_names_reordered[missing_x]) are missing in x and units for dimensions $(y_dim_names_reordered[missing_y]) are missing in y",
     )
-    any(missing_x) &&
-        error("Units for dimensions $(x_dims[missing_x]) are missing in x")
-    any(missing_y) &&
-        error("Units for dimensions $(x_dims[missing_y]) are missing in y")
+    any(missing_x) && error(
+        "Units for dimensions $(x_dim_names_reordered[missing_x]) are missing in x",
+    )
+    any(missing_y) && error(
+        "Units for dimensions $(y_dim_names_reordered[missing_y]) are missing in y",
+    )
 
     # Check if units match between dimensions
     not_consistent_units = (x_units .!= y_units)
     any(not_consistent_units) && error(
-        "Units for dimensions $(x_dims[not_consistent_units]) in x is not consistent with units for dimensions $(y_dims[not_consistent_units]) in y",
+        "Units for dimensions $(x_dim_names_reordered[not_consistent_units]) in x is not consistent with units for dimensions $(y_dim_names_reordered[not_consistent_units]) in y",
     )
     return nothing
 end
@@ -1161,8 +1202,43 @@ end
 Resample `data` in `src_var` to `dims` in `dest_var`.
 
 The resampling performed here is a 1st-order linear resampling.
+
+If the string or iterable `dim_names` is nothing, then resampling is done over all
+dimensions. Otherwise, resampling is done over the dimensions in `dim_names`. If
+resampling is done over all dimensions, then reordering dimensions is
+automatically done.
 """
-function resampled_as(src_var::OutputVar, dest_var::OutputVar)
+function resampled_as(
+    src_var::OutputVar,
+    dest_var::OutputVar;
+    dim_names = nothing,
+)
+    # If dim_names is nothing, then resample over all dimensions
+    if isnothing(dim_names)
+        return _resampled_as_all(src_var, dest_var)
+    end
+
+    # If the dimensions are the same between both OutputVars and dim_names are the same as
+    # well, then resample over all dimensions
+    src_var_dim_names = Set(conventional_dim_name.(keys(src_var.dims)))
+    dest_var_dim_names = Set(conventional_dim_name.(keys(dest_var.dims)))
+    conventional_dim_names = Set(conventional_dim_name.(dim_names))
+    if (src_var_dim_names == dest_var_dim_names) &&
+       (src_var_dim_names == conventional_dim_names)
+        return _resampled_as_all(src_var, dest_var)
+    end
+
+    return _resampled_as_partial(src_var, dest_var, dim_names)
+end
+
+"""
+    _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
+
+Resample `data` in `src_var` to `dims` in `dest_var` over all dimensions.
+
+Reordering is automatically done.
+"""
+function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
     src_var = reordered_as(src_var, dest_var)
     _check_dims_consistent(src_var, dest_var)
 
@@ -1170,7 +1246,7 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     src_resampled_data =
         [itp(pt...) for pt in Base.product(values(dest_var.dims)...)]
 
-    # Construct new OutputVar to return
+    # Make new dimensions for OutputVar
     src_var_ret_dims = empty(src_var.dims)
 
     # Loop because names could be different in src_var compared to dest_var
@@ -1178,6 +1254,49 @@ function resampled_as(src_var::OutputVar, dest_var::OutputVar)
     for (dim_name, dim_data) in zip(keys(src_var.dims), values(dest_var.dims))
         src_var_ret_dims[dim_name] = copy(dim_data)
     end
+    return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
+end
+
+
+
+"""
+    resampled_as_partial(src_var::OutputVar, dest_var::OutputVar, dim_names...)
+
+Resample `data` in `src_var` to `dim_names` in `dest_var`.
+
+Dimensions are not reordered in `src_var` to match the order of the dimensions
+in `dest_var` because the dimensions in `dest_var` and `src_var` respectively
+are not necessarily the same.
+"""
+function _resampled_as_partial(
+    src_var::OutputVar,
+    dest_var::OutputVar,
+    dim_names,
+)
+    if dim_names isa AbstractString
+        dim_names = [dim_names]
+    end
+    dim_names = conventional_dim_name.(collect(dim_names))
+
+    _check_dims_consistent(src_var, dest_var, dim_names = dim_names)
+
+    # Build grid to resample over
+    src_var_ret_dims = empty(src_var.dims)
+    for (dim_name, dim) in src_var.dims
+        if conventional_dim_name(dim_name) in dim_names
+            corresponding_dim_name =
+                find_corresponding_dim_name(dim_name, keys(dest_var.dims))
+            src_var_ret_dims[dim_name] =
+                copy(dest_var.dims[corresponding_dim_name])
+        else
+            src_var_ret_dims[dim_name] = copy(dim)
+        end
+    end
+
+    itp = _make_interpolant(src_var.dims, src_var.data)
+    src_resampled_data =
+        [itp(pt...) for pt in Base.product(values(src_var_ret_dims)...)]
+
     return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
 end
 

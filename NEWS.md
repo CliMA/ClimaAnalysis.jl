@@ -6,7 +6,12 @@ v0.5.14
 ## Split by seasons across time
 It may be the case that you want to split seasons, but also want to retain the order that
 the seasons appear in across time. This can be done by using `split_by_season_across_time`.
-
+## Partial resampling
+When resampling, it may be helpful to resampling only over physical dimensions while
+ignoring the rest of the dimensions. There is a new keyword argument `dim_names` for
+`resampled_as`, which allows the user to resample only over the dimensions in
+`resampled_as`. For example, if one wants to resample only over longitude and latitude, then
+one can use `resampled_as(src_var, dest_var, dim_names = ["longitude, "latitude"])`.
 v0.5.13
 -------
 
