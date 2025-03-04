@@ -66,7 +66,7 @@ export OutputVar,
 """
     Representing an output variable
 """
-struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C}
+struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C <: AbstractDict}
 
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
@@ -198,7 +198,7 @@ function OutputVar(attribs, dims, dim_attribs, data)
 end
 
 function OutputVar(dims, data)
-    return OutputVar(Dict{String, Any}(), dims, Dict{String, Any}(), data)
+    return OutputVar(Dict{String, Any}(), dims, Dict{String, Dict}(), data)
 end
 
 """
@@ -476,7 +476,7 @@ julia> data = copy(values);
 
 julia> attribs = Dict("long_name" => "speed", "units" => "m/s");
 
-julia> dim_attribs = Dict{String, Any}();
+julia> dim_attribs = Dict{String, Dict}();
 
 julia> var = ClimaAnalysis.OutputVar(attribs, Dict("distance" => values), dim_attribs, data);
 
