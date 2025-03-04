@@ -21,7 +21,7 @@ import OrderedCollections: OrderedDict
     pdata = copy(pressure)
 
     attribs = Dict("short_name" => "pfull")
-    dim_attribs = Dict{String, Any}()
+    dim_attribs = Dict{String, Dict}()
     pressure_var =
         ClimaAnalysis.OutputVar(attribs, Dict("z" => z_alt), dim_attribs, pdata)
 
@@ -46,7 +46,7 @@ import OrderedCollections: OrderedDict
     mydata = copy(myvardata)
 
     attribs = Dict("short_name" => "myvar")
-    dim_attribs = Dict{String, Any}()
+    dim_attribs = Dict{String, Dict}()
     myvar = ClimaAnalysis.OutputVar(
         attribs,
         Dict("z" => z_alt),
@@ -68,7 +68,7 @@ import OrderedCollections: OrderedDict
     exp_pdata = copy(exp_pressure)
 
     attribs = Dict("short_name" => "pfull")
-    dim_attribs = Dict{String, Any}()
+    dim_attribs = Dict{String, Dict}()
     exp_pressure_var = ClimaAnalysis.OutputVar(
         attribs,
         Dict("z" => z_alt),
@@ -159,7 +159,7 @@ import OrderedCollections: OrderedDict
     pdata = copy(pressure)
 
     attribs = Dict("short_name" => "pfull")
-    dim_attribs = Dict{String, Any}()
+    dim_attribs = Dict{String, Dict}()
     pressure_var =
         ClimaAnalysis.OutputVar(attribs, Dict("z" => z_alt), dim_attribs, pdata)
 
