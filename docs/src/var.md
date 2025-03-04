@@ -197,35 +197,75 @@ the seasons are March to May, June to August, September to November, and Decembe
 February. The order of the vector is MAM, JJA, SON, and DJF. If there are no dates found for
 a season, then the `OutputVar` for that season will be an empty `OutputVar`.
 
-```@julia split_by_season
-julia> attribs = Dict("start_date" => "2024-1-1");
+```@setup split_by_season
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
 
-julia> time = [0.0, 5_184_000.0, 13_132_800.0]; # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+attribs = Dict("start_date" => "2024-1-1");
+time = [0.0, 5_184_000.0, 13_132_800.0]; # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+dims = OrderedDict(["time" => time]);
+dim_attribs = OrderedDict(["time" => Dict("units" => "s")]); # unit is second
+data = [1.0, 2.0, 3.0];
+var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
+```
 
-julia> dims = OrderedDict(["time" => time]);
+```@repl split_by_season
+var.attributes
+ClimaAnalysis.times(var) # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
+var.data
+MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
+ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
+[MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
+[MAM.data, JJA.data, DJF.data]
+```
 
-julia> dim_attribs = OrderedDict(["time" => Dict("units" => "s")]); # unit is second
+### Split by season and year
 
-julia> data = [1.0, 2.0, 3.0];
+It may be the case that you want to split a `OutputVar` by season, while keeping each year
+separate. This is different from `split_by_season`, which ignores that seasons can come from
+different years. This can be done by using `split_by_season_across_time`. For example, if a
+`OutputVar` contains times corresponding to 2010-01-01, 2010-03-01, 2010-06-01, 2010-09-01,
+and 2010-12-01, then the result of `split_by_season_across_time` is five `OutputVar`s, each
+corresponding to a distinct date. Even though 2010-01-01 and 2010-12-01 are in the same
+season, there are two `OutputVar`s, because the dates do not belong in the same season and
+year.
 
-julia> var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
+```@setup split_by_season_across_time
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
 
-julia> MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
+lon = collect(range(-179.5, 179.5, 36))
+lat = collect(range(-89.5, 89.5, 18))
+time = [0.0]
+push!(time, 5_097_600.0) # correspond to 2024-3-1
+push!(time, 13_046_400.0) # correspond to 2024-6-1
+push!(time, 20_995_200.0) # correspond to 2024-9-1
+push!(time, 28_857_600.0) # correspond to 2024-12-1
 
-julia> ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
-true
+data = reshape(
+    1.0:1.0:(length(lat) * length(time) * length(lon)),
+    (length(lat), length(time), length(lon)),
+)
+dims = OrderedDict(["lat" => lat, "time" => time, "lon" => lon])
+attribs = Dict("long_name" => "hi", "start_date" => "2010-1-1")
+dim_attribs = OrderedDict([
+    "lat" => Dict("units" => "deg"),
+    "time" => Dict("units" => "s"),
+    "lon" => Dict("units" => "deg"),
+])
+var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+```
 
-julia> [MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
-3-element Vector{Vector{Float64}}:
- [5.184e6]
- [1.31328e7]
- [0.0]
-
-julia> [MAM.data, JJA.data, DJF.data]
-3-element Vector{Vector{Float64}}:
- [2.0]
- [3.0]
- [1.0]
+```@repl split_by_season_across_time
+var.attributes["start_date"]
+ClimaAnalysis.times(var) # dates from the first of January, March, June, August, and December
+split_var = ClimaAnalysis.split_by_season_across_time(var);
+length(split_var) # months span over 5 seasons
+ClimaAnalysis.times(split_var[1]) # correspond to 1/1 (middle of DJF)
+ClimaAnalysis.times(split_var[2]) # correspond to 3/1 (start of MAM)
+ClimaAnalysis.times(split_var[3]) # correspond to 6/1 (start of JJA)
+ClimaAnalysis.times(split_var[4]) # correspond to 9/1 (start of SON)
+ClimaAnalysis.times(split_var[5]) # correspond to 12/1 (start of DJF)
 ```
 
 ## Bias and squared error
