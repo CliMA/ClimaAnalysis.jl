@@ -347,10 +347,11 @@ Dictionary of `Symbol`s => values to pass additional options.
 """
 function Visualize.plot_bias_on_globe!(
     place::MakiePlace,
-    var::ClimaAnalysis.OutputVar,
-    obs::ClimaAnalysis.OutputVar;
-    cmap_extrema = nanextrema(ClimaAnalysis.bias(sim, obs).data),
-    color_scheme = :PRGn_9,
+    sim::ClimaAnalysis.OutputVar,
+    obs::ClimaAnalysis.OutputVar,
+    plot_bias,
+    levels;
+    cmap_extrema = plot_bias ? nanextrema(ClimaAnalysis.bias(sim, obs).data) : nanextrema(sim.data),
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
@@ -365,15 +366,20 @@ function Visualize.plot_bias_on_globe!(
 )
     _, apply_mask = _find_mask_to_apply(mask)
 
-    # bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
-    # global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
-    # rmse = round(
-    #     ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
-    #     sigdigits = 3,
-    # )
-    # units = ClimaAnalysis.units(bias_var)
+    if plot_bias
+        bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
+        global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
+        rmse = round(
+            ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
+            sigdigits = 3,
+        )
+        units = ClimaAnalysis.units(bias_var)
 
-    # bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
+        bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
+        color_scheme = :vik
+    else
+        color_scheme = :PRGn_9
+    end
     min_level, max_level = cmap_extrema
 
     # Make sure that 0 is at the center
@@ -383,11 +389,11 @@ function Visualize.plot_bias_on_globe!(
         max_level;
         categorical = true,
     )
-    nlevels = 10 # make colorbar less crowded
+    # nlevels = 10 # make colorbar less crowded
     # Offset so that it covers 0
-    levels = collect(range(min_level, max_level, length = nlevels))
-    offset = levels[argmin(abs.(levels))]
-    levels = levels .- offset
+    # levels = collect(range(min_level, max_level, length = nlevels))
+    # offset = levels[argmin(abs.(levels))]
+    # levels = levels .- offset
     # log(0.1, 0.1 * (max_level - min_level)) computes the number of digits we need to round
     # to (e.g. if the difference is 0.1, the digits we need to round to is 2 and if the
     # difference is 0.01, then the digits we need to round to is 3)
@@ -408,15 +414,28 @@ function Visualize.plot_bias_on_globe!(
     )
     default_and_more_kwargs =
         ClimaAnalysis.Utils._recursive_merge(default_kwargs, more_kwargs)
-    return Visualize.contour2D_on_globe!(
-        place,
-        var;
-        p_loc = p_loc,
-        plot_coastline = plot_coastline,
-        plot_colorbar = plot_colorbar,
-        mask = mask,
-        more_kwargs = default_and_more_kwargs,
-    )
+
+    if plot_bias
+        return Visualize.contour2D_on_globe!(
+            place,
+            bias_var;
+            p_loc = p_loc,
+            plot_coastline = plot_coastline,
+            plot_colorbar = plot_colorbar,
+            mask = mask,
+            more_kwargs = default_and_more_kwargs,
+        )
+    else
+        return Visualize.contour2D_on_globe!(
+            place,
+            sim;
+            p_loc = p_loc,
+            plot_coastline = plot_coastline,
+            plot_colorbar = plot_colorbar,
+            mask = mask,
+            more_kwargs = default_and_more_kwargs,
+        )
+    end
 end
 
 """
