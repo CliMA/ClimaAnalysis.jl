@@ -57,7 +57,7 @@ import Dates
     var_error = ClimaAnalysis.OutputVar(
         Dict{String, Any}(),
         dims,
-        Dict{String, Any}(),
+        Dict{String, Dict}(),
         data,
     )
     @test_throws ErrorException ClimaAnalysis.center_longitude!(
@@ -71,7 +71,7 @@ import Dates
     var_good = ClimaAnalysis.OutputVar(
         Dict{String, Any}(),
         dims,
-        Dict{String, Any}(),
+        Dict{String, Dict}(),
         data,
     )
     ClimaAnalysis.center_longitude!(var_good, 90.0)
@@ -530,7 +530,7 @@ end
     data = ones(length(pressure))
 
     attribs = Dict("short_name" => "K")
-    dim_attribs = Dict{String, Any}()
+    dim_attribs = Dict{String, Dict}()
     pressure_var = ClimaAnalysis.OutputVar(
         attribs,
         Dict("pfull" => pressure),
@@ -778,7 +778,7 @@ end
     src_dim_attribs_one = OrderedDict(["lat" => Dict("units" => "test_units2")])
     src_dim_attribs_empty = empty(src_dim_attribs_one)
     src_dim_attribs_extra = OrderedDict([
-        "extra_info" => "hi",
+        "extra_info" => Dict("hi" => "bye"),
         "lat" => Dict("units" => "test_units2"),
     ])
     src_var_one =
@@ -794,7 +794,7 @@ end
     reordered_var = ClimaAnalysis.reordered_as(src_var_extra, dest_var)
     @test reordered_var.dim_attributes == OrderedDict([
         "lat" => Dict("units" => "test_units2"),
-        "extra_info" => "hi",
+        "extra_info" => Dict("hi" => "bye"),
     ])
 
     # Error checking for dimensions not being the same in both
