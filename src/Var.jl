@@ -841,6 +841,29 @@ function average_xy(var; ignore_nan = true)
 
     return reduced_var
 end
+"""
+    _average_dims(var,
+                  dims;
+                  ignore_nan = true,
+                  update_long_name = true)
+
+Return a new `OutputVar` where the values along the dimensions in `dims` are averaged
+arithmetically.
+
+If `update_long_name` is `true`, then the long name is updated by using
+`_update_long_name_generic!`.
+"""
+function _average_dims(var, dims; ignore_nan = true, update_long_name = true)
+    function reduction(data; dims, ignore_nan)
+        return ignore_nan ? nanmean(data, dims = dims) : mean(data, dims = dims)
+    end
+
+    reduced_var = _reduce_over(reduction, dims, var, ignore_nan = ignore_nan)
+
+    update_long_name &&
+        _update_long_name_generic!(reduced_var, var, dims, "averaged")
+    return reduced_var
+end
 
 """
     average_time(var::OutputVar; ignore_nan = true)
