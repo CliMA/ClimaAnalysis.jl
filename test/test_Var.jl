@@ -405,6 +405,53 @@ end
           "hi averaged horizontally over x (0.0 to 180.0) and y (0.0 to 90.0) averaged over time (0.0 to 10.0)"
 end
 
+@testset "Average over arbitrary dims" begin
+    time = [0.0, 1.0, 2.0]
+    lon = [0.0, 10.0, 20.0]
+    lat = [0.0, 20.0, 40.0]
+    data = collect(reshape(1.0:27.0, (3, 3, 3)))
+    data[3, 3, 3] = NaN # replace 27
+    data[2, 2, 2] = NaN # replace 14
+    data[1, 1, 1] = NaN # replace 1
+    dims = OrderedDict(["time" => time, "lon" => lon, "lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "time" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # ignore_nan = true, update_long_name = true
+    avg_var = ClimaAnalysis.Var._average_dims(
+        var,
+        ("time", "lon", "lat"),
+        ignore_nan = true,
+        update_long_name = true,
+    )
+    @test avg_var.data[] ≈ (sum(i for i in 1:27) - 1.0 - 14.0 - 27.0) / 24.0
+    @test avg_var.attributes["long_name"] ==
+          "hi averaged over time (0.0 to 2.0deg), lon (0.0 to 20.0deg), and lat (0.0 to 40.0deg)"
+
+    # ignore_nan = false, update_long_name = true
+    avg_var = ClimaAnalysis.Var._average_dims(
+        var,
+        ("time", "lon", "lat"),
+        ignore_nan = false,
+        update_long_name = true,
+    )
+    @test isnan(avg_var.data[])
+
+    # ignore_nan = false, update_long_name = false
+    avg_var = ClimaAnalysis.Var._average_dims(
+        var,
+        ("time", "lon", "lat"),
+        ignore_nan = false,
+        update_long_name = false,
+    )
+    @test avg_var.attributes["long_name"] == "hi"
+end
+
 @testset "Slicing" begin
     z = 0.0:20.0 |> collect
     time = 100.0:110.0 |> collect
