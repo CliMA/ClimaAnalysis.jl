@@ -1,5 +1,14 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.14
+-------
+
+## Add global average along longitude and latitude
+Before, you could only compute average over one dimension. With this release, one can use
+`average_lonlat` to compute the average over both the longitude and latitude dimensions
+and `weighted_average_lonlat` to compute the global latitude-weighted average over longitude
+and latitude dimensions. Both functions ignore `NaN` by default.
+
 v0.5.13
 -------
 

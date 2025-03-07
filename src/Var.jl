@@ -6,7 +6,7 @@ import OrderedCollections: OrderedDict
 
 import Interpolations as Intp
 import Statistics: mean
-import NaNStatistics: nanmean
+import NaNStatistics: nanmean, nansum
 
 import ..Numerics
 import ..Utils:
@@ -28,6 +28,8 @@ export OutputVar,
     average_y,
     average_xy,
     average_time,
+    average_lonlat,
+    weighted_average_lonlat,
     is_z_1D,
     slice,
     window,
@@ -673,7 +675,7 @@ function _reduce_over(
 
     # squeeze removes the unnecessary singleton dimension
     data = squeeze(
-        reduction(var.data, args..., dims = dim_index, kwargs...),
+        reduction(var.data, args...; dims = dim_index, kwargs...),
         dims = (dim_index,),
     )
 
@@ -683,6 +685,50 @@ function _reduce_over(
     pop!(dims, dim)
     haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
     return OutputVar(copy(var.attributes), dims, dim_attributes, copy(data))
+end
+
+"""
+    _reduce_over(reduction::F,
+                 dims::NTuple{N, String},
+                 var::OutputVar,
+                 args...;
+                 kwargs...)
+
+Apply the given reduction over `dims`.
+
+`reduction` has to support the `dims` key. Additional arguments are passed to `reduction`.
+
+The return type is an `OutputVar` with the same attributes, the new data, and the dimension
+dropped.
+"""
+function _reduce_over(
+    reduction::F,
+    dims::NTuple{N, String},
+    var::OutputVar,
+    args...;
+    kwargs...,
+) where {F <: Function, N}
+    dim_indices = ntuple(i -> var.dim2index[dims[i]], N)
+
+    # squeeze removes the unnecessary singleton dimension
+    data = squeeze(
+        reduction(var.data, args...; dims = dim_indices, kwargs...),
+        dims = dim_indices,
+    )
+
+    # If we reduce over a dimension, we have to remove it
+    dims_dict = copy(var.dims)
+    dim_attributes = copy(var.dim_attributes)
+    for dim in dims
+        pop!(dims_dict, dim)
+        haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
+    end
+    return OutputVar(
+        copy(var.attributes),
+        dims_dict,
+        dim_attributes,
+        copy(data),
+    )
 end
 
 """
@@ -797,6 +843,114 @@ function average_xy(var; ignore_nan = true)
 end
 
 """
+    weighted_average_lonlat(var; ignore_nan = true)
+
+Return a new `OutputVar` where the values along the longitude and latitude dimensions
+are averaged arithmetically with weights of `cos(lat)` along the latitude dimension.
+
+!!! note "Difference from average_lon and weighted_average_lat"
+    The computation `average_lon(weighted_average_lat(var))` computes an average of
+    averages. This function computes the global latitude-weighted average over all the
+    values across both the longitude and latitude dimensions.
+"""
+function weighted_average_lonlat(var; ignore_nan = true)
+    return average_lonlat(var; ignore_nan = ignore_nan, weighted = true)
+end
+
+"""
+    average_lonlat(var; ignore_nan = true)
+
+Return a new `OutputVar` where the values along the longitude and latitude dimensions
+are averaged arithmetically.
+
+!!! note "Difference from average_lon and average_lat"
+    The computation `average_lon(average_lat(var))` computes an average of averages. This
+    function computes the global average over all the values across both the longitude and
+    latitude dimensions.
+"""
+function average_lonlat(var; ignore_nan = true, weighted = false)
+    lat_name = latitude_name(var)
+    lon_name = longitude_name(var)
+    !weighted &&
+        return _average_dims(var, (lat_name, lon_name), ignore_nan = ignore_nan)
+
+    # Treat the weighted case separately
+    abs(maximum(latitudes(var))) >= 0.5π ||
+        @warn "Detected latitudes are small. If units are radians, results will be wrong"
+    function weighted_lat_avg(data, lats, lat_idx; dims, ignore_nan, weighted)
+        lat_weights = cosd.(lats)
+        # Reshape to broadcast correctly
+        size_to_reshape =
+            (i == lat_idx ? length(lat_weights) : 1 for i in 1:ndims(data))
+        lat_weights = reshape(lat_weights, size_to_reshape...)
+        weighted_avg_data = data .* lat_weights
+
+        # Compute normalization term
+        normalization = mapslices(data, dims = dims) do lonlat_slice
+            mask = ifelse.(isnan.(lonlat_slice), NaN, 1.0)
+            mask .*= lat_weights
+            nansum(mask)
+        end
+        weighted_avg_data ./= normalization
+        weighted_avg_data =
+            ignore_nan ? nansum(weighted_avg_data, dims = dims) :
+            sum(weighted_avg_data, dims = dims)
+        return weighted_avg_data
+    end
+
+    lat_idx = var.dim2index[latitude_name(var)]
+    reduced_var = _reduce_over(
+        weighted_lat_avg,
+        (longitude_name(var), latitude_name(var)),
+        var,
+        latitudes(var),
+        lat_idx,
+        ignore_nan = ignore_nan,
+        weighted = weighted,
+    )
+
+    # Update long name in attributes
+    haskey(reduced_var.attributes, "long_name") &&
+        (reduced_var.attributes["long_name"] *= " weighted")
+    _update_long_name_generic!(
+        reduced_var,
+        var,
+        (lat_name, lon_name),
+        "averaged",
+    )
+    return reduced_var
+end
+
+"""
+    _average_dims(var,
+                  dims::Tuple{Vararg{String}};
+                  ignore_nan = true,
+                  update_long_name = true)
+
+Return a new `OutputVar` where the values along the dimensions in `dims` are averaged
+arithmetically.
+
+If `update_long_name` is `true`, then the long name is updated by using
+`_update_long_name_generic!`.
+"""
+function _average_dims(
+    var,
+    dims::Tuple{Vararg{String}};
+    ignore_nan = true,
+    update_long_name = true,
+)
+    function reduction(data; dims, ignore_nan)
+        return ignore_nan ? nanmean(data, dims = dims) : mean(data, dims = dims)
+    end
+
+    reduced_var = _reduce_over(reduction, dims, var, ignore_nan = ignore_nan)
+
+    update_long_name &&
+        _update_long_name_generic!(reduced_var, var, dims, "averaged")
+    return reduced_var
+end
+
+"""
     average_time(var::OutputVar; ignore_nan = true)
 
 Return a new OutputVar where the values are averaged arithmetically in time.
@@ -858,6 +1012,36 @@ function _update_long_name_generic!(
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " $operation_name over $dim_name ($first_elt to $last_elt$dim_of_units)"
+    end
+    return nothing
+end
+
+"""
+    _update_long_name_generic!(reduced_var::OutputVar,
+                               var::OutputVar,
+                               dim_names::NTuple{N, String},
+                               operation_name,
+
+Used by reductions (e.g., average) to update the long name of `reduced_var` by describing
+the operation being used to reduce the data and the associated units.
+)
+"""
+function _update_long_name_generic!(
+    reduced_var::OutputVar,
+    var::OutputVar,
+    dim_names::NTuple{N, String},
+    operation_name,
+) where {N}
+    !haskey(reduced_var.attributes, "long_name") && return nothing
+    reduced_var.attributes["long_name"] *= " $operation_name over"
+    for (i, dim_name) in enumerate(dim_names)
+        dim_of_units = dim_units(var, dim_name)
+        first_elt, last_elt = range_dim(var, dim_name)
+        # For the last item, append "and"
+        i == N && (reduced_var.attributes["long_name"] *= " and")
+        reduced_var.attributes["long_name"] *= " $dim_name ($first_elt to $last_elt$dim_of_units)"
+        # If there are more than 2 dimensions being reduced, append a comma
+        i != N && N > 2 && (reduced_var.attributes["long_name"] *= ",")
     end
     return nothing
 end
