@@ -658,6 +658,34 @@ end
           "hi averaged over lat (0.0 to 90.0test_units2)"
     @test lat_weighted_avg.attributes["long_name"] ==
           "hi weighted averaged over lat (0.0 to 90.0test_units2)"
+
+    # Test _update_long_name_generic! manually
+    # One dimension
+    ClimaAnalysis.Var._update_long_name_generic!(var, var, "time", "reduced")
+    @test var.attributes["long_name"] ==
+          "hi reduced over time (0.0 to 10.0seconds)"
+
+    # Two dimensions
+    var.attributes["long_name"] = "hi"
+    ClimaAnalysis.Var._update_long_name_generic!(
+        var,
+        var,
+        ("time", "x"),
+        "reduced",
+    )
+    @test var.attributes["long_name"] ==
+          "hi reduced over time (0.0 to 10.0seconds) and x (0.0 to 180.0km)"
+
+    # Three dimensions
+    var.attributes["long_name"] = "hi"
+    ClimaAnalysis.Var._update_long_name_generic!(
+        var,
+        var,
+        ("time", "x", "y"),
+        "reduced",
+    )
+    @test var.attributes["long_name"] ==
+          "hi reduced over time (0.0 to 10.0seconds), x (0.0 to 180.0km), and y (0.0 to 90.0km)"
 end
 
 @testset "Consistent units checking" begin
