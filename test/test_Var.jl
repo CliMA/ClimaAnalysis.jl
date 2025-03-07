@@ -2,7 +2,7 @@ using Test
 import ClimaAnalysis
 
 import Interpolations as Intp
-import NaNStatistics: nanmean
+import NaNStatistics: nanmean, nansum
 import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
 import Unitful: @u_str
@@ -450,6 +450,180 @@ end
         update_long_name = false,
     )
     @test avg_var.attributes["long_name"] == "hi"
+end
+
+@testset "Average over lon and lat" begin
+    # no nan var
+    lon = [-20.0, -10.0, 0.0, 10.0, 20.0]
+    lat = [-30.0, 15.0, 40.0]
+    data = reshape(1.0:(length(lon) * length(lat)), (length(lon), length(lat)))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # nan var
+    nan_data = collect(data)
+    nan_data[1, 2] = NaN # replace 6
+    nan_data[2, 3] = NaN # replace 12
+    nan_data[4, 1] = NaN # replace 4
+    nan_var = ClimaAnalysis.remake(var, data = nan_data)
+
+    # 2D case
+    # ignore_nan = true, weighted = false
+    avg_var =
+        ClimaAnalysis.average_lonlat(var; ignore_nan = true, weighted = false)
+    @test avg_var.data[] ≈ sum(i for i in 1:15) / 15
+    @test avg_var.attributes["long_name"] ==
+          "hi averaged over lat (-30.0 to 40.0deg) and lon (-20.0 to 20.0deg)"
+    @test avg_var.dim_attributes == OrderedDict{String, Dict{String, String}}()
+    @test avg_var.dims == OrderedDict{String, Vector{Float64}}()
+
+    avg_nan_var = ClimaAnalysis.average_lonlat(
+        nan_var;
+        ignore_nan = true,
+        weighted = false,
+    )
+    @test avg_nan_var.data[] ≈ (sum(i for i in 1:15) - 6.0 - 12.0 - 4.0) / 12
+
+    # ignore_nan = false, weighted = false
+    avg_var =
+        ClimaAnalysis.average_lonlat(var; ignore_nan = false, weighted = false)
+    @test avg_var.data[] ≈ sum(i for i in 1:15) / 15
+
+    avg_nan_var = ClimaAnalysis.average_lonlat(
+        nan_var;
+        ignore_nan = false,
+        weighted = false,
+    )
+    @test isnan(avg_nan_var.data[])
+
+    # ignore_nan = true, weighted = true
+    avg_var = ClimaAnalysis.weighted_average_lonlat(var; ignore_nan = true)
+    @test avg_var.attributes["long_name"] ==
+          "hi weighted averaged over lat (-30.0 to 40.0deg) and lon (-20.0 to 20.0deg)"
+    @test avg_var.data[] ≈
+          sum(data .* reshape(cosd.(lat), (1, 3)) ./ sum(5.0 * cosd.(lat)))
+
+    avg_nan_var =
+        ClimaAnalysis.weighted_average_lonlat(nan_var; ignore_nan = true)
+    @test avg_nan_var.data[] ≈ nansum(
+        nan_data .* reshape(cosd.(lat), (1, 3)) ./
+        (sum(5.0 * cosd.(lat)) - cosd(15) - cosd(40) - cosd(-30)),
+    )
+
+    # ignore_nan = false, weighted = true
+    avg_var = ClimaAnalysis.weighted_average_lonlat(var; ignore_nan = false)
+    @test avg_var.data[] ≈
+          sum(data .* reshape(cosd.(lat), (1, 3)) ./ sum(5.0 * cosd.(lat)))
+
+    avg_nan_var =
+        ClimaAnalysis.weighted_average_lonlat(nan_var; ignore_nan = false)
+    @test isnan(avg_nan_var.data[])
+
+    # 3D case
+    lat = [-30.0, 15.0, 40.0]
+    time = [0.0, 42.0, 85.0]
+    lon = [-20.0, -10.0, 0.0, 10.0, 20.0]
+    data0 =
+        reshape(reshape(1.0:(length(lon) * length(lat)), (5, 3))', (3, 1, 5))
+    data1 = collect(
+        reshape(reshape(1.0:(length(lon) * length(lat)), (5, 3))', (3, 1, 5)),
+    )
+    data1[2, 1, 1] = NaN # replace 6
+    data1[3, 1, 2] = NaN # replace 12
+    data1[1, 1, 4] = NaN # replace 4
+    data2 = reshape(
+        Float64[[42, 47, 7] [3, 8, 4] [5, 3, 2] [9, 11, 12] [15, 14, 13]],
+        (3, 1, 5),
+    )
+    data3d = cat(data0, data1, data2, dims = 2)
+    dims = OrderedDict(["lat" => lat, "time" => time, "lon" => lon])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "s"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var_3d = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data3d)
+
+    # Precomputed values with ignore_nan = true
+    # data0
+    avg0 = sum(i for i in 1:15) / 15
+    avg0_weighted =
+        sum(data .* reshape(cosd.(lat), (1, 3)) ./ sum(5.0 * cosd.(lat)))
+
+    # data1
+    avg1 = (sum(i for i in 1:15) - 6.0 - 12.0 - 4.0) / 12
+    avg1_weighted = nansum(
+        nan_data .* reshape(cosd.(lat), (1, 3)) ./
+        (sum(5.0 * cosd.(lat)) - cosd(15) - cosd(40) - cosd(-30)),
+    )
+
+    # data2
+    avg2 = sum(data2) / 15
+    avg2_weighted =
+        sum(data2 .* reshape(cosd.(lat), (3, 1, 1)) ./ sum(5.0 * cosd.(lat)))
+
+    # ignore_nan = true, weighted = false
+    avg_var_3d = ClimaAnalysis.average_lonlat(
+        var_3d;
+        ignore_nan = true,
+        weighted = false,
+    )
+    @test isapprox(avg_var_3d.data, [avg0, avg1, avg2])
+    @test avg_var_3d.attributes["long_name"] ==
+          "hi averaged over lat (-30.0 to 40.0deg) and lon (-20.0 to 20.0deg)"
+    @test avg_var_3d.dim_attributes ==
+          OrderedDict(["time" => Dict("units" => "s")])
+    @test avg_var_3d.dims == OrderedDict(["time" => time])
+
+    # ignore_nan = false, weighted = false
+    avg_var_3d = ClimaAnalysis.average_lonlat(
+        var_3d;
+        ignore_nan = false,
+        weighted = false,
+    )
+    @test isapprox(avg_var_3d.data, [avg0, NaN, avg2], nans = true)
+
+    # ignore_nan = true, weighted = true
+    avg_var_3d =
+        ClimaAnalysis.average_lonlat(var_3d; ignore_nan = true, weighted = true)
+    @test isapprox(
+        avg_var_3d.data,
+        [avg0_weighted, avg1_weighted, avg2_weighted],
+    )
+
+    # ignore_nan = false, weighted = true
+    avg_var_3d = ClimaAnalysis.average_lonlat(
+        var_3d;
+        ignore_nan = false,
+        weighted = true,
+    )
+    @test isapprox(
+        avg_var_3d.data,
+        [avg0_weighted, NaN, avg2_weighted],
+        nans = true,
+    )
+
+    # Error handling
+    lon = [-20.0, -10.0, 0.0, 10.0]
+    lat = [-30.0, 1.0]
+    data = reshape(1.0:(length(lon) * length(lat)), (length(lon), length(lat)))
+    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_logs (
+        :warn,
+        "Detected latitudes are small. If units are radians, results will be wrong",
+    ) ClimaAnalysis.weighted_average_lonlat(var)
 end
 
 @testset "Slicing" begin

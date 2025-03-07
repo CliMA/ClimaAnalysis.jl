@@ -6,7 +6,7 @@ import OrderedCollections: OrderedDict
 
 import Interpolations as Intp
 import Statistics: mean
-import NaNStatistics: nanmean
+import NaNStatistics: nanmean, nansum
 
 import ..Numerics
 import ..Utils:
@@ -29,6 +29,8 @@ export OutputVar,
     average_y,
     average_xy,
     average_time,
+    average_lonlat,
+    weighted_average_lonlat,
     is_z_1D,
     slice,
     window,
@@ -841,6 +843,86 @@ function average_xy(var; ignore_nan = true)
 
     return reduced_var
 end
+
+"""
+    weighted_average_lonlat(var; ignore_nan = true)
+
+Return a new `OutputVar` where the values along the longitude and latitude dimensions
+are averaged arithmetically with weights of `cos(lat)` along the latitude dimension.
+
+!!! note "Difference from average_lon and weighted_average_lat"
+    The computation `average_lon(weighted_average_lat(var))` computes an average of
+    averages. This function computes the global latitude-weighted average over all the
+    values across both the longitude and latitude dimensions. In particular, the results
+    differ when there are `NaN`s.
+"""
+function weighted_average_lonlat(var; ignore_nan = true)
+    return average_lonlat(var; ignore_nan = ignore_nan, weighted = true)
+end
+
+"""
+    average_lonlat(var; ignore_nan = true)
+
+Return a new `OutputVar` where the values along the longitude and latitude dimensions
+are averaged arithmetically.
+
+!!! note "Difference from average_lon and average_lat"
+    The computation `average_lon(average_lat(var))` computes an average of averages. This
+    function computes the global average over all the values across both the longitude and
+    latitude dimensions. In particular, the results will differ when there are `NaN`s.
+"""
+function average_lonlat(var; ignore_nan = true, weighted = false)
+    lat_name = latitude_name(var)
+    lon_name = longitude_name(var)
+    !weighted &&
+        return _average_dims(var, (lat_name, lon_name), ignore_nan = ignore_nan)
+
+    # Treat the weighted case separately
+    abs(maximum(latitudes(var))) >= 0.5π ||
+        @warn "Detected latitudes are small. If units are radians, results will be wrong"
+    function weighted_lat_avg(data, lats, lat_idx; dims, ignore_nan)
+        lat_weights = cosd.(lats)
+        # Reshape to broadcast correctly
+        size_to_reshape =
+            (i == lat_idx ? length(lat_weights) : 1 for i in 1:ndims(data))
+        lat_weights = reshape(lat_weights, size_to_reshape...)
+        weighted_avg_data = data .* lat_weights
+
+        # Compute normalization term
+        normalization = mapslices(data, dims = dims) do lonlat_slice
+            mask = ifelse.(isnan.(lonlat_slice), NaN, 1.0)
+            mask .*= lat_weights
+            nansum(mask)
+        end
+        weighted_avg_data ./= normalization
+        weighted_avg_data =
+            ignore_nan ? nansum(weighted_avg_data, dims = dims) :
+            sum(weighted_avg_data, dims = dims)
+        return weighted_avg_data
+    end
+
+    lat_idx = var.dim2index[latitude_name(var)]
+    reduced_var = _reduce_over(
+        weighted_lat_avg,
+        (longitude_name(var), latitude_name(var)),
+        var,
+        latitudes(var),
+        lat_idx,
+        ignore_nan = ignore_nan,
+    )
+
+    # Update long name in attributes
+    haskey(reduced_var.attributes, "long_name") &&
+        (reduced_var.attributes["long_name"] *= " weighted")
+    _update_long_name_generic!(
+        reduced_var,
+        var,
+        (lat_name, lon_name),
+        "averaged",
+    )
+    return reduced_var
+end
+
 """
     _average_dims(var,
                   dims;

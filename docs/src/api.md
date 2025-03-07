@@ -30,6 +30,8 @@ Var.slice
 Var.average_lat
 Var.weighted_average_lat
 Var.average_lon
+Var.average_lonlat
+Var.weighted_average_lonlat
 Var.average_x
 Var.average_y
 Var.average_xy
