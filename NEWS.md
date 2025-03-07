@@ -21,6 +21,12 @@ now includes a new keyword argument to allow this. When called with `dim_names`,
 resample only over longitude and latitude, then one can use
 `resampled_as(src_var, dest_var, dim_names = ["longitude, "latitude"])`.
 
+## Add global average along longitude and latitude
+Before, you could only compute an average over one dimension. With this release, you can use
+`average_lonlat` to compute the average over the longitude and latitude dimensions and
+`weighted_average_lonlat` to compute the global latitude-weighted average over the longitude
+and latitude dimensions. Both functions ignore `NaN` by default.
+
 v0.5.13
 -------
 

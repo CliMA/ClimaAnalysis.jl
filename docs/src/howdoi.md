@@ -30,6 +30,21 @@ reduced_var = window(var, "time", left = 10, right = 100)
 
 Now, you can apply the usual average functions.
 
+## How do I take a global average over both the longitude and latitude dimensions?
+
+You can use `average_lonlat` to compute the global average over the longitude
+and latitude dimensions and `weighted_average_lonlat` to compute the global
+latitude-weighted average over the longitude and latitude dimensions.
+
+The function `average_lonlat` is different from composing `average_lon` and
+`average_lat` as the former computes an average over both the longitude and
+latitude dimensions and the latter computes an average of averages. In
+particular, the results differ when there are `NaN`s.
+
+```julia
+reduced_var = average_lonlat(var)
+```
+
 ## How do I make the y axis logscale?
 
 The plotting routines can pass additional arguments to `Makie` through the
