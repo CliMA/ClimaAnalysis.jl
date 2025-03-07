@@ -675,7 +675,7 @@ function _reduce_over(
 
     # squeeze removes the unnecessary singleton dimension
     data = squeeze(
-        reduction(var.data, args..., dims = dim_index, kwargs...),
+        reduction(var.data, args...; dims = dim_index, kwargs...),
         dims = (dim_index,),
     )
 
