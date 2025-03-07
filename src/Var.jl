@@ -886,9 +886,8 @@ end
     _update_long_name_generic!(
     reduced_var::OutputVar,
     var::OutputVar,
-    dim_name,
-    operation_name,
-)
+    dim_name::S,
+    operation_name) where {S <: String}
 
 Used by reductions (e.g., average) to update the long name of `reduced_var` by describing
 the operation being used to reduce the data and the associated units.
@@ -896,14 +895,45 @@ the operation being used to reduce the data and the associated units.
 function _update_long_name_generic!(
     reduced_var::OutputVar,
     var::OutputVar,
-    dim_name,
+    dim_name::S,
     operation_name,
-)
+) where {S <: String}
     dim_of_units = dim_units(var, dim_name)
     first_elt, last_elt = range_dim(var, dim_name)
 
     if haskey(var.attributes, "long_name")
         reduced_var.attributes["long_name"] *= " $operation_name over $dim_name ($first_elt to $last_elt$dim_of_units)"
+    end
+    return nothing
+end
+
+"""
+    _update_long_name_generic!(reduced_var::OutputVar,
+                               var::OutputVar,
+                               dim_names,
+                               operation_name,
+
+Used by reductions (e.g., average) to update the long name of `reduced_var` by describing
+the operation being used to reduce the data and the associated units.
+"""
+function _update_long_name_generic!(
+    reduced_var::OutputVar,
+    var::OutputVar,
+    dim_names,
+    operation_name,
+)
+    N = length(dim_names)
+    !haskey(reduced_var.attributes, "long_name") && return nothing
+    reduced_var.attributes["long_name"] *= " $operation_name over"
+    for (i, dim_name) in enumerate(dim_names)
+        dim_of_units = dim_units(var, dim_name)
+        first_elt, last_elt = range_dim(var, dim_name)
+        # For the last item, append "and"
+        i == N && (reduced_var.attributes["long_name"] *= " and")
+        reduced_var.attributes["long_name"] *= " $dim_name ($first_elt to $last_elt$dim_of_units)"
+        # If there are more than 2 dimensions being reduced and it is not the last
+        # dimension, append a comma
+        i != N && N > 2 && (reduced_var.attributes["long_name"] *= ",")
     end
     return nothing
 end
