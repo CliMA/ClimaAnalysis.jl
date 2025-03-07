@@ -688,6 +688,50 @@ function _reduce_over(
 end
 
 """
+    _reduce_over(reduction::F,
+                 dims,
+                 var::OutputVar,
+                 args...;
+                 kwargs...)
+
+Apply the given reduction over multiple dimensions in `dims`.
+
+`reduction` has to support the `dims` key. Additional arguments are passed to `reduction`.
+
+The return type is an `OutputVar` with the same attributes, the new data, and the dimension
+dropped.
+"""
+function _reduce_over(
+    reduction::F,
+    dims,
+    var::OutputVar,
+    args...;
+    kwargs...,
+) where {F <: Function}
+    dim_indices = Tuple(var.dim2index[dim_name] for dim_name in dims)
+
+    # squeeze removes the unnecessary singleton dimension
+    data = squeeze(
+        reduction(var.data, args...; dims = dim_indices, kwargs...),
+        dims = dim_indices,
+    )
+
+    # If we reduce over a dimension, we have to remove it
+    dims_dict = copy(var.dims)
+    dim_attributes = copy(var.dim_attributes)
+    for dim in dims
+        pop!(dims_dict, dim)
+        haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
+    end
+    return OutputVar(
+        copy(var.attributes),
+        dims_dict,
+        dim_attributes,
+        copy(data),
+    )
+end
+
+"""
     average_lat(var::OutputVar; ignore_nan = true, weighted = false)
 
 Return a new OutputVar where the values on the latitudes are averaged arithmetically.
