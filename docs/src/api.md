@@ -12,6 +12,7 @@ Base.get
 Sim.available_vars
 Sim.available_reductions
 Sim.available_periods
+Base.show(io::IO, simdir::SimDir)
 ```
 
 ## Var

@@ -27,6 +27,11 @@ Before, you could only compute an average over one dimension. With this release,
 `weighted_average_lonlat` to compute the global latitude-weighted average over the longitude
 and latitude dimensions. Both functions ignore `NaN` by default.
 
+## Show method defined for SimDir
+Previously, a brief description of `SimDir` can be printed to the terminal using
+`summary(simdir)`. With this release, the same information can also be viewed by using
+`show(simdir)`.
+
 v0.5.13
 -------
 

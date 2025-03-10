@@ -49,6 +49,27 @@ import ClimaAnalysis
     @test isempty(ClimaAnalysis.SimDir(mktempdir()))
 end
 
+@testset "Show and summary for Simdir" begin
+    simulation_path = joinpath(@__DIR__, "sample_data")
+
+    simdir = ClimaAnalysis.SimDir(simulation_path)
+
+    @test sprint(show, simdir) ==
+          "Output directory: " *
+          simulation_path *
+          "\nVariables:\n- va\n    average (2.0h)\n- pfull\n    inst (1.0d)\n- ua\n    average (6.0h)\n- orog\n    inst (nothing)\n- ta\n    average (3.0h)\n    max (4.0h, 3.0h)\n    min (3.0h)\n- ts\n    max (1.0h)"
+    @test sprint(summary, simdir) == sprint(show, simdir)
+
+    # Empty simdir
+    simdir = ClimaAnalysis.SimDir{Dict{Any, Any}, Dict{Any, Any}}(
+        "path",
+        Dict(),
+        Dict(),
+        Set(),
+    )
+    @test sprint(summary, simdir) == "Output directory: path\nVariables:"
+end
+
 @testset "OutputVar" begin
 
     simulation_path = joinpath(@__DIR__, "sample_data")
