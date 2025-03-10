@@ -1,5 +1,13 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.14
+-------
+
+## Show method defined for SimDir
+Previously, a brief description of `SimDir` can be printed to the terminal using
+`summary(simdir)`. With this release, the same information can also be viewed by using
+`show(simdir)`.
+
 v0.5.13
 -------
 

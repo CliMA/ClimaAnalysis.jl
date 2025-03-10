@@ -134,6 +134,15 @@ function Base.summary(io::IO, simdir::SimDir)
 end
 
 """
+    Base.show(io::IO, simdir::SimDir)
+
+Pretty print the contents of `simdir`.
+
+Print the output directory and the periods associated to the given variable and reduction.
+"""
+Base.show(io::IO, simdir::SimDir) = summary(io, simdir)
+
+"""
     get(simdir::SimDir;
         short_name,
         reduction = nothing,
