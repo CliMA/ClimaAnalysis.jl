@@ -403,6 +403,18 @@ end
 
     @test xy_time_avg.attributes["long_name"] ==
           "hi averaged horizontally over x (0.0 to 180.0) and y (0.0 to 90.0) averaged over time (0.0 to 10.0)"
+
+    x = [0.0, 1.0]
+    y = [0.0, 1.0]
+    data = [[NaN, 1.0] [2.0, 3.0]]
+    dims = OrderedDict(["x" => x, "y" => y])
+    dim_attributes = OrderedDict(["x" => Dict("b" => 2), "y" => Dict("a" => 1)])
+    attribs = Dict("long_name" => "hi")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+    avg_var = ClimaAnalysis.average_xy(var)
+    @test avg_var.data[] == 2.0
+    avg_var = ClimaAnalysis.average_xy(var, ignore_nan = false)
+    @test isnan(avg_var.data[])
 end
 
 @testset "Average over arbitrary dims" begin

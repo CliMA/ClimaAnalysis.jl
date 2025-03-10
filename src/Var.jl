@@ -830,8 +830,12 @@ Return a new OutputVar where the values along both horizontal dimensions `x` and
 are averaged arithmetically.
 """
 function average_xy(var; ignore_nan = true)
-    fn = ignore_nan ? nanmean : mean
-    reduced_var = _reduce_over(fn, "x", _reduce_over(fn, "y", var))
+    reduced_var = _average_dims(
+        var,
+        ("x", "y"),
+        ignore_nan = ignore_nan,
+        update_long_name = false,
+    )
 
     first_x, last_x = range_dim(var, "x")
     first_y, last_y = range_dim(var, "y")
