@@ -84,6 +84,15 @@ import Dates
         Dict("time" => time),
         [1],
     )
+
+    # Centering at 0 doesn't work - I would expect this to produce longitude in [-180, 180]
+    long = 0.0:360.0 |> collect
+    data = copy(long)
+    longvar = ClimaAnalysis.OutputVar(Dict("long" => long), data)
+
+    @test extrema(longvar.dims["long"]) == (0.0, 360.0)
+    ClimaAnalysis.center_longitude!(longvar, 0.0)
+    @test_broken extrema(longvar.dims["long"]) == (-180.0, 180.0)
 end
 
 @testset "Remake" begin
