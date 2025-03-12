@@ -39,6 +39,11 @@ With this release, there is an in-place version of `reverse_dim` which is `rever
 With this release, if two `OutputVar`s share the same start date, then the start date will
 remain in the resulting `OutputVar`s after performing binary operations on them.
 
+## Shift longitudes
+The implementation `center_longitude!` is incorrect and buggy. To resolve this, the function
+`shift_longitude` is encouraged to be used instead. For example, to shift longitudes from
+0 to 360 degrees to -180 to 180 degrees, one can use `shift_longitude(var, -180.0, 180.0)`
+
 v0.5.13
 -------
 
