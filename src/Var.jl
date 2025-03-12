@@ -36,6 +36,7 @@ export OutputVar,
     slice,
     window,
     arecompatible,
+    shift_longitude,
     center_longitude!,
     short_name,
     long_name,
@@ -1059,8 +1060,17 @@ end
 Shift the longitudes in `var` so that `lon` is the center one.
 
 This is useful to center the global projection to the 180 meridian instead of the 0.
+
+!!! warn "Deprecated"
+    This function is deprecated and users are encouraged to use
+    [`shift_longitude`](@ref) instead.
 """
 function center_longitude!(var, lon)
+    Base.depwarn(
+        "This function is deprecated and may be incorrect. Users are encouraged to use
+        `center_longitude(var, lower_lon, upper_lon; shift_by = 0.0)` instead.",
+        :center_longitude!,
+    )
     lon_name = longitude_name(var)
 
     old_center_lon_index = nearest_index(var.dims[lon_name], lon)
@@ -1084,6 +1094,67 @@ function center_longitude!(var, lon)
     var.data .= shifted_data
 end
 
+"""
+    shift_longitude(var, lower_lon, upper_lon; shift_by = 0.0)
+
+Shift the longitudes in `var` to `lower_lon` to `upper_lon` degrees.
+
+We assume that the units of the longitude dimension is degrees. If this is not the case,
+then one can use [`convert_dim_units`](@ref) to convert the units to degrees.
+
+This function assumes the prime meridian (0th degree) in `var` is the same before and after
+shifting the longitudes.
+
+If two points share the same longitude (e.g. -180 degrees and 180 degrees on longitudes
+spanning from -180 degrees to 180 degrees), then we remove the last longitude before
+shifting the longitudes. This is necessary to prevent duplicated longitudes after shifting
+longitudes.
+
+To shift from -180 to 180 degrees to 0 to 360 degrees, use
+`shift_longitude(var, 0.0, 360.0)` and to shift from 0 to 360 degrees to -180 to 180
+degrees, use `shift_longitude(var, -180.0, 180.0)`.
+"""
+function shift_longitude(var, lower_lon, upper_lon)
+    width = upper_lon - lower_lon
+    width ≈ 2π &&
+        @warn "Result may be incorrect if radians are used instead of degrees"
+    width ≈ 360.0 || error(
+        "The range of longitudes ($lower_lon to $upper_lon degrees) is not 360 degrees",
+    )
+
+    # It is possible for the first and last longitude to represent the same latitude on the
+    # globe. If this is the case, we remove the last point
+    lon_name = longitude_name(var)
+    lon = copy(var.dims[lon_name])
+    if (lon[end] - lon[begin] ≈ 360.0)
+        pop!(lon)
+    end
+
+    # Center longitudes
+    # If the longitude is already in [lower_lon, upper_lon), return it. Otherwise, we want
+    # to map the longitude to [lower_lon, upper_lon]. It is simpler to map it to
+    # `[0, upper_lon - lower_lon]` first, so we compute
+    # `(lon - lower_lon) % (upper_lon - lower_lon)` to map from `lon` to `lon - lower_lon`
+    # to a number in `[0, upper_lon - lower_lon]`. Then, we add `lower_lon` to shift the
+    # input to be in range `[lower_lon, upper_lon]`. Note that % is mod1 here.
+    wrap_longitude(lon, lower_lon, upper_lon) =
+        (lon >= upper_lon) || (lon < lower_lon) ?
+        mod1(lon - lower_lon, upper_lon - lower_lon) + lower_lon : lon
+    lon .= wrap_longitude.(lon, lower_lon, upper_lon)
+    sort_indices = sortperm(lon)
+    lon .= lon[sort_indices]
+
+    # Rearrange data
+    lon_idx = var.dim2index[lon_name]
+    index_tuple =
+        (i == lon_idx ? sort_indices : Colon() for i in 1:ndims(var.data))
+    data = var.data[index_tuple...]
+
+    # Copy lon to remake the OutputVar
+    dims = deepcopy(var.dims)
+    dims[lon_name] = lon
+    return remake(var, dims = dims, data = data)
+end
 """
     _slice_general(var::OutputVar, val, dim_name)
 

@@ -86,6 +86,63 @@ import Dates
     )
 end
 
+@testset "Shift longitudes" begin
+    lon = collect(range(0.0, 360.0, 361))
+    dims = OrderedDict("lon" => lon)
+    data = collect(0.0:360.0)
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict("lon" => Dict("units" => "degrees"))
+    var_0_360 = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # Shift longitudes from 0 to 360 degrees to -180 to 180 degrees
+    var_neg_180_180 = ClimaAnalysis.shift_longitude(var_0_360, -180.0, 180.0)
+    @test var_neg_180_180.dims["lon"] == collect(range(-179, 180, 360))
+    @test var_neg_180_180.data == vcat(
+        collect(range(181.0, 359.0, 179)),
+        collect(range(0.0, 180.0, 181)),
+    )
+
+    # Shift longitudes from -180 to 180 degrees to 0 to 360 degrees
+    var_0_360 = ClimaAnalysis.shift_longitude(var_neg_180_180, 0.0, 360.0)
+    @test var_0_360.dims["lon"] == collect(range(0.0, 359.0, 360))
+    @test var_0_360.data == collect(range(0.0, 359.0, 360))
+
+    # Shift longitudes from 20 to 380 degrees to 40 to 400 degrees
+    lon = [20.0, 30.0, 40.0, 360.0, 370.0]
+    dims = OrderedDict("lon" => lon)
+    data = [1.0, 2.0, 3.0, 4.0, 5.0]
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict("lon" => Dict("units" => "degrees"))
+    var_20_380 = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    var_40_400 = ClimaAnalysis.shift_longitude(var_20_380, 40.0, 400.0)
+    @test var_40_400.dims["lon"] == [40.0, 360.0, 370.0, 380.0, 390.0]
+    @test var_40_400.data == [3.0, 4.0, 5.0, 1.0, 2.0]
+
+    # Center longitudes with 3D OutputVar
+    lat = [-90.0, -30.0, 30.0, 90.0]
+    lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
+    time = [0.0, 1.0, 5.0]
+    n_elts = length(lat) * length(lon) * length(time)
+    dims = OrderedDict("lat" => lat, "lon" => lon, "time" => time)
+    size_of_data = (length(lat), length(lon), length(time))
+    data = reshape(collect(1.0:n_elts), size_of_data...)
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(
+        "lat" => Dict("units" => "degrees"),
+        "lon" => Dict("units" => "degrees"),
+        "time" => Dict("units" => "seconds"),
+    )
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    var = ClimaAnalysis.shift_longitude(var, 0.0, 360.0)
+    @test var.dims["lon"] == [0.0, 30.0, 60.0, 300.0, 330.0]
+    @test var.data == data[:, [3, 4, 5, 1, 2], :]
+
+    # Error handling
+    @test_throws ErrorException ClimaAnalysis.shift_longitude(var, 0.0, 180.0)
+end
+
 @testset "Remake" begin
     lat = collect(range(-89.5, 89.5, 180))
     lon = collect(range(-179.5, 179.5, 360))

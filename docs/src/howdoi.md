@@ -61,9 +61,15 @@ plot!(fig, var, more_kwargs = Dict(:axis => ca_kwargs(yscale = log)))
 ```
 where inside `ca_kwargs` you pass the arguments you would pass to `Makie.Axis`.
 
-## How do I center my longitude to 180 instead of 0?
+## How do I shift my longitudes from 0 to 360 degrees to -180 to 180 degrees?
 
-You can use the `center_longitude!` function.
+You can use the `shift_longitude` function. To shift the longitudes from 0 to
+360 degrees to -180 degrees to 180 degrees, use
+`shift_longitude(var, -180.0, 180.0)`. The function assumes the prime meridian
+(0th degree) in `var` is the same before and after centering the longitudes. The
+units of the longitude dimension should be in degrees. If this not the case,
+then you can use `convert_dim_units` to change the units of the longitude
+dimension to degrees.
 
 ## How do I find the specific name of a dimension in a `OutputVar` given its conventional name?
 
