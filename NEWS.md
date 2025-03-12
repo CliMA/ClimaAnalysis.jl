@@ -1,5 +1,15 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.16
+-------
+
+## Shift longitudes
+The implementation of `center_longitude!` is incorrect and buggy. To resolve this, the
+function `shift_longitude` is encouraged to be used instead. For example, to shift
+longitudes from 0 to 360 degrees to -180 to 180 degrees, one can use
+`shift_longitude(var, -180.0, 180.0)` and to shift longitudes from -180 to 180 degrees to 0
+to 360 degrees, one can use `shift_longitude(var, 0.0, 360.0)`.
+
 v0.5.15
 -------
 
