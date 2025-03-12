@@ -32,6 +32,11 @@ Previously, a brief description of `SimDir` can be printed to the terminal using
 `summary(simdir)`. With this release, the same information can also be viewed by using
 `show(simdir)`.
 
+## Shift longitudes
+The implementation `center_longitude!` is incorrect and buggy. To resolve this, the function
+`shift_longitude` is encouraged to be used instead. For example, to shift longitudes from
+0 to 360 degrees to -180 to 180 degrees, one can use `shift_longitude(var, -180.0, 180.0)`
+
 v0.5.13
 -------
 
