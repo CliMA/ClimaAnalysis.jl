@@ -597,7 +597,7 @@ to `attributes`, `dims`, `dim_attributes`, or `data` of `var`.
 function remake(
     var;
     attributes = var.attributes |> deepcopy,
-    dims = var.dims,
+    dims = var.dims |> deepcopy,
     dim_attributes = var.dim_attributes |> deepcopy,
     data = var.data |> copy,
 )
