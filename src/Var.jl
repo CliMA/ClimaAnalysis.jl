@@ -2219,15 +2219,30 @@ function reverse_dim(var::OutputVar, dim_name)
     # Check if array is 1D
     ndims(var.dims[dim_name]) != 1 &&
         error("Can only reverse 1D array for dimensions")
+    var = remake(var)
+    reverse_dim!(var, dim_name)
+    return var
+end
 
-    # Reverse dimensions in dims and data
-    ret_dims = deepcopy(var.dims)
-    reverse!(ret_dims[dim_name])
+"""
+    reverse_dim!(var::OutputVar, dim_name)
 
-    dim_idx = get(var.dim2index, dim_name, dim_name)
-    ret_data = var.data |> copy |> (A -> reverse(A, dims = dim_idx))
+In-place reverse a dimension by name.
 
-    return remake(var, dims = ret_dims, data = ret_data)
+This function is helpful if the order of a dimension need to be reversed, so that an
+interpolant can be made.
+"""
+function reverse_dim!(var::OutputVar, dim_name)
+    # Check if dim_name exists
+    !haskey(var.dims, dim_name) &&
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    # Check if array is 1D
+    ndims(var.dims[dim_name]) != 1 &&
+        error("Can only reverse 1D array for dimensions")
+    reverse!(var.dims[dim_name])
+    dim_idx = var.dim2index[dim_name]
+    reverse!(var.data, dims = dim_idx)
+    return nothing
 end
 
 """
