@@ -98,24 +98,32 @@ end
     remake_var = ClimaAnalysis.remake(var)
     remake_var.attributes["test"] = "test1"
     remake_var.dims["z"] = [1.0, 2.0, 3.0]
+    remake_var.dims["lat"][1] = 10000.0
     remake_var.dim_attributes["lat"]["cool"] = "cool1"
     remake_var.data[1, 1] = 2.0
 
     # Check that any mutation to remake_var does not change var
-    @test var.attributes == attribs
-    @test var.dims == dims
-    @test var.dim_attributes == dim_attribs
-    @test var.data == data
+    @test var.attributes == Dict("long_name" => "hi")
+    @test var.dims == OrderedDict([
+        "lat" => collect(range(-89.5, 89.5, 180)),
+        "lon" => collect(range(-179.5, 179.5, 360)),
+    ])
+    @test var.dim_attributes == OrderedDict(["lat" => Dict("units" => "deg")])
+    @test var.data == ones(length(lat), length(lon))
 
     dims1 = OrderedDict(["lat1" => lat, "lon1" => lon])
     dim_attribs1 = OrderedDict(["lat1" => Dict("units" => "deg")])
     remake_var2 =
         ClimaAnalysis.remake(var, dims = dims1, dim_attributes = dim_attribs1)
 
-    @test remake_var2.attributes == attribs
-    @test remake_var2.dims == dims1
-    @test remake_var2.dim_attributes == dim_attribs1
-    @test remake_var2.data == data
+    @test remake_var2.attributes == Dict("long_name" => "hi")
+    @test remake_var2.dims == OrderedDict([
+        "lat1" => collect(range(-89.5, 89.5, 180)),
+        "lon1" => collect(range(-179.5, 179.5, 360)),
+    ])
+    @test remake_var2.dim_attributes ==
+          OrderedDict(["lat1" => Dict("units" => "deg")])
+    @test remake_var2.data == ones(length(lat), length(lon))
 end
 
 @testset "Interpolant boundary conditions and error handling" begin
