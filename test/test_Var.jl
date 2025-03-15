@@ -2660,12 +2660,23 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test isnothing(ClimaAnalysis.Var._make_interpolant(dims, data))
 
+    # Test reverse_dim
     reverse_var = ClimaAnalysis.reverse_dim(var, "lat")
-    @test reverse(lat) == reverse_var.dims["lat"]
-    @test reverse(data, dims = 1) == reverse_var.data
+    @test reverse_var.dims["lat"] == reverse(lat)
+    @test reverse_var.data == reverse(data, dims = 1)
+
+    # Test reverse_dim!
+    ClimaAnalysis.reverse_dim!(var, "lat")
+    @test var.dims["lat"] == collect(range(-89.5, 89.5, 180))
+    @test var.data ==
+          reverse(reshape(collect(1:(360 * 180)), (180, 360)), dims = 1)
 
     # Error handling
     @test_throws ErrorException ClimaAnalysis.reverse_dim(var, "pressure_level")
+    @test_throws ErrorException ClimaAnalysis.reverse_dim!(
+        var,
+        "pressure_level",
+    )
 
     arb_dim = reshape(collect(range(-89.5, 89.5, 16)), (4, 4))
     data = collect(1:16)
@@ -2674,6 +2685,7 @@ end
     dim_attribs = OrderedDict(["arb_dim" => Dict("units" => "idk")])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     @test_throws ErrorException ClimaAnalysis.reverse_dim(var, "arb_dim")
+    @test_throws ErrorException ClimaAnalysis.reverse_dim!(var, "arb_dim")
 end
 
 @testset "Convert units of dimensions" begin

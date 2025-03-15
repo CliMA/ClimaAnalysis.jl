@@ -32,6 +32,9 @@ Previously, a brief description of `SimDir` can be printed to the terminal using
 `summary(simdir)`. With this release, the same information can also be viewed by using
 `show(simdir)`.
 
+## In-place functions
+With this release, there is an in-place version of `reverse_dim` which is `reverse_dim!`.
+
 v0.5.13
 -------
 

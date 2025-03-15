@@ -219,10 +219,11 @@ var_no_nan_and_missing = ClimaAnalysis.replace(var, missing => 0.0, NaN => 0.0)
 
 ## How do I reverse a dimension so that an interpolant can be made?
 
-You can use `reverse_dim` to reverse a dimension by name. See the example below of this
-usage.
+You can use `reverse_dim` or `reverse_dim!` to reverse a dimension by name. See
+the example below of this usage.
 
 ```julia
 # Reversing pressure levels so that an interpolant can be made
 var_reversed = reverse_dim(var, "pressure_level")
+reverse_dim!(var, "pressure_level") # in-place
 ```
