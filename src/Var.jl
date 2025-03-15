@@ -65,6 +65,7 @@ export OutputVar,
     make_lonlat_mask,
     replace,
     reverse_dim,
+    reverse_dim!,
     remake
 
 """
@@ -120,7 +121,7 @@ function _make_interpolant(dims, data)
     # Interpolations.jl)
     for (dim_name, dim_array) in dims
         if !issorted(dim_array)
-            @warn "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim if the dimension is in decreasing order"
+            @warn "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim and Var.reverse_dim! if the dimension is in decreasing order"
             return nothing
         end
     end
@@ -2211,6 +2212,8 @@ Reverse a dimension by name.
 
 This function is helpful if the order of a dimension need to be reversed, so that an
 interpolant can be made.
+
+See also in-place [`reverse_dim!`](@ref).
 """
 function reverse_dim(var::OutputVar, dim_name)
     # Check if dim_name exists
@@ -2219,15 +2222,30 @@ function reverse_dim(var::OutputVar, dim_name)
     # Check if array is 1D
     ndims(var.dims[dim_name]) != 1 &&
         error("Can only reverse 1D array for dimensions")
+    var = remake(var)
+    reverse_dim!(var, dim_name)
+    return var
+end
 
-    # Reverse dimensions in dims and data
-    ret_dims = deepcopy(var.dims)
-    reverse!(ret_dims[dim_name])
+"""
+    reverse_dim!(var::OutputVar, dim_name)
 
-    dim_idx = get(var.dim2index, dim_name, dim_name)
-    ret_data = var.data |> copy |> (A -> reverse(A, dims = dim_idx))
+Like [`reverse_dim`](@ref), but operates in-place in `var`.
 
-    return remake(var, dims = ret_dims, data = ret_data)
+This function is helpful if the order of a dimension need to be reversed, so that an
+interpolant can be made.
+"""
+function reverse_dim!(var::OutputVar, dim_name)
+    # Check if dim_name exists
+    !haskey(var.dims, dim_name) &&
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    # Check if array is 1D
+    ndims(var.dims[dim_name]) != 1 &&
+        error("Can only reverse 1D array for dimensions")
+    reverse!(var.dims[dim_name])
+    dim_idx = var.dim2index[dim_name]
+    reverse!(var.data, dims = dim_idx)
+    return nothing
 end
 
 """
