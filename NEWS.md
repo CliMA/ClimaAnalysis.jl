@@ -35,6 +35,10 @@ Previously, a brief description of `SimDir` can be printed to the terminal using
 ## In-place functions
 With this release, there is an in-place version of `reverse_dim` which is `reverse_dim!`.
 
+## Retain attributes when doing binary operations between `OutputVar`s
+With this release, if two `OutputVar`s share the same start date, then the start date will
+remain in the resulting `OutputVar`s after performing binary operations on them.
+
 v0.5.13
 -------
 
