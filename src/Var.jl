@@ -2348,6 +2348,16 @@ macro overload_binary_op(op)
                 end
             end
 
+            keep_attributes = ("start_date",)
+
+            for attr in keep_attributes
+                if haskey(x.attributes, attr) &&
+                   haskey(y.attributes, attr) &&
+                   x.attributes[attr] == y.attributes[attr]
+                    ret_attributes[attr] = x.attributes["start_date"]
+                end
+            end
+
             ret_dims = x.dims
             ret_dim_attributes = x.dim_attributes
 
@@ -2372,6 +2382,14 @@ macro overload_binary_op(op)
                 end
             end
 
+            keep_attributes = ("start_date",)
+
+            for attr in keep_attributes
+                if haskey(x.attributes, attr)
+                    ret_attributes[attr] = x.attributes[attr]
+                end
+            end
+
             ret_dims = deepcopy(x.dims)
             ret_dim_attributes = deepcopy(x.dim_attributes)
 
@@ -2393,6 +2411,14 @@ macro overload_binary_op(op)
                 if haskey(y.attributes, attr)
                     ret_attributes[attr] =
                         string(x, " ", string($op), " ", y.attributes[attr])
+                end
+            end
+
+            keep_attributes = ("start_date",)
+
+            for attr in keep_attributes
+                if haskey(y.attributes, attr)
+                    ret_attributes[attr] = y.attributes[attr]
                 end
             end
 

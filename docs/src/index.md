@@ -165,11 +165,14 @@ onto new grids.
 #### Mathematical operations
 
 `OutputVar`s support the usual mathematical operations. For instance, if
-`ts_max` is an `OutputVar`, `2 * ts_max` will be an `OutputVar` with doubled values.
+`ts_max` is an `OutputVar`, `2 * ts_max` will be an `OutputVar` with doubled
+values.
 
 For binary operations (e.g., `+, -, *, /`), `ClimaAnalysis` will check if the
 operation is well defined (i.e., the two variables are defined on the physical
-space). Binary operations do remove some attribute information.
+space). Binary operations do remove some attribute information. If two
+`OutputVar`s share the same start date, then the start date will remain in the
+resulting `OutputVar`s after performing binary operations on them.
 
 #### `Visualize`
 

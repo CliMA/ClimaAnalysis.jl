@@ -216,7 +216,12 @@ end
         "lon" => Dict("b" => 2),
         "lat" => Dict("a" => 1),
     ])
-    attribs = Dict("short_name" => "bob", "long_name" => "hi")
+    attribs = Dict(
+        "short_name" => "bob",
+        "long_name" => "hi",
+        "start_date" => "2008",
+        "cool" => "rad",
+    )
     var1 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data1)
 
     dim_attributes2 = OrderedDict([
@@ -228,7 +233,12 @@ end
     var2 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes2, data1)
 
     data3 = 5.0 .+ collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
-    attribs3 = Dict("long_name" => "bob", "short_name" => "bula")
+    attribs3 = Dict(
+        "long_name" => "bob",
+        "short_name" => "bula",
+        "start_date" => "2008",
+        "cool" => "not rad",
+    )
     var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3)
 
     # Check arecompatible
@@ -241,6 +251,11 @@ end
     @test ClimaAnalysis.short_name(var1plus10) == "bob + 10"
     @test ClimaAnalysis.long_name(var1plus10) == "hi + 10"
     @test var1plus10((0.0, 0.0, 0.0)) == var1((0.0, 0.0, 0.0)) + 10
+    @test var1plus10.attributes == Dict(
+        "short_name" => "bob + 10",
+        "long_name" => "hi + 10",
+        "start_date" => "2008",
+    )
 
     tenplusvar1 = 10 + var1
 
@@ -254,6 +269,11 @@ end
     @test var1plusvar3.data == data1 .+ data3
     @test ClimaAnalysis.short_name(var1plusvar3) == "bob + bula"
     @test ClimaAnalysis.long_name(var1plusvar3) == "hi + bob"
+    @test var1plusvar3.attributes == Dict(
+        "short_name" => "bob + bula",
+        "long_name" => "hi + bob",
+        "start_date" => "2008",
+    )
 
     # Test for element wise multiplication and division between OutputVars
     var_times = var1 * var3
