@@ -2,6 +2,13 @@ ClimaAnalysis.jl Release Notes
 ===============================
 v0.5.14
 -------
+This release introduces the following features and bug fixes
+- [Split by seasons across time](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#split-by-seasons-across-time)
+- [Partial resampling](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#partial-resampling)
+- [Add global average along longitude and latitude](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#add-global-average-along-longitude-and-latitude)
+- [Show method defined for SimDir](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#show-method-defined-for-simdir)
+- [In-place functions](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#in-place-functions)
+- [Retain attributes when doing binary operations between `OutputVar`s](https://github.com/CliMA/ClimaAnalysis.jl/blob/main/NEWS.md#remove-interpolant-from-outputvar)
 
 ## Split by seasons across time
 It may be the case that you want to split a `OutputVar` by season, while keeping each year
