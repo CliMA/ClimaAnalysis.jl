@@ -1,5 +1,12 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.15
+-------
+
+## Fix Var.weighted_lonlat
+`Var.weighted_average_lonlat` can throw an error depending on the order of the dimensions.
+This has been fixed in this release.
+
 v0.5.14
 -------
 This release introduces the following features and bug fixes
