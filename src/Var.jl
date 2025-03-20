@@ -6,7 +6,7 @@ import OrderedCollections: OrderedDict
 
 import Interpolations as Intp
 import Statistics: mean
-import NaNStatistics: nanmean, nansum
+import NaNStatistics: nanmean
 
 import ..Numerics
 import ..Utils:
@@ -891,18 +891,22 @@ function average_lonlat(var; ignore_nan = true, weighted = false)
         size_to_reshape =
             (i == lat_idx ? length(lat_weights) : 1 for i in 1:ndims(data))
         lat_weights = reshape(lat_weights, size_to_reshape...)
-        weighted_avg_data = data .* lat_weights
 
+        # NaNStatistics provides a way to do weighted mean with NaNs
+        ignore_nan && return nanmean(data, lat_weights; dims = dims)
+
+        # Otherwise, we do it the weighted mean by hand if ignore_nan is false
+        weighted_avg_data = data .* lat_weights
         # Compute normalization term
+        dims_to_drop = Tuple(filter!(i -> i ∉ dims, collect(1:ndims(data))))
+        lat_weights = dropdims(lat_weights; dims = dims_to_drop)
         normalization = mapslices(data, dims = dims) do lonlat_slice
             mask = ifelse.(isnan.(lonlat_slice), NaN, 1.0)
             mask .*= lat_weights
-            nansum(mask)
+            sum(mask)
         end
         weighted_avg_data ./= normalization
-        weighted_avg_data =
-            ignore_nan ? nansum(weighted_avg_data, dims = dims) :
-            sum(weighted_avg_data, dims = dims)
+        weighted_avg_data = sum(weighted_avg_data, dims = dims)
         return weighted_avg_data
     end
 
