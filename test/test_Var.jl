@@ -1855,6 +1855,11 @@ end
 
     MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var)
 
+    # Check season is available as an attributes
+    @test MAM.attributes["season"] == "MAM"
+    @test JJA.attributes["season"] == "JJA"
+    @test DJF.attributes["season"] == "DJF"
+
     # Check size of data
     @test size(MAM.data) == (length(lat), 2, length(lon))
     @test size(JJA.data) == (length(lat), 3, length(lon))
@@ -1926,6 +1931,13 @@ end
     seasonal_vars = ClimaAnalysis.split_by_season_across_time(var)
     @test length(seasonal_vars) == 6
     @test isempty(seasonal_vars[5])
+
+    # Cheak season
+    @test seasonal_vars[1].attributes["season"] == "DJF"
+    @test seasonal_vars[2].attributes["season"] == "MAM"
+    @test seasonal_vars[3].attributes["season"] == "JJA"
+    @test seasonal_vars[4].attributes["season"] == "SON"
+    @test seasonal_vars[6].attributes["season"] == "MAM"
 
     # Check arrays for time is correct
     @test seasonal_vars[1].dims["time"] == [0.0, 2_678_400.0]
