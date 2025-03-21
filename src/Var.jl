@@ -18,7 +18,8 @@ import ..Utils:
     time_to_date,
     date_to_time,
     _data_at_dim_vals,
-    _isequispaced
+    _isequispaced,
+    find_season_and_year
 
 export OutputVar,
     read_var,
@@ -1611,7 +1612,8 @@ Return a vector of four `OutputVar`s split by season.
 The months of the seasons are March to May (MAM), June to August (JJA), September to
 November (SON), and December to February (JDF). The order of the vector is MAM, JJA, SON,
 and DJF. If there are no dates found for a season, then the `OutputVar` for that season will
-be an empty `OutputVar`.
+be an empty `OutputVar`. For non-empty OutputVars, the season can be found by
+`var.attributes["season"]`.
 
 The function will use the start date in `var.attributes["start_date"]`. The unit of time is
 expected to be second.
@@ -1633,7 +1635,12 @@ function split_by_season(var::OutputVar)
     season_times =
         (date_to_time.(start_date, season) for season in season_dates)
 
-    return _split_along_dim(var, time_name(var), season_times)
+    season_vars = _split_along_dim(var, time_name(var), season_times)
+    seasons = ["MAM", "JJA", "SON", "DJF"]
+    for (season, season_var) in zip(seasons, season_vars)
+        isempty(season_var) || (season_var.attributes["season"] = season)
+    end
+    return season_vars
 end
 
 """
@@ -1643,10 +1650,11 @@ Split `var` into `OutputVar`s representing seasons, sorted in chronological orde
 `OutputVar` corresponds to a single season, and the ordering of the `OutputVar`s is
 determined by the dates of the season. The return type is a vector of `OutputVar`s.
 
-The months of the seasons are March to May (MAM), June to August (JJA),
-September to November (SON), and December to February (DJF). If there are no
-dates found for a season, then the `OutputVar` for that season will be an empty
-`OutputVar`. The first `OutputVar` is guaranteed to not be empty.
+The months of the seasons are March to May (MAM), June to August (JJA), September to
+November (SON), and December to February (DJF). If there are no dates found for a season,
+then the `OutputVar` for that season will be an empty `OutputVar`. The first `OutputVar` is
+guaranteed to not be empty. For non-empty OutputVars, the season can be found by
+`var.attributes["season"]`.
 
 The function will use the start date in `var.attributes["start_date"]`. The unit of time is
 expected to be second.
@@ -1665,7 +1673,18 @@ function split_by_season_across_time(var::OutputVar)
         season in seasons_across_year_dates
     )
 
-    return _split_along_dim(var, time_name(var), seasons_across_year_times)
+    split_by_season_vars =
+        _split_along_dim(var, time_name(var), seasons_across_year_times)
+
+    for var in split_by_season_vars
+        if !isempty(var)
+            season, _ = find_season_and_year(
+                first(time_to_date.(start_date, times(var))),
+            )
+            var.attributes["season"] = season
+        end
+    end
+    return split_by_season_vars
 end
 
 """
