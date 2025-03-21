@@ -39,6 +39,7 @@ Var.average_xy
 Var.average_time
 Var.window
 Var.arecompatible
+Var.shift_longitude
 Var.center_longitude!
 Var.times
 Var.dates
