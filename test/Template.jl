@@ -3,12 +3,25 @@ module Template
 import ClimaAnalysis
 import OrderedCollections: OrderedDict
 
+struct LazyComp
+    f::Function
+    args::Tuple
+    kwargs::Tuple
+end
+
+function make_lazy(f, args...; kwargs...)
+    return LazyComp(f, tuple(args...), tuple(kwargs...))
+end
+
+function call(comp::LazyComp, args...; kwargs...)
+    return comp.f(args..., comp.args...; kwargs..., comp.kwargs...)
+end
+
 struct TemplateVar
-    attributes_fn::Vector{Function}
-    dims_fn::Vector{Function}
-    dim_attributes_fn::Vector{Function}
-    data_fn::Vector{Function}
-    # data_type::Base.RefValue{DataType} # I think I am going to remove this
+    attributes_fn::Vector{LazyComp}
+    dims_fn::Vector{LazyComp}
+    dim_attributes_fn::Vector{LazyComp}
+    data_fn::Vector{LazyComp}
     # TODO: Maybe add a way to keep track of which dimensions are added so that one can reorder them?
 end
 
@@ -18,32 +31,26 @@ end
 Intialize a `TemplateVar`.
 """
 function TemplateVar()
-    return TemplateVar(
-        Function[],
-        Function[],
-        Function[],
-        Function[],
-        # Ref(Float64),
-    )
+    return TemplateVar(LazyComp[], Function[], Function[], Function[])
 end
 
 function initialize(var::TemplateVar)
     # Add attributes
     attribs = Dict{String, Any}()
     for fn! in var.attributes_fn
-        fn!(attribs)
+        call(fn!, attribs) # Can make this be a functor
     end
 
     # Add dimensions
     dims = OrderedDict{String, AbstractArray}()
     for fn! in var.dims_fn
-        fn!(dims)
+        call(fn!, dims)
     end
 
     # Add attributes for dimensions
     dim_attribs = OrderedDict(dim_name => Dict() for dim_name in keys(dims))
     for fn! in var.dim_attributes_fn
-        fn!(dim_attribs)
+        call(fn!, dim_attribs)
     end
 
     # Add data (TODO: Still a little unsure about this)
@@ -51,7 +58,7 @@ function initialize(var::TemplateVar)
     if length(var.data_fn) == 0
         data = zeros(dim_sizes...)
     else
-        data = var.data_fn[end](; dim_sizes = dim_sizes) # I think the most conservative thing to do is to always use the last function
+        data = call(var.data_fn[end]; dim_sizes = dim_sizes) # I think the most conservative thing to do is to always use the last function
     end
 
     return ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
@@ -75,15 +82,13 @@ TODO: Suppose to be used with function composition
 """
 function add_attribs!(var; attribs...)
     if !isempty(attribs)
-        add_attribs = let attribs = attribs
-            function add_attribs(attribs_dict)
-                for (key, value) in attribs
-                    attribs_dict[string(key)] = value
-                end
-                return nothing
+        function add_attribs(attribs_dict, attribs)
+            for (key, value) in attribs
+                attribs_dict[string(key)] = value
             end
+            return nothing
         end
-        push!(var.attributes_fn, add_attribs)
+        push!(var.attributes_fn, make_lazy(add_attribs, attribs))
     end
     return var
 end
@@ -157,18 +162,55 @@ function add_lon_dim!(
     return add_dim!(var, dim_name, dim_array; units = units, lon_attribs...)
 end
 
+function add_time_dim(;
+    dim_name = "time",
+    dim_array = collect(0.0:10.0),
+    units = "seconds",
+    time_attribs...,
+)
+    dim_name in ClimaAnalysis.Var.TIME_NAMES ||
+        error("$dim_name is not a name for the time dimension")
+    return var -> add_time_dim!(
+        var;
+        dim_name = dim_name,
+        dim_array = dim_array,
+        units = units,
+        time_attribs...,
+    )
+end
+
+function add_time_dim!(
+    var::TemplateVar;
+    dim_name = "time",
+    dim_array = collect(0.0:10.0),
+    units = "seconds",
+    time_attribs...,
+)
+    dim_name in ClimaAnalysis.Var.TIME_NAMES ||
+        error("$dim_name is not a name for the time dimension")
+    return add_dim!(var, dim_name, dim_array; units = units, time_attribs...)
+end
+
 function add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
-    push!(var.dims_fn, dims -> dims[dim_name] = dim_array)
+    push!(
+        var.dims_fn,
+        make_lazy(
+            (dims, dim_name, dim_array) -> dims[dim_name] = dim_array,
+            dim_name,
+            dim_array,
+        ),
+    )
     if !isempty(dim_attribs)
-        add_dim_attribs = let dim_attribs = dim_attribs, dim_name = dim_name
-            function add_dim_attribs(dim_attribs_dict)
-                for (key, value) in dim_attribs
-                    dim_attribs_dict[dim_name][string(key)] = value
-                end
-                return nothing
+        function add_dim_attribs(dim_attribs_dict, dim_name, dim_attribs)
+            for (key, value) in dim_attribs
+                dim_attribs_dict[dim_name][string(key)] = value
             end
+            return nothing
         end
-        push!(var.dim_attributes_fn, add_dim_attribs)
+        push!(
+            var.dim_attributes_fn,
+            make_lazy(add_dim_attribs, dim_name, dim_attribs),
+        )
     end
     return var
 end
@@ -178,7 +220,13 @@ function ones_data(; data_type = Float64)
 end
 
 function ones_data!(var::TemplateVar; data_type = Float64)
-    push!(var.data_fn, (; dim_sizes) -> ones(data_type, dim_sizes...))
+    push!(
+        var.data_fn,
+        make_lazy(
+            (data_type; dim_sizes) -> ones(data_type, dim_sizes...),
+            data_type,
+        ),
+    )
     return var
 end
 
@@ -187,7 +235,13 @@ function zeros_data(; data_type = Float64)
 end
 
 function zeros_data!(var::TemplateVar; data_type = Float64)
-    push!(var.data_fn, (; dim_sizes) -> zeros(data_type, dim_sizes...))
+    push!(
+        var.data_fn,
+        make_lazy(
+            (data_type; dim_sizes) -> zeros(data_type, dim_sizes...),
+            data_type,
+        ),
+    )
     return var
 end
 
@@ -200,15 +254,21 @@ function ones_to_n_data!(var; data_type = Float64, lazy = true)
     if lazy
         push!(
             var.data_fn,
-            (; dim_sizes) ->
-                reshape(data_type(1):data_type(prod(dim_sizes)), dim_sizes),
+            make_lazy(
+                (data_type; dim_sizes) ->
+                    reshape(data_type(1):data_type(prod(dim_sizes)), dim_sizes),
+                data_type,
+            ),
         )
     else
         push!(
             var.data_fn,
-            (; dim_sizes) -> reshape(
-                collect(data_type(1):data_type(prod(dim_sizes))),
-                dim_sizes,
+            make_lazy(
+                (data_type; dim_sizes) -> reshape(
+                    collect(data_type(1):data_type(prod(dim_sizes))),
+                    dim_sizes,
+                ),
+                data_type,
             ),
         )
     end
@@ -219,19 +279,20 @@ end
 var =
     Template.TemplateVar() |>
     Template.add_attribs(; long_name = "hi") |>
-    Template.add_lat_dim(; units = "deg") |>
+    Template.add_time_dim(; dim_array = collect(1.0:30.0)) |>
     Template.add_lon_dim(; units = "deg") |>
-    Template.ones_data() |>
+    Template.add_lat_dim(; units = "deg") |>
+    Template.ones_to_n_data(lazy = true) |>
     Template.initialize
 
 
-lat = collect(range(-90.0, 90.0, 181))
-lon = collect(range(180.0, 180.0, 360))
-data = ones(length(lat), length(lon))
-dims = OrderedDict(["lat" => lat, "lon" => lon])
-attribs = Dict("long_name" => "hi")
-dim_attribs = OrderedDict([
-    "lat" => Dict("units" => "deg"),
-    "lon" => Dict("units" => "deg"),
-])
-var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+# lat = collect(range(-90.0, 90.0, 181))
+# lon = collect(range(180.0, 180.0, 360))
+# data = ones(length(lat), length(lon))
+# dims = OrderedDict(["lat" => lat, "lon" => lon])
+# attribs = Dict("long_name" => "hi")
+# dim_attribs = OrderedDict([
+#     "lat" => Dict("units" => "deg"),
+#     "lon" => Dict("units" => "deg"),
+# ])
+# var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
