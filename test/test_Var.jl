@@ -2802,6 +2802,10 @@ end
     )
 end
 
+@testset "Select indices" begin
+    # TODO: Write tests here
+end
+
 @testset "Show" begin
     lat = collect(range(-89.5, 89.5, 180))
     lon = collect(range(-179.5, 179.5, 360))

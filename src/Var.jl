@@ -2253,6 +2253,33 @@ function reverse_dim!(var::OutputVar, dim_name)
 end
 
 """
+    select_indices(var::OutputVar, kwargs...)
+
+Select indices of an `OutputVar`.
+"""
+function select_indices(var::OutputVar, kwargs...)
+    # Error handling
+    for (dim_name, _) in kwargs
+        string(dim_name) in keys(var.dims) || error("Cannot find $(string(dim_name)) in var")
+    end
+
+    dims_indices = (get(kwargs, Symbol(dim_name), Colon()) for dim_name in keys(var.dims))
+
+    # Reorder kwargs
+    ret_dims = empty(var.dims)
+    for (dim_indices, (dim_name, dim_array)) in zip(dims_indices, var.dims)
+        try
+            ret_dims[dim_name] = dim_array[dim_indices]
+        catch e
+            throw("Error when indexing into $dim_name dimension. See error message below")
+        end
+    end
+
+    ret_data = data[dims_indices...]
+    return remake(var; data = ret_data, dims = ret_dims)
+end
+
+"""
     Base.show(io::IO, var::OutputVar)
 
 Pretty print the contents of an `OutputVar`.
