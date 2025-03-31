@@ -3,37 +3,69 @@ module Template
 import ClimaAnalysis
 import OrderedCollections: OrderedDict
 
-struct LazyComp
+"A struct to hold a lazy evaluation"
+struct LazyEval
+
+    "Function to do lazily evaluate"
     f::Function
+
+    "Positional arguments to pass to f"
     args::Tuple
+
+    "Keyword arguments to pass to f"
     kwargs::Tuple
 end
 
+"""
+    make_lazy(f, args...; kwargs...)
+
+Delay function call to `f`.
+
+Not all positional arguments and keyword arguments need to be supplied to `f`
+when making the function call lazy and any remaining arguments can be passed
+with with `call`.
+"""
 function make_lazy(f, args...; kwargs...)
-    return LazyComp(f, tuple(args...), tuple(kwargs...))
+    return LazyEval(f, tuple(args...), tuple(kwargs...))
 end
 
-function call(comp::LazyComp, args...; kwargs...)
-    return comp.f(args..., comp.args...; kwargs..., comp.kwargs...)
+"""
+    call(comp::LazyEval, args...; kwargs...)
+
+Evaluate `comp` with positional arguments and keyword arguments stored in
+`comp`.
+
+Any other arguments needed to evaluate `comp` can be passed with `args` and `kwargs`.
+"""
+function call(comp::LazyEval, args...; kwargs...)
+    return comp.f(comp.args..., args...; comp.kwargs..., kwargs...)
 end
 
+"A struct to hold an uninitialized OutputVar"
 struct TemplateVar
-    attributes_fn::Vector{LazyComp}
-    dims_fn::Vector{LazyComp}
-    dim_attributes_fn::Vector{LazyComp}
-    data_fn::Vector{LazyComp}
-    # TODO: Maybe add a way to keep track of which dimensions are added so that one can reorder them?
+    attributes_fn::Vector{LazyEval}
+    # TODO: Make dims and dim_attributes_fn into one thing
+    dims_fn::Vector{LazyEval}
+    dim_attributes_fn::Vector{LazyEval}
+    data_fn::Vector{LazyEval}
 end
 
 """
     TemplateVar()
 
 Intialize a `TemplateVar`.
+
+A `TemplateVar` is an uninitialized `OutputVar`.
 """
 function TemplateVar()
-    return TemplateVar(LazyComp[], Function[], Function[], Function[])
+    return TemplateVar(LazyEval[], Function[], Function[], Function[])
 end
 
+"""
+    initialize(var::TemplateVar)
+
+Initialize a `TemplateVar`.
+"""
 function initialize(var::TemplateVar)
     # Add attributes
     attribs = Dict{String, Any}()
@@ -42,6 +74,12 @@ function initialize(var::TemplateVar)
     end
 
     # Add dimensions
+    # TODO: Maybe enforce that there are only be one of each dimension and replace the lazyeval
+    # when adding dimensions
+    # For example, adding two dimensions can be weird
+    # easiest way would be to add a tag, so maybe (dim_name, dims_fn)
+    # but then, the attributes would be out of sync so we store everything together
+    # so a vector of (dim_name, dims_fn, dims_attribs_fn)
     dims = OrderedDict{String, AbstractArray}()
     for fn! in var.dims_fn
         call(fn!, dims)
@@ -53,12 +91,16 @@ function initialize(var::TemplateVar)
         call(fn!, dim_attribs)
     end
 
-    # Add data (TODO: Still a little unsure about this)
+    # Add data
     dim_sizes = Tuple(length(dim) for dim in values(dims))
     if length(var.data_fn) == 0
+        # default is the zero matrix
         data = zeros(dim_sizes...)
     else
-        data = call(var.data_fn[end]; dim_sizes = dim_sizes) # I think the most conservative thing to do is to always use the last function
+        # If there are more than one LazyComp for initializing data, use the last one
+        # It is not easy to modify this since you may want to use an UnitRange for the data
+        # which doesn't support indexed assignment
+        data = call(var.data_fn[end]; dim_sizes = dim_sizes)
     end
 
     return ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
@@ -69,18 +111,20 @@ end
 
 Return the function `add_attribs` with the keyword arguments `attribs`.
 
-Intended to be used by the piping operator.
+Intended to be used with the pipe operator (`|>`).
 """
 function add_attribs(; attribs...)
     return var -> add_attribs!(var; attribs...)
 end
 
 """
-    add_attribs!(var; attribs...)
+    add_attribs!(var::TemplateVar; attribs...)
 
-TODO: Suppose to be used with function composition
+Add attributes and return `var`.
+
+Intended to be used with function composition.
 """
-function add_attribs!(var; attribs...)
+function add_attribs!(var::TemplateVar; attribs...)
     if !isempty(attribs)
         function add_attribs(attribs_dict, attribs)
             for (key, value) in attribs
@@ -94,10 +138,14 @@ function add_attribs!(var; attribs...)
 end
 
 """
-    add_lat_dim
+    add_lat_dim(; dim_name = "latitude",
+                  dim_array = collect(range(-90.0, 90.0, 181)),
+                  units = "degrees",
+                  lat_attribs...)
 
 Return the function `add_lat_dim!` with all keyword arguments filled out.
-Intended to be used with piping (|>)
+
+Intended to be used with the pipe operator (`|>`).
 """
 function add_lat_dim(;
     dim_name = "latitude",
@@ -117,9 +165,16 @@ function add_lat_dim(;
 end
 
 """
-    add_lat_dim!
+    add_lat_dim!(var::TemplateVar;
+                 dim_name = "latitude",
+                 dim_array = collect(range(-90.0, 90.0, 181)),
+                 units = "degrees", # todo: Change this
+                 lat_attribs...,
+)
 
-Supposed to be used with functional composition
+Add latitude dimension and attributes and return `var`.
+
+Intended to be used with function composition.
 """
 function add_lat_dim!(
     var::TemplateVar;
@@ -133,6 +188,16 @@ function add_lat_dim!(
     return add_dim!(var, dim_name, dim_array; units = units, lat_attribs...)
 end
 
+"""
+    add_lon_dim(; dim_name = "longitude",
+                dim_array = collect(range(-180.0, 180.0, 361)),
+                units = "degrees", # TODO: Change this
+                lon_attribs...)
+
+Return the function `add_lon_dim!` with all keyword arguments filled out.
+
+Intended to be used with the pipe operator (`|>`).
+"""
 function add_lon_dim(;
     dim_name = "longitude",
     dim_array = collect(range(-180.0, 180.0, 361)),
@@ -150,6 +215,17 @@ function add_lon_dim(;
     )
 end
 
+"""
+    add_lon_dim!(var::TemplateVar;
+                 dim_name = "longitude",
+                 dim_array = collect(range(-180.0, 180.0, 361)),
+                 units = "degrees", # todo: Change this
+                 lon_attribs...)
+
+Add longitude dimension and attributes and return `var`.
+
+Intended to be used with function composition.
+"""
 function add_lon_dim!(
     var::TemplateVar;
     dim_name = "longitude",
@@ -191,17 +267,19 @@ function add_time_dim!(
     return add_dim!(var, dim_name, dim_array; units = units, time_attribs...)
 end
 
+# TODO: Add pressure dimension
+
 function add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
     push!(
         var.dims_fn,
         make_lazy(
-            (dims, dim_name, dim_array) -> dims[dim_name] = dim_array,
+            (dim_name, dim_array, dims) -> dims[dim_name] = dim_array,
             dim_name,
             dim_array,
         ),
     )
     if !isempty(dim_attribs)
-        function add_dim_attribs(dim_attribs_dict, dim_name, dim_attribs)
+        function add_dim_attribs(dim_name, dim_attribs, dim_attribs_dict)
             for (key, value) in dim_attribs
                 dim_attribs_dict[dim_name][string(key)] = value
             end
@@ -215,10 +293,16 @@ function add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
     return var
 end
 
+"""
+    ones_data(; data_type = Float64)
+"""
 function ones_data(; data_type = Float64)
     return var -> ones_data!(var, data_type = data_type)
 end
 
+"""
+    ones_data!(var::TemplateVar; data_type = Float64)
+"""
 function ones_data!(var::TemplateVar; data_type = Float64)
     push!(
         var.data_fn,
@@ -230,10 +314,20 @@ function ones_data!(var::TemplateVar; data_type = Float64)
     return var
 end
 
+"""
+    zeros_data(; data_type = Float64)
+
+TODO
+"""
 function zeros_data(; data_type = Float64)
     return var -> zeros_data!(var, data_type = data_type)
 end
 
+"""
+    zeros_data!(var::TemplateVar; data_type = Float64)
+
+TODO
+"""
 function zeros_data!(var::TemplateVar; data_type = Float64)
     push!(
         var.data_fn,
@@ -245,11 +339,22 @@ function zeros_data!(var::TemplateVar; data_type = Float64)
     return var
 end
 
+"""
+    ones_to_n_data(; data_type = Float64, lazy = true)
+"""
 function ones_to_n_data(; data_type = Float64, lazy = true)
     return var ->
         ones_to_n_data!(var::TemplateVar, data_type = data_type, lazy = lazy)
 end
 
+"""
+    ones_to_n_data!(var; data_type = Float64, lazy = true)
+
+Add data of `1:n` to `var` where `n` is the product of the sizes of the dimensions.
+
+If `lazy = true`, then `collect` is not called on the data and if `lazy = false`, then
+`collect` is called on the data.
+"""
 function ones_to_n_data!(var; data_type = Float64, lazy = true)
     if lazy
         push!(
@@ -274,20 +379,47 @@ function ones_to_n_data!(var; data_type = Float64, lazy = true)
     end
     return var
 end
+
+"""
+    make_template_var(dims::String...)
+
+Make a `TemplateVar` with the specified dimensions in `dims`.
+
+The order of `dims` dicates the order of the dimensions in the `OutputVar` after
+initialization.
+"""
+function make_template_var(dims::String...)
+    # TODO: Convert to conventional dim names
+    dims_to_fn = Dict(
+        "time" => add_time_dim!,
+        "lon" => add_lon_dim!,
+        "lat" => add_lat_dim!,
+    )
+
+    # Maybe use reduce here or some functional programming thing
+    var = TemplateVar()
+    for dim in dims
+        var = dims_to_fn[dim](var)
+    end
+    return var
 end
 
-var =
-    Template.TemplateVar() |>
-    Template.add_attribs(; long_name = "hi") |>
-    Template.add_time_dim(; dim_array = collect(1.0:30.0)) |>
-    Template.add_lon_dim(; units = "deg") |>
-    Template.add_lat_dim(; units = "deg") |>
-    Template.ones_to_n_data(lazy = true) |>
-    Template.initialize
+end
+
+var = Template.make_template_var("lat", "lon", "time") |> Template.initialize
+
+# var =
+#     Template.TemplateVar() |>
+#     Template.add_attribs(; long_name = "hi") |>
+#     Template.add_time_dim(; dim_array = collect(1.0:30.0)) |>
+#     Template.add_lon_dim(; units = "deg") |>
+#     Template.add_lat_dim(; units = "deg") |>
+#     Template.ones_to_n_data(lazy = true) |>
+#     Template.initialize
 
 
 # lat = collect(range(-90.0, 90.0, 181))
-# lon = collect(range(180.0, 180.0, 360))
+# lon = collect(range(-180.0, 180.0, 360))
 # data = ones(length(lat), length(lon))
 # dims = OrderedDict(["lat" => lat, "lon" => lon])
 # attribs = Dict("long_name" => "hi")
