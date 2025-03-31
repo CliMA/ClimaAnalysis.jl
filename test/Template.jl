@@ -43,10 +43,13 @@ end
 
 "A struct to hold an uninitialized OutputVar"
 struct TemplateVar
+    "Store the attributes to be added"
     attributes_fn::Vector{LazyEval}
-    # TODO: Make dims and dim_attributes_fn into one thing
-    dims_fn::Vector{LazyEval}
-    dim_attributes_fn::Vector{LazyEval}
+
+    "Map conventional dim name to a tuple of functions that add the dimension and attributes"
+    dims_fn::OrderedDict{String, Tuple{LazyEval, LazyEval}}
+
+    "Store the data to be added"
     data_fn::Vector{LazyEval}
 end
 
@@ -58,7 +61,7 @@ Intialize a `TemplateVar`.
 A `TemplateVar` is an uninitialized `OutputVar`.
 """
 function TemplateVar()
-    return TemplateVar(LazyEval[], Function[], Function[], Function[])
+    return TemplateVar(LazyEval[], OrderedDict{String, Tuple{LazyEval, LazyEval}}(), LazyEval[])
 end
 
 """
@@ -81,14 +84,14 @@ function initialize(var::TemplateVar)
     # but then, the attributes would be out of sync so we store everything together
     # so a vector of (dim_name, dims_fn, dims_attribs_fn)
     dims = OrderedDict{String, AbstractArray}()
-    for fn! in var.dims_fn
-        call(fn!, dims)
+    for (add_dim!, _) in values(var.dims_fn)
+        call(add_dim!, dims)
     end
 
     # Add attributes for dimensions
     dim_attribs = OrderedDict(dim_name => Dict() for dim_name in keys(dims))
-    for fn! in var.dim_attributes_fn
-        call(fn!, dim_attribs)
+    for (_, add_dim_attribs!) in values(var.dims_fn)
+        call(add_dim_attribs!, dim_attribs)
     end
 
     # Add data
@@ -136,6 +139,51 @@ function add_attribs!(var::TemplateVar; attribs...)
     end
     return var
 end
+
+macro generate_add_dim(dim_name, default_dim_name, dim_array, units, possible_dim_names)
+    func_name! = Symbol("add_", dim_name, "_dim!")
+    func_name = Symbol("add_", dim_name, "_dim")
+    conventional_name = ClimaAnalysis.conventional_dim_name(default_dim_name)
+    return quote
+        function $(esc(func_name))(;
+                dim_name = $dim_name,
+                dim_array = $dim_array,
+                units = $units,
+                dim_attribs...,
+            )
+                dim_name in $possible_dim_names ||
+                    error("$dim_name is not a name for the $($conventional_name) dimension")
+                return var -> $(esc(func_name!))(
+                    var;
+                    dim_name = dim_name,
+                    dim_array = dim_array,
+                    units = units,
+                    dim_attribs...,
+                )
+        end
+    end
+end
+
+macro generate_add_dim!(dim_name, default_dim_name, dim_array, units, possible_dim_names)
+    func_name = Symbol("add_", dim_name, "_dim!")
+    conventional_name = ClimaAnalysis.conventional_dim_name(default_dim_name)
+    return quote
+        function $(esc(func_name))(
+            var::TemplateVar;
+            dim_name = $dim_name,
+                dim_array = $dim_array,
+                units = $units,
+                dim_attribs...,
+            )
+            dim_name in $possible_dim_names ||
+            error("$dim_name is not a name for the $($conventional_name) dimension")
+            return add_dim!(var, dim_name, dim_array; units = units, dim_attribs...)
+        end
+    end
+end
+
+@generate_add_dim("altitude", "z", collect(0.0:10.0), "", ClimaAnalysis.Var.ALTITUDE_NAMES)
+@generate_add_dim!("altitude", "z", collect(0.0:10.0), "", ClimaAnalysis.Var.ALTITUDE_NAMES)
 
 """
     add_lat_dim(; dim_name = "latitude",
@@ -267,29 +315,52 @@ function add_time_dim!(
     return add_dim!(var, dim_name, dim_array; units = units, time_attribs...)
 end
 
-# TODO: Add pressure dimension
+function add_pfull_dim(;
+    dim_name = "pressure_level",
+    dim_array = collect(0.0:10.0), # TODO: Change this
+    units = "", # TODO: Change this
+    pfull_attribs...,
+)
+    dim_name in ClimaAnalysis.Var.PRESSURE_NAMES ||
+        error("$dim_name is not a name for the pressure dimension")
+    return var -> add_pfull_dim!(
+        var;
+        dim_name = dim_name,
+        dim_array = dim_array,
+        units = units,
+        pfull_attribs...,
+    )
+end
+
+function add_pfull_dim!(
+    var::TemplateVar;
+    dim_name = "pressure_level",
+    dim_array = collect(0.0:10.0), # TODO: Change this
+    units = "", # TODO: Change this
+    pfull_attribs...,
+)
+    dim_name in ClimaAnalysis.Var.PRESSURE_NAMES ||
+        error("$dim_name is not a name for the pressure dimension")
+    return add_dim!(var, dim_name, dim_array; units = units, pfull_attribs...)
+end
 
 function add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
-    push!(
-        var.dims_fn,
+    function add_dim_attribs(dim_name, dim_attribs, dim_attribs_dict)
+        for (key, value) in dim_attribs
+            dim_attribs_dict[dim_name][string(key)] = value
+        end
+        return nothing
+    end
+
+    conventional_name = ClimaAnalysis.conventional_dim_name(dim_name)
+    var.dims_fn[conventional_name] = (
         make_lazy(
             (dim_name, dim_array, dims) -> dims[dim_name] = dim_array,
             dim_name,
             dim_array,
         ),
+        make_lazy(add_dim_attribs, dim_name, dim_attribs),
     )
-    if !isempty(dim_attribs)
-        function add_dim_attribs(dim_name, dim_attribs, dim_attribs_dict)
-            for (key, value) in dim_attribs
-                dim_attribs_dict[dim_name][string(key)] = value
-            end
-            return nothing
-        end
-        push!(
-            var.dim_attributes_fn,
-            make_lazy(add_dim_attribs, dim_name, dim_attribs),
-        )
-    end
     return var
 end
 
@@ -385,18 +456,19 @@ end
 
 Make a `TemplateVar` with the specified dimensions in `dims`.
 
-The order of `dims` dicates the order of the dimensions in the `OutputVar` after
+The order of `dims` dictates the order of the dimensions in the `OutputVar` after
 initialization.
 """
 function make_template_var(dims::String...)
-    # TODO: Convert to conventional dim names
+    dims = (ClimaAnalysis.conventional_dim_name(dim) for dim in dims)
     dims_to_fn = Dict(
         "time" => add_time_dim!,
-        "lon" => add_lon_dim!,
-        "lat" => add_lat_dim!,
+        "longitude" => add_lon_dim!,
+        "latitude" => add_lat_dim!,
+        "pressure" => add_pfull_dim!,
+        "altitude" => add_altitude_dim!,
     )
 
-    # Maybe use reduce here or some functional programming thing
     var = TemplateVar()
     for dim in dims
         var = dims_to_fn[dim](var)
@@ -406,7 +478,7 @@ end
 
 end
 
-var = Template.make_template_var("lat", "lon", "time") |> Template.initialize
+var = Template.make_template_var("lat", "lon", "time", "pfull") |> Template.initialize
 
 # var =
 #     Template.TemplateVar() |>
