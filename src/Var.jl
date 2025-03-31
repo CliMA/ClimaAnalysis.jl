@@ -2388,9 +2388,12 @@ function lonlat_to_ongrid(var::OutputVar)
     # Otherwise, convert to ongrid
 end
 
-function lon_to_ongrid(var)
+function lon_to_ongrid(var) # TODO: Maybe add this an extra argument here
+    has_longitude(var) || return var
+
+    lon_name = longitude_name(var)
     is_ongrid_and_span =
-        _check_dim_ongrid_and_span(var, longitude_name(var), 360.0)
+        _check_dim_ongrid_and_span(var, lon_name, 360.0)
     is_ongrid_and_span && return var
 
     # From now on, we can assume the longitude dimension is ongrid and span the entire range
@@ -2398,24 +2401,39 @@ function lon_to_ongrid(var)
     d_lon = lon[begin + 1] - lon[begin]
 
     # Append an extra point to make resampling correct
+    lon_idx = dim2index[lon_name]
     fake_lon = [lon..., lon[end] + d_lon]
+    first_lon_slice = selectdim(var.data, lon_idx, 1)
+    fake_data = collect(eachslice(cat(var.data, first_lon_slice; dims = lon_idx), dims = lon_idx))
 
-    # TODO: Resample here
+    # TODO: Write a special case for when the last point of fake_lon is 360.0 or 180.0 and the first point is 0.0
+
+    # New longitudes
+    isinteger(360.0 / d_lon) || error("Cannot find appropriate longitudes to regrid to")
+    new_lons = collect(-180.0:d_lon:180.0) # TODO: Might change this to pick the longitudes, TODO: Pick the right type
+
+    # Resample
+    itp = Intp.extrapolate(
+        Intp.interpolate((fake_lon,), fake_data, Intp.Gridded(Intp.Linear())),
+        (Intp.Periodic(),),
+    )
+    dim_size = tuple(dim == lon_name ? 1 : length(dim_array) for (dim, dim_array) in var.dims)
+    resampled_data = cat(reshape(itp(lon), dim_size...) for lon in new_lons, dims = lon_idx)
+
+    # Make new OutputVar
+    ret_dims = deepcopy(var.dims)
+    ret_dims[lon_name] = ret_lons
+    return remake(var; dims = ret_dims, data = resampled_data)
 end
 
 """
     _check_dim_ongrid_and_span(var, dim_name, size)
 
 Return `true` if `dim` is ongrid and span the entire dimension according to `size`. If
-    dimension is of length one, is not equispaced, or does not span the entire dimension,
-    return an error. Otherwise, return `false`.
+dimension is of length one, is not equispaced, does not span the entire dimension, or does
+not exist, then return an error. Otherwise, return `false`.
 """
 function _check_dim_ongrid_and_span(var, dim_name, size)
-    # TODO: Improve this by using find_corresponding_dim_name, but might need to make it into a try and catch
-    # If dimension don't exists, it is vacuously true that the dimension is ongrid
-    dim_exists = dim_name in keys(var.dims)
-    dim_exists || return true # TODO: Might change this behavior
-
     dim_array = var.dims[dim_name]
     length(dim_array) == 1 || error(
         "$dim_name dimension is of length 1; ambigious whether it is oncell or ongrid",
