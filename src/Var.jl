@@ -2343,6 +2343,88 @@ function reverse_dim!(var::OutputVar, dim_name)
 end
 
 """
+    to_ongrid(var::OutputVar)
+
+TODO: Write documentation here!
+
+TODO: Function must be able to handle both longitude and latitude dimension (don't know about latitude dimension though)
+Maybe just use flat boundary condition since that is what we were doing before anyway
+
+TODO: Test cases: ERA5 example, just longitude, just latitude, both dimensions, both with time dimension
+
+"""
+function lonlat_to_ongrid(var::OutputVar)
+    lon_exists = has_longitude(var)
+    lat_exists = has_latitude(var)
+
+    if !lon_exists && !lat_exists
+        return var
+    end
+
+    # If dimension does not exist or if it is already ongrid, then we don't need to worry about it
+    lonlat_to_ongrid = (
+        begin
+            exists || return false
+            dim_array = dim(var)
+            dim_equispaced =
+                length(dim_array) > 1 && _isequispaced(dim_array)
+            if dim_equispaced &&
+               (d_size = dim_array[begin + 1] - dim_array[begin]) &&
+               (dim_array[end] - dim_array[begin] + d_size ≈ size)
+                return true
+            else
+                return false
+            end
+        end for (exists, dim, size) in zip((lon_exists, lat_exists), (longitudes, latitudes), (360.0, 180.0))
+    )
+
+    # If it is ambigious or it doesn't span the entire globe, then return an error
+    # If it is already on grid, do nothing
+
+    # Otherwise, convert to ongrid
+end
+
+function lon_to_ongrid(var)
+    is_ongrid_and_span = _check_dim_ongrid_and_span(var, longitude_name(var), 360.0)
+    is_ongrid_and_span && return var
+
+    # From now on, we can assume the longitude dimension is ongrid and span the entire range
+    lon = longitudes(var)
+    d_lon = lon[begin + 1] - lon[begin]
+
+    # Append an extra point to make resampling correct
+    fake_lon = [lon..., lon[end] + d_lon]
+
+    # TODO: Resample here
+end
+
+"""
+    _check_dim_ongrid_and_span(var, dim_name, size)
+
+Return `true` if `dim` is ongrid and span the entire dimension according to `size`. If
+    dimension is of length one, is not equispaced, or does not span the entire dimension,
+    return an error. Otherwise, return `false`.
+"""
+function _check_dim_ongrid_and_span(var, dim_name, size)
+    # TODO: Improve this by using find_corresponding_dim_name, but might need to make it into a try and catch
+    # If dimension don't exists, it is vacuously true that the dimension is ongrid
+    dim_exists = dim_name in keys(var.dims)
+    dim_exists || return true # TODO: Might change this behavior
+
+    dim_array = var.dims[dim_name]
+    length(dim_array) == 1 || error("$dim_name dimension is of length 1; ambigious whether it is oncell or ongrid")
+    _isequispaced(dim_array) || error("$dim_name dimension is not equispaced")
+
+    # If already ongrid, return true
+    dim_array[end] - dim_array[begin] ≈ size && return true
+
+    # Check if it span the globe assuming it is oncell
+    d_size = dim_array[begin + 1] - dim_array[begin]
+    dim_array[end] - dim_array[begin] + d_size ≈ size || error("$dim_name dimension does not span the entire range")
+    return false
+end
+
+"""
     Base.show(io::IO, var::OutputVar)
 
 Pretty print the contents of an `OutputVar`.
