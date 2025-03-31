@@ -2375,7 +2375,11 @@ function lonlat_to_ongrid(var::OutputVar)
             else
                 return false
             end
-        end for (exists, dim, size) in zip((lon_exists, lat_exists), (longitudes, latitudes), (360.0, 180.0))
+        end for (exists, dim, size) in zip(
+            (lon_exists, lat_exists),
+            (longitudes, latitudes),
+            (360.0, 180.0),
+        )
     )
 
     # If it is ambigious or it doesn't span the entire globe, then return an error
@@ -2385,7 +2389,8 @@ function lonlat_to_ongrid(var::OutputVar)
 end
 
 function lon_to_ongrid(var)
-    is_ongrid_and_span = _check_dim_ongrid_and_span(var, longitude_name(var), 360.0)
+    is_ongrid_and_span =
+        _check_dim_ongrid_and_span(var, longitude_name(var), 360.0)
     is_ongrid_and_span && return var
 
     # From now on, we can assume the longitude dimension is ongrid and span the entire range
@@ -2412,7 +2417,9 @@ function _check_dim_ongrid_and_span(var, dim_name, size)
     dim_exists || return true # TODO: Might change this behavior
 
     dim_array = var.dims[dim_name]
-    length(dim_array) == 1 || error("$dim_name dimension is of length 1; ambigious whether it is oncell or ongrid")
+    length(dim_array) == 1 || error(
+        "$dim_name dimension is of length 1; ambigious whether it is oncell or ongrid",
+    )
     _isequispaced(dim_array) || error("$dim_name dimension is not equispaced")
 
     # If already ongrid, return true
@@ -2420,7 +2427,9 @@ function _check_dim_ongrid_and_span(var, dim_name, size)
 
     # Check if it span the globe assuming it is oncell
     d_size = dim_array[begin + 1] - dim_array[begin]
-    dim_array[end] - dim_array[begin] + d_size ≈ size || error("$dim_name dimension does not span the entire range")
+    dim_array[end] - dim_array[begin] + d_size ≈ size || error(
+        "$dim_name dimension does not span the entire range; ambigious whether it is oncell or ongrid",
+    )
     return false
 end
 
