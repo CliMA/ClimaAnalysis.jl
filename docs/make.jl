@@ -37,4 +37,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo = "github.com/CliMA/ClimaAnalysis.jl")
+deploydocs(; repo = "github.com/CliMA/ClimaAnalysis.jl", push_preview = true)
