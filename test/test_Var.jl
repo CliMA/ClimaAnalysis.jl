@@ -244,12 +244,12 @@ end
     dims = OrderedDict{String, Vector{Float64}}()
     data = Float64[]
     empty_var = ClimaAnalysis.OutputVar(dims, data)
-    @test ClimaAnalysis.isempty(empty_var)
+    @test isempty(empty_var)
 
     dims = OrderedDict{String, Vector{Float64}}()
     data = fill(1.0)
     empty_var = ClimaAnalysis.OutputVar(dims, data)
-    @test !ClimaAnalysis.isempty(empty_var)
+    @test !isempty(empty_var)
 
     long = 0.0:180.0 |> collect
     dims = OrderedDict(["long" => long])
@@ -257,7 +257,7 @@ end
     dim_attributes = OrderedDict(["lon" => Dict("b" => 2)])
     attribs = Dict("short_name" => "bob", "long_name" => "hi")
     not_empty_var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
-    @test !ClimaAnalysis.isempty(not_empty_var)
+    @test !isempty(not_empty_var)
 end
 
 @testset "Arithmetic operations" begin

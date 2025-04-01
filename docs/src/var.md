@@ -214,7 +214,7 @@ var.attributes
 ClimaAnalysis.times(var) # correspond to dates 2024-1-1, 2024-3-1, 2024-6-1
 var.data
 MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
-ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
+isempty(SON) # empty OutputVar because no dates between September to November
 [MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
 [MAM.data, JJA.data, DJF.data]
 ```

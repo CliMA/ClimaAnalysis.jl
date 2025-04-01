@@ -566,7 +566,7 @@ julia> var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
 
 julia> MAM, JJA, SON, DJF = ClimaAnalysis.split_by_season(var);
 
-julia> ClimaAnalysis.isempty(SON) # empty OutputVar because no dates between September to November
+julia> isempty(SON) # empty OutputVar because no dates between September to November
 true
 
 julia> [MAM.dims["time"], JJA.dims["time"], DJF.dims["time"]]
