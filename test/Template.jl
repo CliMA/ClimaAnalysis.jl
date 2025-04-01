@@ -138,6 +138,15 @@ function add_attribs!(var::TemplateVar; attribs...)
     return var
 end
 
+"""
+    macro generate_add_dim(dim_name,
+                           default_dim_name,
+                           dim_array,
+                           units,
+                           possible_dim_names)
+
+Macro to generate functions `add_dim` and `add_dim!`.
+"""
 macro generate_add_dim(
     dim_name,
     default_dim_name,
@@ -149,6 +158,7 @@ macro generate_add_dim(
     func_name = Symbol("add_", dim_name, "_dim")
     conventional_name = ClimaAnalysis.conventional_dim_name(default_dim_name)
     return quote
+        # Define add_dim
         function $(esc(func_name))(;
             dim_name = $dim_name,
             dim_array = $dim_array,
@@ -166,20 +176,9 @@ macro generate_add_dim(
                 dim_attribs...,
             )
         end
-    end
-end
 
-macro generate_add_dim!(
-    dim_name,
-    default_dim_name,
-    dim_array,
-    units,
-    possible_dim_names,
-)
-    func_name = Symbol("add_", dim_name, "_dim!")
-    conventional_name = ClimaAnalysis.conventional_dim_name(default_dim_name)
-    return quote
-        function $(esc(func_name))(
+        # Define add_dim!
+        function $(esc(func_name!))(
             var::TemplateVar;
             dim_name = $dim_name,
             dim_array = $dim_array,
@@ -204,42 +203,21 @@ end
     "altitude",
     "z",
     collect(0.0:10.0),
-    "",
-    ClimaAnalysis.Var.ALTITUDE_NAMES
-)
-@generate_add_dim!(
-    "altitude",
-    "z",
-    collect(0.0:10.0),
-    "",
+    "", # TODO: Change this
     ClimaAnalysis.Var.ALTITUDE_NAMES
 )
 @generate_add_dim(
     "lat",
     "latitude",
     collect(range(-90.0, 90.0, 181)),
-    "degrees",
-    ClimaAnalysis.Var.LATITUDE_NAMES
-)
-@generate_add_dim!(
-    "lat",
-    "latitude",
-    collect(0.0:10.0),
-    "degrees",
+    "degrees", # TODO: Change this
     ClimaAnalysis.Var.LATITUDE_NAMES
 )
 @generate_add_dim(
     "lon",
     "longitude",
     collect(range(-180.0, 180.0, 361)),
-    "degrees",
-    ClimaAnalysis.Var.LONGITUDE_NAMES
-)
-@generate_add_dim!(
-    "lon",
-    "longitude",
-    collect(range(-180.0, 180.0, 361)),
-    "degrees",
+    "degrees", # TODO: Change this
     ClimaAnalysis.Var.LONGITUDE_NAMES
 )
 @generate_add_dim(
@@ -249,25 +227,11 @@ end
     "seconds",
     ClimaAnalysis.Var.TIME_NAMES
 )
-@generate_add_dim!(
-    "time",
-    "time",
-    collect(0.0:10.0),
-    "seconds",
-    ClimaAnalysis.Var.TIME_NAMES
-)
 @generate_add_dim(
     "pfull",
     "pfull",
-    collect(0.0:10.0),
-    "",
-    ClimaAnalysis.Var.PRESSURE_NAMES
-)
-@generate_add_dim!(
-    "pfull",
-    "pfull",
-    collect(0.0:10.0),
-    "",
+    collect(0.0:10.0), # TODO: Change this
+    "", # TODO: Change this
     ClimaAnalysis.Var.PRESSURE_NAMES
 )
 
@@ -409,14 +373,14 @@ var =
     Template.make_template_var("lat", "lon", "time", "pfull") |>
     Template.initialize
 
-# var =
-#     Template.TemplateVar() |>
-#     Template.add_attribs(; long_name = "hi") |>
-#     Template.add_time_dim(; dim_array = collect(1.0:30.0)) |>
-#     Template.add_lon_dim(; units = "deg") |>
-#     Template.add_lat_dim(; units = "deg") |>
-#     Template.ones_to_n_data(lazy = true) |>
-#     Template.initialize
+var =
+    Template.TemplateVar() |>
+    Template.add_attribs(; long_name = "hi") |>
+    Template.add_time_dim(; dim_array = collect(1.0:30.0)) |>
+    Template.add_lon_dim(; units = "deg") |>
+    Template.add_lat_dim(; units = "deg") |>
+    Template.ones_to_n_data(lazy = true) |>
+    Template.initialize
 
 
 # lat = collect(range(-90.0, 90.0, 181))
