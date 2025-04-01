@@ -61,7 +61,11 @@ Intialize a `TemplateVar`.
 A `TemplateVar` is an uninitialized `OutputVar`.
 """
 function TemplateVar()
-    return TemplateVar(LazyEval[], OrderedDict{String, Tuple{LazyEval, LazyEval}}(), LazyEval[])
+    return TemplateVar(
+        LazyEval[],
+        OrderedDict{String, Tuple{LazyEval, LazyEval}}(),
+        LazyEval[],
+    )
 end
 
 """
@@ -77,12 +81,6 @@ function initialize(var::TemplateVar)
     end
 
     # Add dimensions
-    # TODO: Maybe enforce that there are only be one of each dimension and replace the lazyeval
-    # when adding dimensions
-    # For example, adding two dimensions can be weird
-    # easiest way would be to add a tag, so maybe (dim_name, dims_fn)
-    # but then, the attributes would be out of sync so we store everything together
-    # so a vector of (dim_name, dims_fn, dims_attribs_fn)
     dims = OrderedDict{String, AbstractArray}()
     for (add_dim!, _) in values(var.dims_fn)
         call(add_dim!, dims)
@@ -101,7 +99,7 @@ function initialize(var::TemplateVar)
         data = zeros(dim_sizes...)
     else
         # If there are more than one LazyComp for initializing data, use the last one
-        # It is not easy to modify this since you may want to use an UnitRange for the data
+        # It is not easy to modify data since you may want to use an UnitRange for the data
         # which doesn't support indexed assignment
         data = call(var.data_fn[end]; dim_sizes = dim_sizes)
     end
@@ -140,209 +138,138 @@ function add_attribs!(var::TemplateVar; attribs...)
     return var
 end
 
-macro generate_add_dim(dim_name, default_dim_name, dim_array, units, possible_dim_names)
+macro generate_add_dim(
+    dim_name,
+    default_dim_name,
+    dim_array,
+    units,
+    possible_dim_names,
+)
     func_name! = Symbol("add_", dim_name, "_dim!")
     func_name = Symbol("add_", dim_name, "_dim")
     conventional_name = ClimaAnalysis.conventional_dim_name(default_dim_name)
     return quote
         function $(esc(func_name))(;
-                dim_name = $dim_name,
-                dim_array = $dim_array,
-                units = $units,
+            dim_name = $dim_name,
+            dim_array = $dim_array,
+            units = $units,
+            dim_attribs...,
+        )
+            dim_name in $possible_dim_names || error(
+                "$dim_name is not a name for the $($conventional_name) dimension",
+            )
+            return var -> $(esc(func_name!))(
+                var;
+                dim_name = dim_name,
+                dim_array = dim_array,
+                units = units,
                 dim_attribs...,
             )
-                dim_name in $possible_dim_names ||
-                    error("$dim_name is not a name for the $($conventional_name) dimension")
-                return var -> $(esc(func_name!))(
-                    var;
-                    dim_name = dim_name,
-                    dim_array = dim_array,
-                    units = units,
-                    dim_attribs...,
-                )
         end
     end
 end
 
-macro generate_add_dim!(dim_name, default_dim_name, dim_array, units, possible_dim_names)
+macro generate_add_dim!(
+    dim_name,
+    default_dim_name,
+    dim_array,
+    units,
+    possible_dim_names,
+)
     func_name = Symbol("add_", dim_name, "_dim!")
     conventional_name = ClimaAnalysis.conventional_dim_name(default_dim_name)
     return quote
         function $(esc(func_name))(
             var::TemplateVar;
             dim_name = $dim_name,
-                dim_array = $dim_array,
-                units = $units,
+            dim_array = $dim_array,
+            units = $units,
+            dim_attribs...,
+        )
+            dim_name in $possible_dim_names || error(
+                "$dim_name is not a name for the $($conventional_name) dimension",
+            )
+            return add_dim!(
+                var,
+                dim_name,
+                dim_array;
+                units = units,
                 dim_attribs...,
             )
-            dim_name in $possible_dim_names ||
-            error("$dim_name is not a name for the $($conventional_name) dimension")
-            return add_dim!(var, dim_name, dim_array; units = units, dim_attribs...)
         end
     end
 end
 
-@generate_add_dim("altitude", "z", collect(0.0:10.0), "", ClimaAnalysis.Var.ALTITUDE_NAMES)
-@generate_add_dim!("altitude", "z", collect(0.0:10.0), "", ClimaAnalysis.Var.ALTITUDE_NAMES)
-
-"""
-    add_lat_dim(; dim_name = "latitude",
-                  dim_array = collect(range(-90.0, 90.0, 181)),
-                  units = "degrees",
-                  lat_attribs...)
-
-Return the function `add_lat_dim!` with all keyword arguments filled out.
-
-Intended to be used with the pipe operator (`|>`).
-"""
-function add_lat_dim(;
-    dim_name = "latitude",
-    dim_array = collect(range(-90.0, 90.0, 181)),
-    units = "degrees",
-    lat_attribs...,
+@generate_add_dim(
+    "altitude",
+    "z",
+    collect(0.0:10.0),
+    "",
+    ClimaAnalysis.Var.ALTITUDE_NAMES
 )
-    dim_name in ClimaAnalysis.Var.LATITUDE_NAMES ||
-        error("$dim_name is not a name for the latitude dimension")
-    return var -> add_lat_dim!(
-        var;
-        dim_name = dim_name,
-        dim_array = dim_array,
-        units = units,
-        lat_attribs...,
-    )
-end
-
-"""
-    add_lat_dim!(var::TemplateVar;
-                 dim_name = "latitude",
-                 dim_array = collect(range(-90.0, 90.0, 181)),
-                 units = "degrees", # todo: Change this
-                 lat_attribs...,
+@generate_add_dim!(
+    "altitude",
+    "z",
+    collect(0.0:10.0),
+    "",
+    ClimaAnalysis.Var.ALTITUDE_NAMES
 )
-
-Add latitude dimension and attributes and return `var`.
-
-Intended to be used with function composition.
-"""
-function add_lat_dim!(
-    var::TemplateVar;
-    dim_name = "latitude",
-    dim_array = collect(range(-90.0, 90.0, 181)),
-    units = "degrees", # todo: Change this
-    lat_attribs...,
+@generate_add_dim(
+    "lat",
+    "latitude",
+    collect(range(-90.0, 90.0, 181)),
+    "degrees",
+    ClimaAnalysis.Var.LATITUDE_NAMES
 )
-    dim_name in ClimaAnalysis.Var.LATITUDE_NAMES ||
-        error("$dim_name is not a name for the latitude dimension")
-    return add_dim!(var, dim_name, dim_array; units = units, lat_attribs...)
-end
-
-"""
-    add_lon_dim(; dim_name = "longitude",
-                dim_array = collect(range(-180.0, 180.0, 361)),
-                units = "degrees", # TODO: Change this
-                lon_attribs...)
-
-Return the function `add_lon_dim!` with all keyword arguments filled out.
-
-Intended to be used with the pipe operator (`|>`).
-"""
-function add_lon_dim(;
-    dim_name = "longitude",
-    dim_array = collect(range(-180.0, 180.0, 361)),
-    units = "degrees", # TODO: Change this
-    lon_attribs...,
+@generate_add_dim!(
+    "lat",
+    "latitude",
+    collect(0.0:10.0),
+    "degrees",
+    ClimaAnalysis.Var.LATITUDE_NAMES
 )
-    dim_name in ClimaAnalysis.Var.LONGITUDE_NAMES ||
-        error("$dim_name is not a name for the longitude dimension")
-    return var -> add_lon_dim!(
-        var;
-        dim_name = dim_name,
-        dim_array = dim_array,
-        units = units,
-        lon_attribs...,
-    )
-end
-
-"""
-    add_lon_dim!(var::TemplateVar;
-                 dim_name = "longitude",
-                 dim_array = collect(range(-180.0, 180.0, 361)),
-                 units = "degrees", # todo: Change this
-                 lon_attribs...)
-
-Add longitude dimension and attributes and return `var`.
-
-Intended to be used with function composition.
-"""
-function add_lon_dim!(
-    var::TemplateVar;
-    dim_name = "longitude",
-    dim_array = collect(range(-180.0, 180.0, 361)),
-    units = "degrees", # todo: Change this
-    lon_attribs...,
+@generate_add_dim(
+    "lon",
+    "longitude",
+    collect(range(-180.0, 180.0, 361)),
+    "degrees",
+    ClimaAnalysis.Var.LONGITUDE_NAMES
 )
-    dim_name in ClimaAnalysis.Var.LONGITUDE_NAMES ||
-        error("$dim_name is not a name for the longitude dimension")
-    return add_dim!(var, dim_name, dim_array; units = units, lon_attribs...)
-end
-
-function add_time_dim(;
-    dim_name = "time",
-    dim_array = collect(0.0:10.0),
-    units = "seconds",
-    time_attribs...,
+@generate_add_dim!(
+    "lon",
+    "longitude",
+    collect(range(-180.0, 180.0, 361)),
+    "degrees",
+    ClimaAnalysis.Var.LONGITUDE_NAMES
 )
-    dim_name in ClimaAnalysis.Var.TIME_NAMES ||
-        error("$dim_name is not a name for the time dimension")
-    return var -> add_time_dim!(
-        var;
-        dim_name = dim_name,
-        dim_array = dim_array,
-        units = units,
-        time_attribs...,
-    )
-end
-
-function add_time_dim!(
-    var::TemplateVar;
-    dim_name = "time",
-    dim_array = collect(0.0:10.0),
-    units = "seconds",
-    time_attribs...,
+@generate_add_dim(
+    "time",
+    "time",
+    collect(0.0:10.0),
+    "seconds",
+    ClimaAnalysis.Var.TIME_NAMES
 )
-    dim_name in ClimaAnalysis.Var.TIME_NAMES ||
-        error("$dim_name is not a name for the time dimension")
-    return add_dim!(var, dim_name, dim_array; units = units, time_attribs...)
-end
-
-function add_pfull_dim(;
-    dim_name = "pressure_level",
-    dim_array = collect(0.0:10.0), # TODO: Change this
-    units = "", # TODO: Change this
-    pfull_attribs...,
+@generate_add_dim!(
+    "time",
+    "time",
+    collect(0.0:10.0),
+    "seconds",
+    ClimaAnalysis.Var.TIME_NAMES
 )
-    dim_name in ClimaAnalysis.Var.PRESSURE_NAMES ||
-        error("$dim_name is not a name for the pressure dimension")
-    return var -> add_pfull_dim!(
-        var;
-        dim_name = dim_name,
-        dim_array = dim_array,
-        units = units,
-        pfull_attribs...,
-    )
-end
-
-function add_pfull_dim!(
-    var::TemplateVar;
-    dim_name = "pressure_level",
-    dim_array = collect(0.0:10.0), # TODO: Change this
-    units = "", # TODO: Change this
-    pfull_attribs...,
+@generate_add_dim(
+    "pfull",
+    "pfull",
+    collect(0.0:10.0),
+    "",
+    ClimaAnalysis.Var.PRESSURE_NAMES
 )
-    dim_name in ClimaAnalysis.Var.PRESSURE_NAMES ||
-        error("$dim_name is not a name for the pressure dimension")
-    return add_dim!(var, dim_name, dim_array; units = units, pfull_attribs...)
-end
+@generate_add_dim!(
+    "pfull",
+    "pfull",
+    collect(0.0:10.0),
+    "",
+    ClimaAnalysis.Var.PRESSURE_NAMES
+)
 
 function add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
     function add_dim_attribs(dim_name, dim_attribs, dim_attribs_dict)
@@ -478,7 +405,9 @@ end
 
 end
 
-var = Template.make_template_var("lat", "lon", "time", "pfull") |> Template.initialize
+var =
+    Template.make_template_var("lat", "lon", "time", "pfull") |>
+    Template.initialize
 
 # var =
 #     Template.TemplateVar() |>
