@@ -203,21 +203,21 @@ end
     "altitude",
     "z",
     collect(0.0:10.0),
-    "", # TODO: Change this
+    "m",
     ClimaAnalysis.Var.ALTITUDE_NAMES
 )
 @generate_add_dim(
     "lat",
     "latitude",
     collect(range(-90.0, 90.0, 181)),
-    "degrees", # TODO: Change this
+    "degrees_east",
     ClimaAnalysis.Var.LATITUDE_NAMES
 )
 @generate_add_dim(
     "lon",
     "longitude",
     collect(range(-180.0, 180.0, 361)),
-    "degrees", # TODO: Change this
+    "degrees_north",
     ClimaAnalysis.Var.LONGITUDE_NAMES
 )
 @generate_add_dim(
@@ -230,8 +230,8 @@ end
 @generate_add_dim(
     "pfull",
     "pfull",
-    collect(0.0:10.0), # TODO: Change this
-    "", # TODO: Change this
+    collect(0.0:10.0),
+    "Pa",
     ClimaAnalysis.Var.PRESSURE_NAMES
 )
 
@@ -344,12 +344,14 @@ If `lazy = true`, then `collect` is not called on the data and if `lazy = false`
 Intended to be used with function composition.
 """
 function ones_to_n_data!(var; data_type = Float64, lazy = true)
+    start = data_type(1)
+    final = data_type(prod(dim_sizes))
     if lazy
         push!(
             var.data_fn,
             make_lazy(
                 (data_type; dim_sizes) ->
-                    reshape(data_type(1):data_type(prod(dim_sizes)), dim_sizes),
+                    reshape(start:final, dim_sizes),
                 data_type,
             ),
         )
@@ -358,7 +360,7 @@ function ones_to_n_data!(var; data_type = Float64, lazy = true)
             var.data_fn,
             make_lazy(
                 (data_type; dim_sizes) -> reshape(
-                    collect(data_type(1):data_type(prod(dim_sizes))),
+                    collect(start:final),
                     dim_sizes,
                 ),
                 data_type,
