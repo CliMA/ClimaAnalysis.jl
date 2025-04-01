@@ -6,7 +6,7 @@ import OrderedCollections: OrderedDict
 "A struct to hold a lazy evaluation"
 struct LazyEval
 
-    "Function to do lazily evaluate"
+    "Function to lazily evaluate"
     f::Function
 
     "Positional arguments to pass to f"
@@ -235,6 +235,11 @@ end
     ClimaAnalysis.Var.PRESSURE_NAMES
 )
 
+"""
+    add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
+
+Add `dim_name` dimension with array `dim_array` and attributes `dim_attribs`.
+"""
 function add_dim!(var::TemplateVar, dim_name, dim_array; dim_attribs...)
     function add_dim_attribs(dim_name, dim_attribs, dim_attribs_dict)
         for (key, value) in dim_attribs
@@ -257,6 +262,10 @@ end
 
 """
     ones_data(; data_type = Float64)
+
+Add ones data to `TemplateVar`.
+
+Intended to be used with the pipe operator (`|>`).
 """
 function ones_data(; data_type = Float64)
     return var -> ones_data!(var, data_type = data_type)
@@ -264,6 +273,10 @@ end
 
 """
     ones_data!(var::TemplateVar; data_type = Float64)
+
+Add ones data to `TemplateVar`.
+
+Intended to be used with function composition.
 """
 function ones_data!(var::TemplateVar; data_type = Float64)
     push!(
@@ -279,7 +292,9 @@ end
 """
     zeros_data(; data_type = Float64)
 
-TODO
+Add zeros data to `TemplateVar`.
+
+Intended to be used with the pipe operator (`|>`).
 """
 function zeros_data(; data_type = Float64)
     return var -> zeros_data!(var, data_type = data_type)
@@ -288,7 +303,9 @@ end
 """
     zeros_data!(var::TemplateVar; data_type = Float64)
 
-TODO
+Add zeros data to `TemplateVar`.
+
+Intended to be used with function composition.
 """
 function zeros_data!(var::TemplateVar; data_type = Float64)
     push!(
@@ -303,6 +320,13 @@ end
 
 """
     ones_to_n_data(; data_type = Float64, lazy = true)
+
+Add data of `1:n` to `var` where `n` is the product of the sizes of the dimensions.
+
+If `lazy = true`, then `collect` is not called on the data and if `lazy = false`, then
+`collect` is called on the data.
+
+Intended to be used with the pipe operator (`|>`).
 """
 function ones_to_n_data(; data_type = Float64, lazy = true)
     return var ->
@@ -316,6 +340,8 @@ Add data of `1:n` to `var` where `n` is the product of the sizes of the dimensio
 
 If `lazy = true`, then `collect` is not called on the data and if `lazy = false`, then
 `collect` is called on the data.
+
+Intended to be used with function composition.
 """
 function ones_to_n_data!(var; data_type = Float64, lazy = true)
     if lazy
