@@ -3,6 +3,15 @@ ClimaAnalysis.jl Release Notes
 v0.5.16
 -------
 
+## Bug fixes
+
+- If the points of a grid represent center of a cell instead of the edges of a cell, then
+resampling may produce incorrect results when interpolating outside of the longitude range.
+This is fixed in this release.
+
+v0.5.16
+-------
+
 ## Shift longitudes
 The implementation of `center_longitude!` is incorrect and buggy. To resolve this, the
 function `shift_longitude` is encouraged to be used instead. For example, to shift
