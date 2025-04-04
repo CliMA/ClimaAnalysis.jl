@@ -1,5 +1,14 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.17
+-------
+
+## Bug fixes
+
+- If the points of a grid represent center of a cell instead of the edges of a cell, then
+resampling may produce incorrect results when interpolating outside of the longitude range.
+This is fixed in this release.
+
 v0.5.16
 -------
 

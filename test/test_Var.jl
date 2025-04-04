@@ -1439,6 +1439,77 @@ end
     @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
 end
 
+@testset "Resampling ongrid and oncenter" begin
+    # Checking oncell (1d)
+    src_long = 0.0:359.0 |> collect
+    src_data = reshape(collect(1.0:(360.0)), (360,))
+    src_dims = OrderedDict(["long" => src_long])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict(["long" => Dict("units" => "test_units1")])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+
+    dest_long = [-2.0, -1.5, -1.0, -0.5, 0.0, 1.0, 2.0]
+    dest_data = ones(size(dest_long))
+    dest_dims = OrderedDict(["long" => dest_long])
+    dest_var = ClimaAnalysis.remake(src_var, data = dest_data, dims = dest_dims)
+    resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test resampled_var.data == [359.0, 359.5, 360.0, 180.5, 1.0, 2.0, 3.0]
+
+    # Checking ongrid (1d)
+    src_long = 0.0:360.0 |> collect
+    src_data = reshape(collect(1.0:(361.0)), (361,))
+    src_dims = OrderedDict(["long" => src_long])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict(["long" => Dict("units" => "test_units1")])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+    resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test resampled_var.data == [359.0, 359.5, 360.0, 360.5, 1.0, 2.0, 3.0]
+
+    # Checking oncell (2d)
+    src_long = 0.0:359.0 |> collect
+    src_lat = 0.0:2.0 |> collect
+    src_data = reshape(collect(1.0:(360.0 * 3)), (360, 3))
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_attribs = Dict("long_name" => "hi")
+    src_dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    src_var = ClimaAnalysis.OutputVar(
+        src_attribs,
+        src_dims,
+        src_dim_attribs,
+        src_data,
+    )
+    dest_long = [-2.0, -1.5, -1.0, 1.0]
+    dest_lat = [1.0, 1.5]
+    dest_data = ones(length(dest_long), length(dest_lat))
+    dest_dims = OrderedDict(["long" => dest_long, "lat" => dest_lat])
+    dest_var = ClimaAnalysis.remake(src_var, data = dest_data, dims = dest_dims)
+    resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test resampled_var.data == [[719, 719.5, 720, 362] [899, 899.5, 900, 542]]
+
+    # Checking ongrid (2d)
+    src_long = 0.0:360.0 |> collect
+    src_lat = 0.0:2.0 |> collect
+    src_data = reshape(collect(1.0:(361.0 * 3)), (361, 3))
+    src_dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    src_var = ClimaAnalysis.remake(src_var, data = src_data, dims = src_dims)
+    resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test resampled_var.data ==
+          [[720, 720.5, 721, 363] [900.5, 901.0, 901.5, 543.5]]
+end
+
 @testset "Resampling with dim_names keyword" begin
     src_long = 0.0:180.0 |> collect
     src_lat = 0.0:90.0 |> collect

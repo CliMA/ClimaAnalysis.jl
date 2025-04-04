@@ -134,12 +134,57 @@ function _make_interpolant(dims, data)
         (dim_name, dim_array) in dims
     )
 
-    dims_tuple = tuple(values(dims)...)
+    dims_tuple, data = _add_extra_lon_point(dims, data)
+
     extp_bound_conds_tuple = tuple(extp_bound_conds...)
     return Intp.extrapolate(
         Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
         extp_bound_conds_tuple,
     )
+end
+
+"""
+    _add_extra_lon_point(dims, data)
+
+Helper function for adding a extra longitude point when making an interpolant.
+
+An extra longitude point is added if the points of the longitude dimension represent centers
+instead of edges of the cells and the longitude dimension spans all 360 degrees.
+
+For example, if the longitude dimension is [0.5, 1.5, ..., 359.5] or [0.0, 1.0, ..., 359.0],
+then an extra longitude point will be added to the interpolant.
+"""
+function _add_extra_lon_point(dims, data)
+    # Do not want to add an extra point to the dimensions of the OutputVar
+    dims_tuple = tuple(deepcopy(values(dims))...)
+
+    for (idx, (dim_name, dim_array)) in enumerate(dims)
+        min_of_dim, max_of_dim = extrema(dim_array)
+        dim_size = max_of_dim - min_of_dim
+        dsize = dim_array[begin + 1] - dim_array[begin]
+        if conventional_dim_name(dim_name) == "longitude" &&
+           _isequispaced(dim_array) &&
+           isapprox(dim_size + dsize, 360.0)
+            lon = dims_tuple[idx]
+
+            # Append extra lon point
+            # For example, if the longitude dimension is [0.5, 1.5, ..., 359.5], then add
+            # 360.5. If the value of 360 is evaluated, it should be the average of the
+            # points at 0.5 and 359.5 which is what we compute by adding the extra longitude
+            # point and using ongrid.
+            push!(lon, lon[end] + dsize)
+
+            # Add corresponding lon slice to the end of data along the index
+            # corresponding to the longitude dimension
+            first_lon_slice = selectdim(data, idx, 1)
+            data = stack(
+                (eachslice(data, dims = idx)..., first_lon_slice),
+                dims = idx,
+            )
+        end
+    end
+
+    return (dims_tuple, data)
 end
 
 """
