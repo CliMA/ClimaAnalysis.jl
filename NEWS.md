@@ -59,6 +59,25 @@ order.
 DJF, SON = split_by_season(var, seasons = ("DJF", "SON"))
 ```
 
+## TemplateVar
+
+For testing and developing ClimaAnalysis, this release adds `TemplateVar`, which easily
+allows the creation of `OutputVar`. See the example below.
+
+```julia
+var =
+    Template.TemplateVar() |>
+    Template.add_attribs(long_name = "Test", short_name = "test") |>
+    Template.add_time_dim(name = "t", dim = collect(0.0:2.0)) |>
+    Template.add_lon_dim(units = "degrees") |>
+    Template.add_lat_dim(axis = "Y") |>
+    Template.one_to_n_data(collected = true) |>
+    Template.initialize
+```
+
+For more information, see the
+[documentation](https://clima.github.io/ClimaAnalysis.jl/dev/developer/).
+
 ## Bug fixes
 
 - Fixed support for reductions when dimensions have only one point.

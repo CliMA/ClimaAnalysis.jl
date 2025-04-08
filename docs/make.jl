@@ -35,6 +35,7 @@ makedocs(;
         "FlatVar" => "flat.md",
         "APIs" => "api.md",
         "How do I?" => "howdoi.md",
+        "Developer Documentation" => "developer.md",
     ],
 )
 
