@@ -1200,14 +1200,49 @@ function shift_longitude(var, lower_lon, upper_lon)
     dims[lon_name] = lon
     return remake(var, dims = dims, data = data)
 end
+
+"""
+    date_to_time(var::OutputVar, date::Dates.DateTime)
+
+Convert the given calendar date to a time (in seconds) where t=0 is
+`var.attributes["start_date"]`.
+
+This function throws an error if this conversion is not possible with the information in
+`var`.
+"""
+function date_to_time(var::OutputVar, date::Dates.DateTime)
+    # NOTE: this a method in Utils
+
+    var_has_start_date = haskey(var.attributes, "start_date")
+
+    if var_has_start_date
+        return date_to_time(Dates.DateTime(var.attributes["start_date"]), date)
+    else
+        error(
+            "$date is a Date but `var` does not contain `start_date` in the attributes",
+        )
+    end
+end
+
 """
     _slice_general(var::OutputVar, val, dim_name)
 
 Return a new OutputVar by selecting the available index closest to the given `val` for the
-given dimension
+given dimension.
+
+When a time dimension is selected, `start_date` is among the `var`'s attributes, `val` can
+also be a `Dates.DateTime`. In this case, the time associated to the given date is
+automatically computed.
 """
 function _slice_general(var, val, dim_name)
     dim_name_in_var = find_corresponding_dim_name_in_var(dim_name, var)
+
+    val_is_date = val isa Dates.DateTime
+    dim_is_time = conventional_dim_name(dim_name_in_var) == "time"
+    (val_is_date && !dim_is_time) &&
+        error("Dates are only supported with time dimension")
+    # If val is a Date, let's compute the associated time
+    val_is_date && (val = date_to_time(var, val))
 
     nearest_index_val = nearest_index(var.dims[dim_name_in_var], val)
     _slice_over(data; dims) = selectdim(data, dims, nearest_index_val)
@@ -1221,8 +1256,10 @@ function _slice_general(var, val, dim_name)
         dim_array = var.dims[dim_name_in_var]
         dim_units = var.dim_attributes[dim_name_in_var]["units"]
         cut_point = dim_array[nearest_index_val]
-        if (dim_name_in_var == "time" || dim_name_in_var == "t") &&
-           dim_units == "s"
+
+        dim_units_are_seconds = dim_units == "s"
+
+        if dim_is_time && dim_units_are_seconds
             # Dimension is time and units are seconds. Let's convert them to something nicer
             pretty_timestr = seconds_to_prettystr(cut_point)
             reduced_var.attributes["long_name"] *= " $dim_name_in_var = $pretty_timestr"
@@ -1240,11 +1277,26 @@ end
 
 Return a new OutputVar by slicing across dimensions as defined by the keyword arguments.
 
+When a time dimension is selected and `start_date` is among `var`'s attributes, it is
+possible to directly pass a `Dates.DateTime` and `slice` will automatically convert it into
+the corresponding time.
+
 Example
 ===========
 ```julia
 slice(var, lat = 30, lon = 20, time = 100)
 ```
+
+If `var` has `start_date` among its attributes.
+```julia
+import Dates
+slice(var, lat = 30, lon = 20, time = Dates.DateTime(2020, 12, 21))
+```
+
+!!! compat "Support for Dates and generalized dimension names"
+    Calling `slice` with a `DateTime` and specifying a dimension by one of its name
+    (instead of the actual name in the file) was introduced in ClimaAnalysis v0.5.17.
+
 """
 function slice(var; kwargs...)
     sliced_var = var
@@ -1262,14 +1314,37 @@ Return a new OutputVar by selecting the values of the given `dim`ension that are
 
 If `left` and/or `right` are `nothing`, assume beginning (or end) of the array.
 
+For the time dimension, `left` and `right` can also be `Dates.DateTime` (if `var` contains a
+`start_date`).
+
 Example
 ===========
 ```julia
 window(var, 'lat', left = -50, right = 50)
+window(var, 'time', left = DateTime(2008), right = DateTime(2009))
 ```
+
+!!! compat "Support for Dates and generalized dimension names"
+    Calling `window` with a `DateTime` and specifying a dimension by one of its name
+    (instead of the actual name in the file) was introduced in ClimaAnalysis v0.5.17.
+
 """
 function window(var, dim_name; left = nothing, right = nothing)
     dim_name_in_var = find_corresponding_dim_name_in_var(dim_name, var)
+
+    dim_is_time = conventional_dim_name(dim_name_in_var) == "time"
+
+    # If left/right is a Date, let's compute the associated time
+    function _maybe_convert_to_time(num)
+        if num isa Dates.DateTime
+            dim_is_time ||
+                error("Dates are only supported with the time dimension")
+            return date_to_time(var, num)
+        else
+            return num
+        end
+    end
+    left, right = _maybe_convert_to_time(left), _maybe_convert_to_time(right)
 
     nearest_index_left =
         isnothing(left) ? 1 : nearest_index(var.dims[dim_name_in_var], left)

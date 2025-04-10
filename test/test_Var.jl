@@ -965,6 +965,21 @@ end
     t_sliced_other_name = ClimaAnalysis.slice(var, t = 200.0)
     @test t_sliced_other_name.attributes == t_sliced.attributes
     @test t_sliced_other_name.data == t_sliced.data
+
+    # Test with Dates.DateTime
+
+    var_with_start_date = copy(var)
+    push!(var_with_start_date.attributes, "start_date" => "2001-1-1")
+    t_sliced_dates = ClimaAnalysis.slice(
+        var_with_start_date,
+        t = Dates.DateTime(2001) + Dates.Second(200),
+    )
+    @test t_sliced.data == t_sliced_dates.data
+    # Dimension is not time
+    @test_throws ErrorException ClimaAnalysis.slice(
+        var_with_start_date,
+        z = Dates.DateTime(2001),
+    )
 end
 
 @testset "Windowing" begin
@@ -1001,6 +1016,33 @@ end
     var_windowed_t = ClimaAnalysis.window(var, "t", left = 2.5, right = 5.1)
     @test var_windowed_t.attributes == var_windowed.attributes
     @test var_windowed_t.data == var_windowed.data
+
+    # Windowing with Dates.DateTime
+
+    # First, `start_date` not available
+    @test_throws ErrorException ClimaAnalysis.window(
+        var,
+        "time",
+        left = Dates.DateTime(2001),
+    )
+
+    # Now with a valid start date
+    var_with_start_date = copy(var)
+    push!(var_with_start_date.attributes, "start_date" => "2001-1-1")
+    var_windowed_dates = ClimaAnalysis.window(
+        var_with_start_date,
+        "time",
+        left = Dates.DateTime(2001, 1, 1, 0, 0, 2, 500),
+        right = Dates.DateTime(2001, 1, 1, 0, 0, 5, 100),
+    )
+    @test var_windowed.data == var_windowed_dates.data
+
+    # Dates with a dimension that is not time
+    @test_throws ErrorException ClimaAnalysis.window(
+        var,
+        "z",
+        left = Dates.DateTime(2001),
+    )
 end
 
 @testset "Extracting dimension" begin
