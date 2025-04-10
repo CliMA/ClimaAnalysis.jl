@@ -15,6 +15,23 @@ Now, `slice` and `window` will try to match the name of the dimension with a
 database of known names. For example, they understand `lat` even if the data has
 dimensions `latitude`.
 
+`slice` and `window` can also now work directly with `Dates.DateTime`s (assuming
+that the `OutputVar` contains enough information to convert from `times` to
+`dates`, namely the `start_date` among the attributes).
+
+Example
+```julia
+# Suppose `var` is an `OutputVar`
+julia> var.attributes["start_date"]
+2008-01-01T00:00:00
+
+julia> time_name(var)
+"t"
+
+# Notice how we call `time` and not `t`. This was not previously possible!
+julia> slice(var, time = Dates.DateTime(2009, 12, 15))
+```
+
 v0.5.16
 -------
 
