@@ -639,7 +639,7 @@ end
 """
     remake(var; attributes, dims, dim_attributes, data)
 
-remake a `OutputVar`. If a keyword argument is not supplied, then it defaults
+Remake an `OutputVar`. If a keyword argument is not supplied, then it defaults
 to `attributes`, `dims`, `dim_attributes`, or `data` of `var`.
 """
 function remake(
@@ -1024,7 +1024,7 @@ If not available, return an empty string.
 function dim_units(var::OutputVar, dim_name)
     !haskey(var.dims, dim_name) &&
         error("Var does not have dimension $dim_name, found $(keys(var.dims))")
-    # Double get because var.dim_attributes is a dictionry whose values are dictionaries
+    # Double get because var.dim_attributes is a dictionary whose values are dictionaries
     string(get(get(var.dim_attributes, dim_name, Dict()), "units", ""))
 end
 
