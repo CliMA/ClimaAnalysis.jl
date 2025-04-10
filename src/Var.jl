@@ -1207,30 +1207,30 @@ Return a new OutputVar by selecting the available index closest to the given `va
 given dimension
 """
 function _slice_general(var, val, dim_name)
-    haskey(var.dims, dim_name) ||
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    dim_name_in_var = find_corresponding_dim_name_in_var(dim_name, var)
 
-    nearest_index_val = nearest_index(var.dims[dim_name], val)
+    nearest_index_val = nearest_index(var.dims[dim_name_in_var], val)
     _slice_over(data; dims) = selectdim(data, dims, nearest_index_val)
-    reduced_var = _reduce_over(_slice_over, dim_name, var)
+    reduced_var = _reduce_over(_slice_over, dim_name_in_var, var)
 
     # Let's try adding this operation to the long_name, if possible (ie, if the correct
     # attributes are available)
     if haskey(var.attributes, "long_name") &&
-       haskey(var.dim_attributes, dim_name) &&
-       haskey(var.dim_attributes[dim_name], "units")
-        dim_array = var.dims[dim_name]
-        dim_units = var.dim_attributes[dim_name]["units"]
+       haskey(var.dim_attributes, dim_name_in_var) &&
+       haskey(var.dim_attributes[dim_name_in_var], "units")
+        dim_array = var.dims[dim_name_in_var]
+        dim_units = var.dim_attributes[dim_name_in_var]["units"]
         cut_point = dim_array[nearest_index_val]
-        if (dim_name == "time" || dim_name == "t") && dim_units == "s"
+        if (dim_name_in_var == "time" || dim_name_in_var == "t") &&
+           dim_units == "s"
             # Dimension is time and units are seconds. Let's convert them to something nicer
             pretty_timestr = seconds_to_prettystr(cut_point)
-            reduced_var.attributes["long_name"] *= " $dim_name = $pretty_timestr"
+            reduced_var.attributes["long_name"] *= " $dim_name_in_var = $pretty_timestr"
         else
-            reduced_var.attributes["long_name"] *= " $dim_name = $cut_point $dim_units"
+            reduced_var.attributes["long_name"] *= " $dim_name_in_var = $cut_point $dim_units"
         end
-        reduced_var.attributes["slice_$dim_name"] = "$cut_point"
-        reduced_var.attributes["slice_$(dim_name)_units"] = dim_units
+        reduced_var.attributes["slice_$dim_name_in_var"] = "$cut_point"
+        reduced_var.attributes["slice_$(dim_name_in_var)_units"] = dim_units
     end
     return reduced_var
 end
@@ -1269,14 +1269,13 @@ window(var, 'lat', left = -50, right = 50)
 ```
 """
 function window(var, dim_name; left = nothing, right = nothing)
-    haskey(var.dims, dim_name) ||
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    dim_name_in_var = find_corresponding_dim_name_in_var(dim_name, var)
 
     nearest_index_left =
-        isnothing(left) ? 1 : nearest_index(var.dims[dim_name], left)
+        isnothing(left) ? 1 : nearest_index(var.dims[dim_name_in_var], left)
     nearest_index_right =
-        isnothing(right) ? length(var.dims[dim_name]) :
-        nearest_index(var.dims[dim_name], right)
+        isnothing(right) ? length(var.dims[dim_name_in_var]) :
+        nearest_index(var.dims[dim_name_in_var], right)
 
     (nearest_index_right >= nearest_index_left) ||
         error("Right window value has to be larger than left one")
@@ -1284,13 +1283,14 @@ function window(var, dim_name; left = nothing, right = nothing)
     # Take only what's between nearest_index_left and nearest_index_right
     reduced_data = selectdim(
         var.data,
-        var.dim2index[dim_name],
+        var.dim2index[dim_name_in_var],
         nearest_index_left:nearest_index_right,
     )
 
     dims = copy(var.dims)
-    reduced_dim = var.dims[dim_name][nearest_index_left:nearest_index_right]
-    dims[dim_name] = reduced_dim
+    reduced_dim =
+        var.dims[dim_name_in_var][nearest_index_left:nearest_index_right]
+    dims[dim_name_in_var] = reduced_dim
 
     dim_attributes = copy(var.dim_attributes)
     return OutputVar(copy(var.attributes), dims, dim_attributes, reduced_data)

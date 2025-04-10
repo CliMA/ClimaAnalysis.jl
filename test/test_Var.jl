@@ -816,6 +816,11 @@ end
 
     @test t_sliced.attributes["slice_time"] == "110.0"
     @test t_sliced.attributes["slice_time_units"] == "s"
+
+    # Test with different name for time
+    t_sliced_other_name = ClimaAnalysis.slice(var, t = 200.0)
+    @test t_sliced_other_name.attributes == t_sliced.attributes
+    @test t_sliced_other_name.data == t_sliced.data
 end
 
 @testset "Windowing" begin
@@ -847,6 +852,11 @@ end
     @test var_windowed.data == expected_data
 
     @test var_windowed.dims["time"] == time[3:6]
+
+    # Test with different name for time
+    var_windowed_t = ClimaAnalysis.window(var, "t", left = 2.5, right = 5.1)
+    @test var_windowed_t.attributes == var_windowed.attributes
+    @test var_windowed_t.data == var_windowed.data
 end
 
 @testset "Extracting dimension" begin
