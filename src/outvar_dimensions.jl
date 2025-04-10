@@ -242,3 +242,41 @@ function find_corresponding_dim_name(dim_name::AbstractString, dim_names)
         error("Cannot find corresponding dimension for $dim_name in $dim_names")
     return dim_names[corresponding_dim_name]
 end
+
+"""
+    find_corresponding_dim_name(dim_name::AbstractString, var)
+
+Find the corresponding dimension name in `var`'s dimension that matches `dim_name`.
+
+Two names for a dimension match if both correspond to the same conventional name
+as determined by `Var.conventional_dim_name`.
+
+If nothing matches, return an error.
+
+This function is useful to identify a dimension from a given name, even if it is
+not its conventional name (e.g., `lat` vs `latitude`).
+
+Example
+==========
+
+```julia-repl
+julia> keys(var.dims)
+("lon", "lat", "time", "potatoes")
+
+julia> ClimaAnalysis.Var.find_corresponding_dim_name_in_var("t", var)
+"time"
+
+julia> ClimaAnalysis.Var.find_corresponding_dim_name("potatoes", var)
+"potatoes"
+```
+"""
+function find_corresponding_dim_name_in_var(dim_name::AbstractString, var)
+    dim_name_in_var = try
+        find_corresponding_dim_name(dim_name, keys(var.dims))
+    catch
+        dim_name
+    end
+    haskey(var.dims, dim_name_in_var) ||
+        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    return dim_name_in_var
+end

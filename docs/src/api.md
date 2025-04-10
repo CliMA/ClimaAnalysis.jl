@@ -61,6 +61,7 @@ Var.has_altitude
 Var.has_pressure
 Var.conventional_dim_name
 Var.find_corresponding_dim_name
+Var.find_corresponding_dim_name_in_var
 Var.dim_units
 Var.range_dim
 Var.reordered_as

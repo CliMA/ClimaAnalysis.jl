@@ -9,6 +9,12 @@ v0.5.17
 resampling may produce incorrect results when interpolating outside of the longitude range.
 This is fixed in this release.
 
+## More flexible `slice` and `window`
+
+Now, `slice` and `window` will try to match the name of the dimension with a
+database of known names. For example, they understand `lat` even if the data has
+dimensions `latitude`.
+
 v0.5.16
 -------
 
