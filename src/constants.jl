@@ -6,7 +6,7 @@ import Artifacts
 The variable `LAND_MASK` is an `OutputVar` whose data consists of ones and NaNs. The ones
 indicate ocean and NaNs indicate the land.
 """
-const LAND_MASK = begin
+const LAND_MASK = let
     path = joinpath(
         Artifacts.artifact"landsea_mask_30arcseconds",
         "landsea_mask.nc",
@@ -35,7 +35,7 @@ end
 The variable `OCEAN_MASK` is an `OutputVar` whose data consists of ones and NaNs. The ones
 indicate land and NaNs indicate the ocean.
 """
-const OCEAN_MASK = begin
+const OCEAN_MASK = let
     path = joinpath(
         Artifacts.artifact"landsea_mask_30arcseconds",
         "landsea_mask.nc",
