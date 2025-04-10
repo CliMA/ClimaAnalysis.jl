@@ -2493,7 +2493,7 @@ macro overload_binary_op(op)
                 if haskey(x.attributes, attr) &&
                    haskey(y.attributes, attr) &&
                    x.attributes[attr] == y.attributes[attr]
-                    ret_attributes[attr] = x.attributes["start_date"]
+                    ret_attributes[attr] = x.attributes[attr]
                 end
             end
 
