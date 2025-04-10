@@ -9,6 +9,11 @@ v0.5.17
 resampling may produce incorrect results when interpolating outside of the longitude range.
 This is fixed in this release.
 
+## Support for more binary and unary operations
+
+`OutputVar`s can now be directly manipulated with additional operations,
+including `sqrt`, `min`, `log`, `-`.
+
 ## More flexible `slice` and `window`
 
 Now, `slice` and `window` will try to match the name of the dimension with a

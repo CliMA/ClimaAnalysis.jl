@@ -174,6 +174,9 @@ space). Binary operations do remove some attribute information. If two
 `OutputVar`s share the same start date, then the start date will remain in the
 resulting `OutputVar`s after performing binary operations on them.
 
+Unary operations are supported to, for example `log(max(var, 1e-8))` returns a
+new `OutputVar` with the functions applied to the data.
+
 #### `Visualize`
 
 We can directly visualize `OutputVar`s.

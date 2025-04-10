@@ -2581,6 +2581,7 @@ end
 @overload_binary_op (*)
 @overload_binary_op (/)
 
+include("outvar_operators.jl")
 include("outvar_dimensions.jl")
 include("constants.jl")
 
