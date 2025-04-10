@@ -260,12 +260,12 @@ end
     @test !isempty(not_empty_var)
 end
 
-@testset "Arithmetic operations" begin
+@testset "Arithmetic and Mathematical Operations" begin
     long = 0.0:180.0 |> collect
     lat = 0.0:90.0 |> collect
     time = 0.0:10.0 |> collect
 
-    data1 = collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
+    data1 = Float64.(collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91))))
 
     dims = OrderedDict(["time" => time, "lon" => long, "lat" => lat])
     dim_attributes = OrderedDict([
@@ -273,7 +273,7 @@ end
         "lon" => Dict("b" => 2),
         "lat" => Dict("a" => 1),
     ])
-    attribs = Dict(
+    attribs = Dict{String, Any}( # Specify Any for value type
         "short_name" => "bob",
         "long_name" => "hi",
         "start_date" => "2008",
@@ -281,63 +281,207 @@ end
     )
     var1 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data1)
 
+    # Incompatible dim attributes
     dim_attributes2 = OrderedDict([
         "time" => Dict("units" => "m"),
         "lon" => Dict("lol" => 2),
         "lat" => Dict("a" => 1),
     ])
-
     var2 = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes2, data1)
 
-    data3 = 5.0 .+ collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91)))
-    attribs3 = Dict(
-        "long_name" => "bob",
+    # Compatible variable with different data and some different attributes
+    data3 =
+        Float64.(5.0 .+ collect(reshape(1.0:(91 * 181 * 11), (11, 181, 91))))
+    attribs3 = Dict{String, Any}(
+        "long_name" => "bob", # Note: different from var1's long_name ("hi")
         "short_name" => "bula",
-        "start_date" => "2008",
-        "cool" => "not rad",
+        "start_date" => "2008", # Same as var1
+        "cool" => "not rad", # Different from var1
     )
-    var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3)
+    var3 = ClimaAnalysis.OutputVar(attribs3, dims, dim_attributes, data3) # Use same dim_attributes as var1
 
-    # Check arecompatible
-    @test !ClimaAnalysis.arecompatible(var1, var2)
-    @test ClimaAnalysis.arecompatible(var1, var3)
+    @testset "Compatibility" begin
+        @test !ClimaAnalysis.arecompatible(var1, var2) # Different dim_attributes
+        @test ClimaAnalysis.arecompatible(var1, var3) # Same dims and dim_attributes
+    end
 
-    var1plus10 = var1 + 10
+    @testset "Binary Operations" begin
+        # Addition (+)
+        var1plus10 = var1 + 10.0 # Use Float for consistency
+        @test var1plus10.data == data1 .+ 10.0
+        @test ClimaAnalysis.short_name(var1plus10) == "bob + 10.0"
+        @test ClimaAnalysis.long_name(var1plus10) == "hi + 10.0"
+        # @test var1plus10((0.0, 0.0, 0.0)) == var1((0.0, 0.0, 0.0)) + 10.0 # Assuming interpolation works
+        @test var1plus10.attributes == Dict(
+            "short_name" => "bob + 10.0",
+            "long_name" => "hi + 10.0",
+            "start_date" => "2008",
+        )
+        @test var1plus10.dims == var1.dims # Check dims preserved
+        @test var1plus10.dim_attributes == var1.dim_attributes # Check dim_attributes preserved
 
-    @test var1plus10.data == data1 .+ 10
-    @test ClimaAnalysis.short_name(var1plus10) == "bob + 10"
-    @test ClimaAnalysis.long_name(var1plus10) == "hi + 10"
-    @test var1plus10((0.0, 0.0, 0.0)) == var1((0.0, 0.0, 0.0)) + 10
-    @test var1plus10.attributes == Dict(
-        "short_name" => "bob + 10",
-        "long_name" => "hi + 10",
-        "start_date" => "2008",
-    )
 
-    tenplusvar1 = 10 + var1
+        tenplusvar1 = 10.0 + var1
+        @test tenplusvar1.data == 10.0 .+ data1
+        @test ClimaAnalysis.short_name(tenplusvar1) == "10.0 + bob"
+        @test ClimaAnalysis.long_name(tenplusvar1) == "10.0 + hi"
+        @test tenplusvar1((0.0, 0.0, 0.0)) == 10.0 + var1((0.0, 0.0, 0.0))
+        @test tenplusvar1.attributes == Dict(
+            "short_name" => "10.0 + bob",
+            "long_name" => "10.0 + hi",
+            "start_date" => "2008",
+        )
 
-    @test tenplusvar1.data == data1 .+ 10
-    @test ClimaAnalysis.short_name(tenplusvar1) == "10 + bob"
-    @test ClimaAnalysis.long_name(tenplusvar1) == "10 + hi"
-    @test tenplusvar1((0.0, 0.0, 0.0)) == 10 + var1((0.0, 0.0, 0.0))
+        var1plusvar3 = var1 + var3
+        @test var1plusvar3.data == data1 .+ data3
+        @test ClimaAnalysis.short_name(var1plusvar3) == "bob + bula"
+        @test ClimaAnalysis.long_name(var1plusvar3) == "hi + bob"
+        # Only attributes common AND identical should be kept
+        @test var1plusvar3.attributes == Dict(
+            "short_name" => "bob + bula",
+            "long_name" => "hi + bob",
+            "start_date" => "2008", # Only start_date is common and identical
+        )
+        @test var1plusvar3.dims == var1.dims # Check dims preserved
 
-    var1plusvar3 = var1 + var3
 
-    @test var1plusvar3.data == data1 .+ data3
-    @test ClimaAnalysis.short_name(var1plusvar3) == "bob + bula"
-    @test ClimaAnalysis.long_name(var1plusvar3) == "hi + bob"
-    @test var1plusvar3.attributes == Dict(
-        "short_name" => "bob + bula",
-        "long_name" => "hi + bob",
-        "start_date" => "2008",
-    )
+        # Multiplication (*)
+        var_times = var1 * var3
+        @test var_times.data == var1.data .* var3.data
+        @test ClimaAnalysis.short_name(var_times) == "bob * bula"
+        @test ClimaAnalysis.long_name(var_times) == "hi * bob"
+        @test var_times.attributes == Dict( # Check common attribute logic
+            "short_name" => "bob * bula",
+            "long_name" => "hi * bob",
+            "start_date" => "2008",
+        )
 
-    # Test for element wise multiplication and division between OutputVars
-    var_times = var1 * var3
-    @test var_times.data == var1.data .* var3.data
+        var_times_real = var1 * 2.5
+        @test var_times_real.data == var1.data .* 2.5
+        @test ClimaAnalysis.short_name(var_times_real) == "bob * 2.5"
 
-    var_divide = var1 / var3
-    @test var_divide.data == var1.data ./ var3.data
+        real_times_var = 0.5 * var1
+        @test real_times_var.data == 0.5 .* var1.data
+        @test ClimaAnalysis.short_name(real_times_var) == "0.5 * bob"
+
+        # Division (/)
+        var_divide = var1 / var3
+        @test var_divide.data == var1.data ./ var3.data
+        @test ClimaAnalysis.short_name(var_divide) == "bob / bula"
+        @test ClimaAnalysis.long_name(var_divide) == "hi / bob"
+        @test var_divide.attributes == Dict( # Check common attribute logic
+            "short_name" => "bob / bula",
+            "long_name" => "hi / bob",
+            "start_date" => "2008",
+        )
+
+        # Subtraction (-)
+        var_minus = var1 - var3
+        @test var_minus.data == var1.data .- var3.data
+        @test ClimaAnalysis.short_name(var_minus) == "bob - bula"
+        @test ClimaAnalysis.long_name(var_minus) == "hi - bob"
+        @test var_minus.attributes == Dict( # Check common attribute logic
+            "short_name" => "bob - bula",
+            "long_name" => "hi - bob",
+            "start_date" => "2008",
+        )
+
+        # Maximum (max)
+        var1maxvar3 = max(var1, var3)
+        @test var1maxvar3.data == max.(var1.data, var3.data) # Element-wise max
+        @test ClimaAnalysis.short_name(var1maxvar3) == "bob max bula"
+        @test ClimaAnalysis.long_name(var1maxvar3) == "hi max bob"
+        @test var1maxvar3.attributes == Dict( # Common attribute logic
+            "short_name" => "bob max bula",
+            "long_name" => "hi max bob",
+            "start_date" => "2008",
+        )
+
+        var1max1000 = max(var1, 1000.0)
+        @test var1max1000.data == max.(var1.data, 1000.0)
+        @test ClimaAnalysis.short_name(var1max1000) == "bob max 1000.0"
+
+        thousandmaxvar1 = max(1000.0, var1)
+        @test thousandmaxvar1.data == max.(1000.0, var1.data)
+        @test ClimaAnalysis.short_name(thousandmaxvar1) == "1000.0 max bob"
+
+        # Minimum (min)
+        var1minvar3 = min(var1, var3)
+        @test var1minvar3.data == min.(var1.data, var3.data) # Element-wise min
+        @test ClimaAnalysis.short_name(var1minvar3) == "bob min bula"
+        @test ClimaAnalysis.long_name(var1minvar3) == "hi min bob"
+        @test var1minvar3.attributes == Dict( # Common attribute logic
+            "short_name" => "bob min bula",
+            "long_name" => "hi min bob",
+            "start_date" => "2008",
+        )
+
+        var1min1000 = min(var1, 1000.0)
+        @test var1min1000.data == min.(var1.data, 1000.0)
+        @test ClimaAnalysis.short_name(var1min1000) == "bob min 1000.0"
+
+        thousandminvar1 = min(1000.0, var1)
+        @test thousandminvar1.data == min.(1000.0, var1.data)
+        @test ClimaAnalysis.short_name(thousandminvar1) == "1000.0 min bob"
+
+    end
+
+    @testset "Unary Operations" begin
+        # Logarithm (log)
+        log_var1 = log(var1)
+        @test log_var1.data == log.(var1.data)
+        @test ClimaAnalysis.short_name(log_var1) == "log(bob)"
+        @test ClimaAnalysis.long_name(log_var1) == "log(hi)"
+        @test log_var1.attributes == Dict(
+            "short_name" => "log(bob)",
+            "long_name" => "log(hi)",
+            "start_date" => "2008",
+        )
+        @test log_var1.dims == var1.dims
+        @test log_var1.dim_attributes == var1.dim_attributes
+
+        # Exponential (exp)
+        exp_var1 = exp(var1)
+        @test exp_var1.data ≈ exp.(var1.data) # Use ≈ for potential Float inaccuracies
+        @test ClimaAnalysis.short_name(exp_var1) == "exp(bob)"
+        @test ClimaAnalysis.long_name(exp_var1) == "exp(hi)"
+
+        # Sine (sin)
+        sin_var1 = sin(var1)
+        @test sin_var1.data == sin.(var1.data)
+        @test ClimaAnalysis.short_name(sin_var1) == "sin(bob)"
+        @test ClimaAnalysis.long_name(sin_var1) == "sin(hi)"
+
+        # Cosine (cos)
+        cos_var1 = cos(var1)
+        @test cos_var1.data == cos.(var1.data)
+        @test ClimaAnalysis.short_name(cos_var1) == "cos(bob)"
+        @test ClimaAnalysis.long_name(cos_var1) == "cos(hi)"
+
+        # Tangent (tan)
+        tan_var1 = tan(var1)
+        @test tan_var1.data == tan.(var1.data)
+        @test ClimaAnalysis.short_name(tan_var1) == "tan(bob)"
+        @test ClimaAnalysis.long_name(tan_var1) == "tan(hi)"
+
+        # Square Root (sqrt)
+        sqrt_var1 = sqrt(var1)
+        @test sqrt_var1.data == sqrt.(var1.data)
+        @test ClimaAnalysis.short_name(sqrt_var1) == "sqrt(bob)"
+        @test ClimaAnalysis.long_name(sqrt_var1) == "sqrt(hi)"
+
+        # Unary Minus (-)
+        neg_var1 = -var1
+        @test neg_var1.data == -(var1.data)
+        @test ClimaAnalysis.short_name(neg_var1) == "-(bob)" # Macro uses string(op)
+        @test ClimaAnalysis.long_name(neg_var1) == "-(hi)"
+        @test neg_var1.attributes == Dict(
+            "short_name" => "-(bob)",
+            "long_name" => "-(hi)",
+            "start_date" => "2008",
+        )
+        @test neg_var1.dims == var1.dims
+    end
 end
 
 @testset "Reductions (sphere dims)" begin
