@@ -14,6 +14,14 @@ This is fixed in this release.
 `OutputVar`s can now be directly manipulated with additional operations,
 including `sqrt`, `min`, `log`, `-`.
 
+## Variadic `get` for `SimDir`
+
+`get` can now be used to fetch multiple variables at the same time. For example
+```julia
+ta, va, ua = get(simdir, "ta", "va", "ua")
+```
+This works only if the variables are fully identified by their short name.
+
 ## More flexible `slice` and `window`
 
 Now, `slice` and `window` will try to match the name of the dimension with a

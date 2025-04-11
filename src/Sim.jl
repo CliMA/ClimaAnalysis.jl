@@ -201,13 +201,18 @@ function get(
 end
 
 """
-    get(simdir::SimDir, short_name)
+    get(simdir::SimDir, short_names...)
 
-If only one reduction and period exist for `short_name`, return the corresponding
-`OutputVar`.
+If only one reduction and period exist for the given `short_name`s, return the corresponding
+`OutputVar`s.
 """
-function get(simdir::SimDir, short_name::String)
-    return get(simdir; short_name, reduction = nothing, period = nothing)
+function get(simdir::SimDir, short_names...)
+    results = map(
+        short_name ->
+            get(simdir; short_name, reduction = nothing, period = nothing),
+        short_names,
+    )
+    return length(results) == 1 ? first(results) : results
 end
 
 """

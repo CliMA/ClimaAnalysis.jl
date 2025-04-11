@@ -68,7 +68,11 @@ ts_max = get(simdir; short_name = "ts", reduction = "max", period = "3.0h")
 `ts_max` is a ` OutputVar`, a type that contains the variable as well as some
 metadata. When there is only one combination `short_name/reduction/period`, the
 function `get` can be used with `get(simdir, short_name)` (e.g., `get(simdir,
-"orog")` in the previous example).
+"orog")` in the previous example). In this case, you can get multiple variables
+at the same time with
+```julia
+orog, ua, va = get(simdir, "orog", "ua", "va")
+```
 
 If there are more files with the same combination of short name, reduction, and
 period, then the function `get` automatically stitch the `.nc` files together
