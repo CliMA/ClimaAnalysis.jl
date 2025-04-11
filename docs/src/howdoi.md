@@ -93,7 +93,7 @@ The `Atmos` module in `ClimaAnalysis` comes with a function,
 `OutputVar` is returned where the values are linearly interpolated on fixed
 pressure levels.
 
-## How do I reorder the dimensions in a `OutputVar` to match the dimensions in another `OutputVar`?
+## How do I reorder the dimensions in a `OutputVar` to match the dimensions in another `OutputVar` or the dimension names in an iterable?
 
 You can use the `reordered_as(src_var, dest_var)` function where `src_var` is a `OutputVar`
 with the dimensions you want to reorder to match the dimensions in the OutputVar `dest_var`.
@@ -135,6 +135,14 @@ dest_var = ClimaAnalysis.OutputVar(
 src_var.dims |> keys |> collect
 dest_var.dims |> keys |> collect
 reordered_var = ClimaAnalysis.reordered_as(src_var, dest_var);
+reordered_var.dims |> keys |> collect
+```
+
+Alternatively, you can reorder the dimensions using `permutedims`.
+
+```@repl reordered_as
+src_var.dims |> keys |> collect
+reordered_var = permutedims(src_var, ("latitude", "lon"));
 reordered_var.dims |> keys |> collect
 ```
 
