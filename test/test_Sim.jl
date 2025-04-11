@@ -124,6 +124,11 @@ end
           get(simdir; short_name = "orog", reduction = "inst", period = nothing)
     @test ts_max == get(simdir; short_name = "ts", reduction = "max")
 
+    # Test `get` with multiple arguments
+    orog2, pfull2 = get(simdir, "orog", "pfull")
+    @test orog == orog2
+    @test pfull == pfull2
+
     # short_name, long_name, units
     @test ClimaAnalysis.short_name(orog) == "orog"
     @test ClimaAnalysis.long_name(orog) == "Surface Altitude, Instantaneous"
