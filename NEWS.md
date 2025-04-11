@@ -9,6 +9,12 @@ v0.5.17
 resampling may produce incorrect results when interpolating outside of the longitude range.
 This is fixed in this release.
 
+## Reconstructing dates
+
+`ClimaAnalysis.dates` will now try returning a list of `Dates` even when `dates` is not
+among the available dimensions. For this to work, `var.attributes` have to contain
+`start_date`. The units of time are assumed to be seconds.
+
 ## Support for more binary and unary operations
 
 `OutputVar`s can now be directly manipulated with additional operations,

@@ -2580,6 +2580,16 @@ end
     @test ClimaAnalysis.times(var_s) == [-120.0, -60.0, 0.0]
     @test var_s.attributes["start_date"] == "2020-03-01T01:03:00"
 
+    # Check that `dates` converts
+    @test ClimaAnalysis.dates(var_s) == time_arr
+    # Check that `dates` throws an error where there's no time
+    @test_throws ErrorException ClimaAnalysis.dates(
+        ClimaAnalysis.OutputVar(
+            Dict("long" => collect(1.0:10.0)),
+            collect(1.0:10.0),
+        ),
+    )
+
     # Test for a new start date as a DateTime object
     var_s = ClimaAnalysis.Var._dates_to_seconds(
         var;
