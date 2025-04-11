@@ -136,8 +136,27 @@ date_name(var::OutputVar) = find_dim_name(keys(var.dims), DATE_NAMES)
     dates(var::OutputVar)
 
 Return the `date` dimension in `var`.
+
+If `dates` is a dimension, return that.
+
+If not, try computing the dates from the `start_date` and the `times`. In this, we assume
+`times` is seconds.
 """
-dates(var::OutputVar) = var.dims[date_name(var)]
+function dates(var::OutputVar)
+    has_date(var) && return var.dims[date_name(var)]
+
+    # Assuming time is in seconds
+    if has_time(var) && haskey(var.attributes, "start_date")
+        return time_to_date.(
+            Dates.DateTime(var.attributes["start_date"]),
+            times(var),
+        )
+    end
+
+    error(
+        "`var` does not have dates among its dimension or start_date among its attributes",
+    )
+end
 
 """
     longitude_name(var::OutputVar)
