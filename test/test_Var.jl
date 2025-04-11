@@ -1563,6 +1563,37 @@ end
     )
 end
 
+@testset "Permuting dims" begin
+    # Reordering the dimensions of a var to match itself
+    long = 0.0:180.0 |> collect
+    lat = 0.0:90.0 |> collect
+    data = ones(length(long), length(lat))
+    dims = OrderedDict(["long" => long, "lat" => lat])
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict([
+        "long" => Dict("units" => "test_units1"),
+        "lat" => Dict("units" => "test_units2"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # Testing with different types for perm
+    perms = [
+        ("latitude", "lon"),
+        ["lat", "longitude"],
+        keys(OrderedDict("latitude" => 1, "long" => 2)),
+    ]
+    for perm in perms
+        permuted_var = permutedims(var, perm)
+        @test permuted_var.attributes == var.attributes
+        @test permuted_var.dims == OrderedDict(["lat" => lat, "long" => long])
+        @test permuted_var.data == permutedims(data, (2, 1))
+        @test permuted_var.dim_attributes == OrderedDict([
+            "lat" => Dict("units" => "test_units2"),
+            "long" => Dict("units" => "test_units1"),
+        ])
+    end
+end
+
 @testset "Reordering" begin
     # Reordering the dimensions of a var to match itself
     src_long = 0.0:180.0 |> collect

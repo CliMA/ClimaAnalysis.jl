@@ -75,6 +75,11 @@ Similar to `average_lon`, `average_lat`, and `average_time`, there are now
 `variance_lon`, `variance_lat`, and `variance_time`, which compute the variance
 along the longitude, latitude, or time dimension respectively.
 
+## Permute dimensions
+
+In addition to `reordered_as`, there is also `permutedims(var, perm)` which permute the
+dimensions of an `OutputVar` according to `perm`, an iterable of dimension names.
+
 v0.5.16
 -------
 

@@ -74,7 +74,8 @@ export OutputVar,
     replace,
     reverse_dim,
     reverse_dim!,
-    remake
+    remake,
+    permutedims
 
 """
     Representing an output variable
@@ -1603,6 +1604,56 @@ function _check_dims_consistent(x::OutputVar, y::OutputVar; dim_names = nothing)
 end
 
 """
+    permutedims(var::OutputVar, perm)
+
+Permute the dimensions of `var` according to `perm`, an iterable of dimension names
+specifying the permutation.
+
+The dimension names in `perm` does not need to be the same as the dimensions in `var`. For
+example, dimensions with names `lon` and `long` are identified as the longitude dimension.
+"""
+function Base.permutedims(var::OutputVar, perm)
+    # Get the conventional dim names for var and perm
+    conventional_dim_name_var = conventional_dim_name.(keys(var.dims))
+    conventional_dim_name_perm = conventional_dim_name.(collect(perm))
+
+    # Check if the dimensions are the same (order does not matter)
+    Set(conventional_dim_name_var) == Set(conventional_dim_name_perm) || error(
+        "Dimensions are not the same between var ($conventional_dim_name_var) and perm ($conventional_dim_name_perm)",
+    )
+
+    # Find permutation indices to reorder dims
+    reorder_indices =
+        indexin(conventional_dim_name_perm, conventional_dim_name_var)
+
+    # Reorder dims, dim_attribs, and data, but not attribs
+    ret_dims = deepcopy(var.dims)
+    ret_dims = OrderedDict(collect(ret_dims)[reorder_indices])
+
+    # Cannot assume that every dimension is present in dim_attribs so we loop to reorder the
+    # best we can and merge with var.dim_attributes to add any remaining pairs to
+    # ret_dim_attribs
+    ret_dim_attribs = empty(var.dim_attributes)
+    var_dim_attribs = var.dim_attributes |> deepcopy
+    var_dim_names = collect(keys(var.dims))
+    for idx in reorder_indices
+        dim_name = var_dim_names[idx]
+        haskey(var_dim_attribs, dim_name) &&
+            (ret_dim_attribs[dim_name] = var_dim_attribs[dim_name])
+    end
+    merge!(ret_dim_attribs, var_dim_attribs)
+
+    ret_data = copy(var.data)
+    ret_data = permutedims(ret_data, reorder_indices)
+    return remake(
+        var,
+        dims = ret_dims,
+        data = ret_data,
+        dim_attributes = ret_dim_attribs,
+    )
+end
+
+"""
     reordered_as(src_var::OutputVar, dest_var::OutputVar)
 
 Reorder the dimensions in `src_var` to match the ordering of dimensions in `dest_var`.
@@ -1617,35 +1668,7 @@ function reordered_as(src_var::OutputVar, dest_var::OutputVar)
         "Dimensions are not the same between src ($conventional_dim_name_src) and dest ($conventional_dim_name_dest)",
     )
 
-    # Find permutation indices to reorder dims
-    reorder_indices =
-        indexin(conventional_dim_name_dest, conventional_dim_name_src)
-
-    # Reorder dims, dim_attribs, and data, but not attribs
-    ret_dims = deepcopy(src_var.dims)
-    ret_dims = OrderedDict(collect(ret_dims)[reorder_indices])
-
-    # Cannot assume that every dimension is present in dim_attribs so we loop to reorder the
-    # best we can and merge with src_var.dim_attributes to add any remaining pairs to
-    # ret_dim_attribs
-    ret_dim_attribs = empty(src_var.dim_attributes)
-    src_var_dim_attribs = src_var.dim_attributes |> deepcopy
-    src_var_dim_names = collect(keys(src_var.dims))
-    for idx in reorder_indices
-        dim_name = src_var_dim_names[idx]
-        haskey(src_var_dim_attribs, dim_name) &&
-            (ret_dim_attribs[dim_name] = src_var_dim_attribs[dim_name])
-    end
-    merge!(ret_dim_attribs, src_var_dim_attribs)
-
-    ret_data = copy(src_var.data)
-    ret_data = permutedims(ret_data, reorder_indices)
-    return remake(
-        src_var,
-        dims = ret_dims,
-        data = ret_data,
-        dim_attributes = ret_dim_attribs,
-    )
+    return permutedims(src_var, keys(dest_var.dims))
 end
 
 """
