@@ -1696,6 +1696,11 @@ end
     @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
     @test_throws BoundsError ClimaAnalysis.resampled_as(dest_var, src_var)
 
+    # Test if reordering is automatically done
+    src_var_transpose = permutedims(src_var, ("latitude", "longitude"))
+    resampled_var = ClimaAnalysis.resampled_as(src_var_transpose, dest_var)
+    @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
+
     # Test with ordered iterable for dims
     resampled_var =
         ClimaAnalysis.resampled_as(src_var, long = dest_long, lat = dest_lat)

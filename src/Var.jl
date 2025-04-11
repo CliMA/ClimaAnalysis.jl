@@ -1732,7 +1732,12 @@ Resample `data` in `src_var` to `dims` in `dest_var` over all dimensions.
 Reordering is automatically done.
 """
 function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
-    src_var = reordered_as(src_var, dest_var)
+    conventional_names_src = collect(conventional_dim_name.(keys(src_var.dims)))
+    conventional_names_dest =
+        collect(conventional_dim_name.(keys(dest_var.dims)))
+    if conventional_names_src != conventional_names_dest
+        src_var = reordered_as(src_var, dest_var)
+    end
 
     itp = _make_interpolant(src_var.dims, src_var.data)
     src_resampled_data =
