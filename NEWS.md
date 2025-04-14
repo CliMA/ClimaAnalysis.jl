@@ -51,6 +51,12 @@ julia> time_name(var)
 julia> slice(var, time = Dates.DateTime(2009, 12, 15))
 ```
 
+## Split by month
+
+Similar to `split_by_season` and `split_by_season_across_time`, the function
+`split_by_month` splits a `OutputVar` by month and return a vector of `OutputVar`s where
+each `OutputVar` corresponds to a single month.
+
 v0.5.16
 -------
 

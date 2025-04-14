@@ -139,6 +139,35 @@ end
     @test splits[5] == dates[23:24] # 12/1
 end
 
+@testset "split by month" begin
+    # Test empty array
+    @test Utils.split_by_month(Dates.DateTime[]) == []
+
+    # Test first day of Jan for multiple years
+    dates = [Dates.DateTime(year, 1, 1) for year in 2010:2013]
+    splits = Utils.split_by_month(dates)
+    @test splits[1] == dates
+    for i in 2:12
+        @test isempty(splits[i])
+    end
+
+    # Test 1.5 years
+    dates = reverse!(
+        vcat(
+            [Dates.DateTime(2010, i, 1) for i in 1:11],
+            [Dates.DateTime(2011, i, 1) for i in 6:12],
+        ),
+    )
+    splits = Utils.split_by_month(dates)
+    for i in 1:5
+        @test splits[i] == [Dates.DateTime(2010, i)]
+    end
+    for i in 6:11
+        @test splits[i] == [Dates.DateTime(2010, i), Dates.DateTime(2011, i)]
+    end
+    @test splits[12] == [Dates.DateTime(2011, 12)]
+end
+
 @testset "equispaced" begin
     equispaced = Utils._isequispaced([1.0, 2.0, 3.0])
     @test equispaced == true
