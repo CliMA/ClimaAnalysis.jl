@@ -1696,6 +1696,16 @@ end
     @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
     @test_throws BoundsError ClimaAnalysis.resampled_as(dest_var, src_var)
 
+    # Test with ordered iterable for dims
+    resampled_var =
+        ClimaAnalysis.resampled_as(src_var, long = dest_long, lat = dest_lat)
+    @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
+    @test_throws BoundsError ClimaAnalysis.resampled_as(
+        dest_var,
+        long = src_long,
+        lat = src_lat,
+    )
+
     # BoundsError check
     src_long = 90.0:120.0 |> collect
     src_lat = 45.0:90.0 |> collect
@@ -1711,6 +1721,12 @@ end
         ClimaAnalysis.remake(dest_var, data = dest_data, dims = dest_dims)
 
     @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
+
+    # Error handling with ordered iterable for dims
+    @test_throws ErrorException ClimaAnalysis.resampled_as(
+        src_var,
+        pfull = [1.0, 2.0],
+    )
 end
 
 @testset "Resampling ongrid and oncenter" begin
@@ -1929,6 +1945,32 @@ end
     @test resampled_src_var.data == src_var.data[1:46, :, 1:4]
     @test resampled_src_var.dims["time"] == dest_var.dims["t"]
     @test resampled_src_var.dims["long"] == dest_var.dims["longitude"]
+
+    # Testing resampling with only one OutputVar
+    resampled_var =
+        ClimaAnalysis.resampled_as(src_var, t = dest_t, long = dest_longitude)
+    @test resampled_var.dims == resampled_src_var.dims
+    @test resampled_var.dim_attributes == resampled_src_var.dim_attributes
+    @test resampled_var.data == resampled_src_var.data
+    @test resampled_var.attributes == resampled_src_var.attributes
+
+    # Resampling with out one OutputVar, but no units for the dimensions
+    src_dim_attribs = OrderedDict([
+        "long" => Dict("units" => ""),
+        "lat" => Dict("units" => ""),
+        "time" => Dict("no_units" => ""),
+    ])
+    src_var_no_units =
+        ClimaAnalysis.remake(src_var, dim_attributes = src_dim_attribs)
+    resampled_var = ClimaAnalysis.resampled_as(
+        src_var_no_units,
+        t = dest_t,
+        long = dest_longitude,
+    )
+    @test resampled_var.dims == resampled_src_var.dims
+    @test resampled_var.dim_attributes == src_dim_attribs
+    @test resampled_var.data == resampled_src_var.data
+    @test resampled_var.attributes == resampled_src_var.attributes
 
     # Error handling
     # Out of bound errors
