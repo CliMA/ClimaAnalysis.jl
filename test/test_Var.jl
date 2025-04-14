@@ -2282,6 +2282,53 @@ end
     @test seasonal_vars[6].data == data[:, 10:10, :]
 end
 
+@testset "split_by_month" begin
+    lon = collect(range(-179.5, 179.5, 36))
+    lat = collect(range(-89.5, 89.5, 18))
+    dates = [
+        Dates.DateTime(2010, 1),
+        Dates.DateTime(2011, 1),
+        Dates.DateTime(2010, 2),
+        Dates.DateTime(2010, 12),
+    ]
+    t = ClimaAnalysis.Utils.date_to_time.(Dates.DateTime(2010, 1), dates)
+
+    data = reshape(
+        1.0:1.0:(length(lat) * length(t) * length(lon)),
+        (length(lat), length(t), length(lon)),
+    )
+    dims = OrderedDict(["lat" => lat, "time" => t, "lon" => lon])
+    attribs = Dict("long_name" => "hi", "start_date" => "2010-1-1")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "s"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    monthly_vars = ClimaAnalysis.split_by_month(var)
+    @test length(monthly_vars) == 12
+    for i in 3:11
+        @test isempty(monthly_vars[i])
+    end
+
+    # Cheak month
+    for i in (1, 2, 12)
+        @test monthly_vars[i].attributes["month"] == Dates.monthname(i)
+    end
+
+    # Check arrays for time is correct
+    @test monthly_vars[1].dims["time"] == [0.0, 31536000.0]
+    @test monthly_vars[2].dims["time"] == [2678400.0]
+    @test monthly_vars[12].dims["time"] == [28857600.0]
+
+    # Check data itself
+    @test monthly_vars[1].data == data[:, 1:2, :]
+    # Reshape to add extra dimension back
+    @test monthly_vars[2].data == reshape(data[:, 3, :], (18, 1, 36))
+    @test monthly_vars[12].data == reshape(data[:, 4, :], (18, 1, 36))
+end
+
 @testset "Compute bias" begin
     lon = collect(range(-179.5, 179.5, 360))
     lat = collect(range(-89.5, 89.5, 180))

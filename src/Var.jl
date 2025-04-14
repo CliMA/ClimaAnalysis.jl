@@ -15,6 +15,7 @@ import ..Utils:
     squeeze,
     split_by_season,
     split_by_season_across_time,
+    split_by_month,
     time_to_date,
     date_to_time,
     _data_at_dim_vals,
@@ -54,6 +55,7 @@ export OutputVar,
     isempty,
     split_by_season,
     split_by_season_across_time,
+    split_by_month,
     bias,
     global_bias,
     squared_error,
@@ -1876,6 +1878,38 @@ function split_by_season_across_time(var::OutputVar)
         end
     end
     return split_by_season_vars
+end
+
+"""
+    split_by_month(var::OutputVar)
+
+Split `var` into `OutputVar`s representing months, sorted in chronological order. Each
+`OutputVar` corresponds to a single month, and the ordering of the `OutputVar`s is
+determined by the dates of the month. The return type is a vector of `OutputVar`s.
+
+If there are no dates found for a month, then the `OutputVar` for that season will be an
+empty `OutputVar`. For non-empty `OutputVar`s, the month can be found by
+`var.attributes["month"]`.
+
+The function will use the start date in `var.attributes["start_date"]`. The unit of time is
+expected to be second.
+"""
+function split_by_month(var::OutputVar)
+    _check_time_dim(var)
+    start_date = Dates.DateTime(var.attributes["start_date"])
+
+    monthly_dates = split_by_month(time_to_date.(start_date, times(var)))
+    monthly_times =
+        (date_to_time.(start_date, month) for month in monthly_dates)
+
+    monthly_vars = _split_along_dim(var, time_name(var), monthly_times)
+
+    for (month, var) in enumerate(monthly_vars)
+        if !isempty(var)
+            var.attributes["month"] = Dates.monthname(month)
+        end
+    end
+    return monthly_vars
 end
 
 """

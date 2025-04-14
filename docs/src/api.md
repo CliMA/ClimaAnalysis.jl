@@ -75,6 +75,7 @@ Var.integrate_lat
 Var.integrate_lon
 Var.split_by_season(var::OutputVar)
 Var.split_by_season_across_time(var::OutputVar)
+Var.split_by_month(var::OutputVar)
 Var.bias
 Var.global_bias
 Var.squared_error
