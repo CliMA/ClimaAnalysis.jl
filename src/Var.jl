@@ -1700,6 +1700,12 @@ function resampled_as(
     dest_var::OutputVar;
     dim_names = nothing,
 )
+    if dim_names isa AbstractString
+        dim_names = [dim_names]
+    end
+    # Check for units and if the dimensions exist in src_var and dest_var
+    _check_dims_consistent(src_var, dest_var, dim_names = dim_names)
+
     # If dim_names is nothing, then resample over all dimensions
     if isnothing(dim_names)
         return _resampled_as_all(src_var, dest_var)
@@ -1727,7 +1733,6 @@ Reordering is automatically done.
 """
 function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
     src_var = reordered_as(src_var, dest_var)
-    _check_dims_consistent(src_var, dest_var)
 
     itp = _make_interpolant(src_var.dims, src_var.data)
     src_resampled_data =
@@ -1759,12 +1764,7 @@ function _resampled_as_partial(
     dest_var::OutputVar,
     dim_names,
 )
-    if dim_names isa AbstractString
-        dim_names = [dim_names]
-    end
     dim_names = conventional_dim_name.(collect(dim_names))
-
-    _check_dims_consistent(src_var, dest_var, dim_names = dim_names)
 
     # Build grid to resample over
     src_var_ret_dims = empty(src_var.dims)
@@ -1784,6 +1784,59 @@ function _resampled_as_partial(
         [itp(pt...) for pt in Base.product(values(src_var_ret_dims)...)]
 
     return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
+end
+
+"""
+    resampled_as(src_var::OutputVar, kwargs...)
+
+Resample `data` in `src_var` to dimensions as defined by the keyword arguments.
+
+The resampling performed here is a 1st-order linear resampling.
+
+For example, to resample on the longitude dimension of `[0.0, 1.0, 2.0]`, one can do
+`resampled_as(src_var, lon = [0.0, 1.0, 2.0])`.
+
+If the dimensions in `dims` and `src_var.dims` match (ignoring order), the resulting
+`OutputVar` will have its dimensions reordered to match the order in `dims`. Otherwise, the
+dimensions of the resulting `OutputVar` will remain unchanged. If the dimensions of `dims`
+is a strict subset of the dimensions in `src_var`, then partial resampling is done instead.
+
+Note that there is no checking for units of the dimensions.
+"""
+function resampled_as(src_var::OutputVar; kwargs...)
+    # Construct tuple
+    dims = (String(dim_name) => dim_array for (dim_name, dim_array) in kwargs)
+
+    # Find corresponding dimension names in src_var
+    src_var_dim_names = collect(keys(src_var.dims))
+    corresponding_dest_dim_names = collect(
+        find_corresponding_dim_name_in_var(dim_name, src_var) for
+        (dim_name, _) in dims
+    )
+
+    # Construct dest_var to resample on
+    reorder_indices = indexin(corresponding_dest_dim_names, src_var_dim_names)
+    dest_dims = OrderedDict(dims)
+
+    # Copy attributes from src_var
+    dest_dim_attribs = OrderedDict(
+        dim_name => src_var.dim_attributes[src_var_dim_names[i]] for
+        ((dim_name, _), i) in zip(dims, reorder_indices)
+    )
+    size_tuple = Tuple(length.(values(dest_dims)))
+    total_size = prod(size_tuple)
+    data = reshape(1.0:total_size, size_tuple)
+    dest_var = remake(
+        src_var;
+        data = data,
+        dims = dest_dims,
+        dim_attributes = dest_dim_attribs,
+    )
+
+    # Do not pass to resampled_as as we do not want to check units
+    return length(dest_dims) == length(src_var.dims) ?
+           _resampled_as_all(src_var, dest_var) :
+           _resampled_as_partial(src_var, dest_var, keys(dest_dims))
 end
 
 """
