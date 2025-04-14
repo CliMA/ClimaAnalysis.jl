@@ -328,12 +328,13 @@ julia> import Dates
 julia> dates = collect(Dates.DateTime(2010, i) for i in 1:12);
 
 julia> split_by_season_across_time(dates)
-5-element Vector{Vector{DateTime}}:
- [DateTime("2010-01-01T00:00:00"), DateTime("2010-02-01T00:00:00")]
- [DateTime("2010-03-01T00:00:00"), DateTime("2010-04-01T00:00:00"), DateTime("2010-05-01T00:00:00")]
- [DateTime("2010-06-01T00:00:00"), DateTime("2010-07-01T00:00:00"), DateTime("2010-08-01T00:00:00")]
- [DateTime("2010-09-01T00:00:00"), DateTime("2010-10-01T00:00:00"), DateTime("2010-11-01T00:00:00")]
- [DateTime("2010-12-01T00:00:00")]
+5-element Vector{Vector{Dates.DateTime}}:
+ [Dates.DateTime("2010-01-01T00:00:00"), Dates.DateTime("2010-02-01T00:00:00")]
+ [Dates.DateTime("2010-03-01T00:00:00"), Dates.DateTime("2010-04-01T00:00:00"), Dates.DateTime("2010-05-01T00:00:00")]
+ [Dates.DateTime("2010-06-01T00:00:00"), Dates.DateTime("2010-07-01T00:00:00"), Dates.DateTime("2010-08-01T00:00:00")]
+ [Dates.DateTime("2010-09-01T00:00:00"), Dates.DateTime("2010-10-01T00:00:00"), Dates.DateTime("2010-11-01T00:00:00")]
+ [Dates.DateTime("2010-12-01T00:00:00")]
+```
 """
 function split_by_season_across_time(dates::AbstractArray{<:Dates.DateTime})
     # Dates are not necessarily sorted
