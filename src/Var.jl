@@ -2534,6 +2534,15 @@ function Base.show(io::IO, var::OutputVar)
     end
 end
 
+"""
+    Base.identity(var::OutputVar)
+
+Return the given `var`.
+"""
+function Base.identity(var::OutputVar)
+    return var
+end
+
 include("outvar_operators.jl")
 include("outvar_dimensions.jl")
 include("constants.jl")

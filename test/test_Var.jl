@@ -17,6 +17,8 @@ import Dates
 
     @test longvar.dims["long"] == long
 
+    @test identity(longvar) == longvar
+
     # Unitful
     attribs = Dict("long_name" => "hi", "units" => "m/s")
     dim_attributes = OrderedDict(["long" => Dict("units" => "m")])
