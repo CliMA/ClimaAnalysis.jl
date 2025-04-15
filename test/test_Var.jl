@@ -8,6 +8,19 @@ import OrderedCollections: OrderedDict
 import Unitful: @u_str
 import Dates
 
+import ClimaAnalysis.Template:
+    TemplateVar,
+    make_template_var,
+    add_attribs,
+    add_time_dim,
+    add_lon_dim,
+    add_lat_dim,
+    add_data,
+    ones_data,
+    zeros_data,
+    ones_to_n_data,
+    initialize
+
 @testset "General" begin
     # Add test for short constructor
     long = -180.0:180.0 |> collect
@@ -89,12 +102,11 @@ import Dates
 end
 
 @testset "Shift longitudes" begin
-    lon = collect(range(0.0, 360.0, 361))
-    dims = OrderedDict("lon" => lon)
-    data = collect(0.0:360.0)
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict("lon" => Dict("units" => "degrees"))
-    var_0_360 = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_0_360 =
+        make_template_var("lon", long_name = "hi") |>
+        add_lon_dim(name = "lon", dim = collect(range(0.0, 360.0, 361))) |>
+        add_data(data = collect(0.0:360.0)) |>
+        initialize
 
     # Shift longitudes from 0 to 360 degrees to -180 to 180 degrees
     var_neg_180_180 = ClimaAnalysis.shift_longitude(var_0_360, -180.0, 180.0)
@@ -110,32 +122,25 @@ end
     @test var_0_360.data == collect(range(0.0, 359.0, 360))
 
     # Shift longitudes from 20 to 380 degrees to 40 to 400 degrees
-    lon = [20.0, 30.0, 40.0, 360.0, 370.0]
-    dims = OrderedDict("lon" => lon)
-    data = [1.0, 2.0, 3.0, 4.0, 5.0]
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict("lon" => Dict("units" => "degrees"))
-    var_20_380 = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_20_380 =
+        make_template_var("lon", long_name = "hi") |>
+        add_lon_dim(name = "lon", dim = [20.0, 30.0, 40.0, 360.0, 370.0]) |>
+        add_data(data = [1.0, 2.0, 3.0, 4.0, 5.0]) |>
+        initialize
 
     var_40_400 = ClimaAnalysis.shift_longitude(var_20_380, 40.0, 400.0)
     @test var_40_400.dims["lon"] == [40.0, 360.0, 370.0, 380.0, 390.0]
     @test var_40_400.data == [3.0, 4.0, 5.0, 1.0, 2.0]
 
     # Center longitudes with 3D OutputVar
-    lat = [-90.0, -30.0, 30.0, 90.0]
-    lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
-    time = [0.0, 1.0, 5.0]
-    n_elts = length(lat) * length(lon) * length(time)
-    dims = OrderedDict("lat" => lat, "lon" => lon, "time" => time)
-    size_of_data = (length(lat), length(lon), length(time))
-    data = reshape(collect(1.0:n_elts), size_of_data...)
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict(
-        "lat" => Dict("units" => "degrees"),
-        "lon" => Dict("units" => "degrees"),
-        "time" => Dict("units" => "seconds"),
-    )
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("lat", "lon", "time"; long_name = "hi") |>
+        add_lat_dim(dim = [-90.0, -30.0, 30.0, 90.0]) |>
+        add_lon_dim(name = "lon", dim = [-60.0, -30.0, 0.0, 30.0, 60.0]) |>
+        add_time_dim(dim = [0.0, 1.0, 5.0]) |>
+        ones_to_n_data(lazy = true) |>
+        initialize
+    data = copy(var.data)
 
     var = ClimaAnalysis.shift_longitude(var, 0.0, 360.0)
     @test var.dims["lon"] == [0.0, 30.0, 60.0, 300.0, 330.0]
@@ -146,13 +151,22 @@ end
 end
 
 @testset "Remake" begin
-    lat = collect(range(-89.5, 89.5, 180))
-    lon = collect(range(-179.5, 179.5, 360))
-    data = ones(length(lat), length(lon))
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict(["lat" => Dict("units" => "deg")])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("lat", "lon"; long_name = "hi") |>
+        add_lat_dim(
+            name = "lat",
+            dim = collect(range(-89.5, 89.5, 180)),
+            units = "deg",
+        ) |>
+        add_lon_dim(
+            name = "lon",
+            dim = collect(range(-179.5, 179.5, 360)),
+            units = "deg",
+        ) |>
+        ones_data() |>
+        initialize
+    lon_length = length(ClimaAnalysis.longitudes(var))
+    lat_length = length(ClimaAnalysis.latitudes(var))
 
     remake_var = ClimaAnalysis.remake(var)
     remake_var.attributes["test"] = "test1"
@@ -167,10 +181,16 @@ end
         "lat" => collect(range(-89.5, 89.5, 180)),
         "lon" => collect(range(-179.5, 179.5, 360)),
     ])
-    @test var.dim_attributes == OrderedDict(["lat" => Dict("units" => "deg")])
-    @test var.data == ones(length(lat), length(lon))
+    @test var.dim_attributes == OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    @test var.data == ones(lat_length, lon_length)
 
-    dims1 = OrderedDict(["lat1" => lat, "lon1" => lon])
+    dims1 = OrderedDict([
+        "lat1" => collect(range(-89.5, 89.5, 180)),
+        "lon1" => collect(range(-179.5, 179.5, 360)),
+    ])
     dim_attribs1 = OrderedDict(["lat1" => Dict("units" => "deg")])
     remake_var2 =
         ClimaAnalysis.remake(var, dims = dims1, dim_attributes = dim_attribs1)
@@ -182,7 +202,7 @@ end
     ])
     @test remake_var2.dim_attributes ==
           OrderedDict(["lat1" => Dict("units" => "deg")])
-    @test remake_var2.data == ones(length(lat), length(lon))
+    @test remake_var2.data == ones(lat_length, lon_length)
 end
 
 @testset "Interpolant boundary conditions and error handling" begin
@@ -649,21 +669,16 @@ end
 end
 
 @testset "Average over arbitrary dims" begin
-    time = [0.0, 1.0, 2.0]
-    lon = [0.0, 10.0, 20.0]
-    lat = [0.0, 20.0, 40.0]
-    data = collect(reshape(1.0:27.0, (3, 3, 3)))
-    data[3, 3, 3] = NaN # replace 27
-    data[2, 2, 2] = NaN # replace 14
-    data[1, 1, 1] = NaN # replace 1
-    dims = OrderedDict(["time" => time, "lon" => lon, "lat" => lat])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "time" => Dict("units" => "deg"),
-        "lon" => Dict("units" => "deg"),
-        "lat" => Dict("units" => "deg"),
-    ])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("time", "lon", "lat"; long_name = "hi") |>
+        ones_to_n_data(lazy = false) |>
+        add_time_dim(dim = [0.0, 1.0, 2.0]) |>
+        add_lon_dim(name = "lon", dim = [0.0, 10.0, 20.0]) |>
+        add_lat_dim(name = "lat", dim = [0.0, 20.0, 40.0]) |>
+        initialize
+    var.data[3, 3, 3] = NaN # replace 27
+    var.data[2, 2, 2] = NaN # replace 14
+    var.data[1, 1, 1] = NaN # replace 1
 
     # ignore_nan = true, update_long_name = true
     avg_var = ClimaAnalysis.Var._average_dims(
@@ -674,7 +689,7 @@ end
     )
     @test avg_var.data[] ≈ (sum(i for i in 1:27) - 1.0 - 14.0 - 27.0) / 24.0
     @test avg_var.attributes["long_name"] ==
-          "hi averaged over time (0.0 to 2.0deg), lon (0.0 to 20.0deg), and lat (0.0 to 40.0deg)"
+          "hi averaged over time (0.0 to 2.0seconds), lon (0.0 to 20.0degrees_north), and lat (0.0 to 40.0degrees_east)"
 
     # ignore_nan = false, update_long_name = true
     avg_var = ClimaAnalysis.Var._average_dims(
@@ -2754,16 +2769,12 @@ end
 
 @testset "Land and ocean masks" begin
     # Order of dimensions should not matter
-    lat = collect(range(-89.5, 89.5, 180))
-    lon = collect(range(-179.5, 179.5, 360))
-    data = ones(length(lat), length(lon))
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "lat" => Dict("units" => "deg"),
-        "lon" => Dict("units" => "deg"),
-    ])
-    var_latlon = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var_latlon =
+        make_template_var("lat", "lon") |>
+        add_lat_dim(dim = collect(range(-89.5, 89.5, 180))) |>
+        add_lon_dim(dim = collect(range(-179.5, 179.5, 360))) |>
+        ones_data() |>
+        initialize
 
     lon = collect(range(-179.5, 179.5, 360))
     lat = collect(range(-89.5, 89.5, 180))
@@ -2929,47 +2940,42 @@ end
 end
 
 @testset "Replace" begin
-    times = collect(range(0.0, 100, 2 * 180))
-    data = ones(length(times))
-    data[1:5] .= NaN
-    dims = OrderedDict(["time" => times])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        TemplateVar() |>
+        add_time_dim(dim = collect(range(0.0, 100, 2 * 180))) |>
+        ones_data() |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    var.data[1:5] .= NaN
+
     var_no_nan = ClimaAnalysis.replace(var, NaN => 0.0)
     @test var_no_nan.dims == var.dims
     @test var_no_nan.data == vcat(zeros(5), ones(355))
     @test var_no_nan.attributes == var.attributes
     @test var_no_nan.dim_attributes == var.dim_attributes
 
-    lat = collect(range(-89.5, 89.5, 180))
-    lon = collect(range(-179.5, 179.5, 360))
-    data = ones(length(lat), length(lon))
-    data[42:47] .= NaN
-    data[32042:32047] .= NaN
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "lat" => Dict("units" => "deg"),
-        "lon" => Dict("units" => "deg"),
-    ])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("lat", "lon"; long_name = "hi") |>
+        ones_data() |>
+        add_lat_dim(dim = collect(range(-89.5, 89.5, 180))) |>
+        add_lon_dim(dim = collect(range(-179.5, 179.5, 360))) |>
+        initialize
+    var.data[42:47] .= NaN
+    var.data[32042:32047] .= NaN
+
     var_no_nan = ClimaAnalysis.replace(var, NaN => 1.0)
     @test var_no_nan.dims == var.dims
-    @test var_no_nan.data == ones(length(lat), length(lon))
+    @test var_no_nan.data == ones(size(var.data)...)
     @test var_no_nan.attributes == var.attributes
     @test var_no_nan.dim_attributes == var.dim_attributes
 
-    lat = collect(range(-89.5, 89.5, 2))
-    lon = collect(range(-179.5, 179.5, 2))
-    data = [[missing, NaN] [NaN, missing]]
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "lat" => Dict("units" => "deg"),
-        "lon" => Dict("units" => "deg"),
-    ])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("lat", "lon"; long_name = "hi") |>
+        add_lat_dim(dim = collect(range(-89.5, 89.5, 2))) |>
+        add_lon_dim(dim = collect(range(-179.5, 179.5, 2))) |>
+        add_data(data = [[missing, NaN] [NaN, missing]]) |>
+        initialize
+
     var_no_nan = ClimaAnalysis.replace(var, missing => 1.0, NaN => 2.0)
     @test var_no_nan.dims == var.dims
     @test var_no_nan.data == [[1.0, 2.0] [2.0, 1.0]]
@@ -2979,16 +2985,12 @@ end
 
 @testset "Set units for dimension" begin
     # Units exist in dim_attribs
-    lat = collect(range(-89.5, 89.5, 180))
-    lon = collect(range(-179.5, 179.5, 360))
-    data = ones(length(lat), length(lon))
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "lat" => Dict("units" => "deg"),
-        "lon" => Dict("units" => "deg"),
-    ])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("lat", "lon") |>
+        add_lat_dim(name = "lat", units = "deg") |>
+        add_lon_dim(name = "lon", units = "deg") |>
+        ones_data() |>
+        initialize
     ClimaAnalysis.set_dim_units!(var, "lat", "degrees")
     @test ClimaAnalysis.dim_units(var, "lat") == "degrees"
 
@@ -3073,11 +3075,13 @@ end
     lat = reverse(collect(range(-89.5, 89.5, 180)))
     lon = collect(range(-179.5, 179.5, 360))
     data = reshape(collect(1:(360 * 180)), (180, 360))
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict(["lon" => Dict("units" => "deg")])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    @test isnothing(ClimaAnalysis.Var._make_interpolant(dims, data))
+    var =
+        make_template_var("lat", "lon"; long_name = "hi") |>
+        add_lat_dim(name = "lat", dim = lat) |>
+        add_lon_dim(name = "lon", dim = lon, units = "deg") |>
+        add_data(data = data) |>
+        initialize
+    @test isnothing(ClimaAnalysis.Var._make_interpolant(var.dims, data))
 
     # Test reverse_dim
     reverse_var = ClimaAnalysis.reverse_dim(var, "lat")
@@ -3110,12 +3114,13 @@ end
 @testset "Convert units of dimensions" begin
     # Convert units of one dimension
     lat = collect(range(-89.5, 89.5, 180))
-    lon = collect(range(-179.5, 179.5, 360))
-    data = ones(length(lat), length(lon))
-    dims = OrderedDict(["lat" => lat, "lon" => lon])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict(["lat" => Dict("units" => "deg")])
-    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    var =
+        make_template_var("lat", "lon") |>
+        add_lat_dim(name = "lat", dim = lat) |>
+        ones_data() |>
+        initialize
+    var.dim_attributes["lon"] = Dict()
+
     var_units = ClimaAnalysis.convert_dim_units(
         var,
         "lat",
