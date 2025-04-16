@@ -69,6 +69,12 @@ ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig[1, 1], var)
 ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig[1, 2][1, 1], var)
 ```
 
+## Computing variance
+
+Similar to `average_lon`, `average_lat`, and `average_time`, there are now
+`variance_lon`, `variance_lat`, and `variance_time`, which compute the variance
+along the longitude, latitude, or time dimension respectively.
+
 v0.5.16
 -------
 

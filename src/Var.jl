@@ -5,8 +5,9 @@ import NCDatasets
 import OrderedCollections: OrderedDict
 
 import Interpolations as Intp
+import Statistics
 import Statistics: mean
-import NaNStatistics: nanmean
+import NaNStatistics: nanmean, nanvar
 
 import ..Numerics
 import ..Utils:
@@ -33,6 +34,9 @@ export OutputVar,
     average_time,
     average_lonlat,
     weighted_average_lonlat,
+    variance_lon,
+    variance_lat,
+    variance_time,
     is_z_1D,
     slice,
     window,
@@ -1013,6 +1017,72 @@ Return a new OutputVar where the values are averaged arithmetically in time.
 function average_time(var; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, time_name(var), var)
     _update_long_name_generic!(reduced_var, var, time_name(var), "averaged")
+    return reduced_var
+end
+
+"""
+    variance_time(var; ignore_nan = true)
+
+Return a new OutputVar where the values are the variances along the time dimension.
+
+If `corrected` is `true`, then the variance is computed by dividing the sample mean by `n -
+1`, whereas if `corrected` is `false`, then the variance is computed by dividing the sample
+mean by `n`, where `n` is the number of elements that the variance is being computed over.
+"""
+function variance_time(var; ignore_nan = true, corrected = true)
+    reduced_var = _reduce_over(
+        ignore_nan ? nanvar : Statistics.var,
+        time_name(var),
+        var,
+        corrected = corrected,
+    )
+    _update_long_name_generic!(reduced_var, var, time_name(var), "variance")
+    return reduced_var
+end
+
+"""
+    variance_lon(var; ignore_nan = true)
+
+Return a new OutputVar where the values are the variances along the longitude dimension.
+
+If `corrected` is `true`, then the variance is computed by dividing the sample mean by `n -
+1`, whereas if `corrected` is `false`, then the variance is computed by dividing the sample
+mean by `n`, where `n` is the number of elements that the variance is being computed over.
+"""
+function variance_lon(var; ignore_nan = true, corrected = true)
+    reduced_var = _reduce_over(
+        ignore_nan ? nanvar : Statistics.var,
+        longitude_name(var),
+        var,
+        corrected = corrected,
+    )
+    _update_long_name_generic!(
+        reduced_var,
+        var,
+        longitude_name(var),
+        "variance",
+    )
+    return reduced_var
+
+end
+
+"""
+    variance_lat(var; ignore_nan = true, corrected = true)
+
+Return a new OutputVar where the values are the variances along the latitude dimension.
+
+If `corrected` is `true`, then the variance is computed by dividing the sample mean by `n -
+1`, whereas if `corrected` is `false`, then the variance is computed by dividing the sample
+mean by `n`, where `n` is the number of elements that the variance is being computed over.
+"""
+function variance_lat(var; ignore_nan = true, corrected = true)
+    reduced_var = _reduce_over(
+        ignore_nan ? nanvar : Statistics.var,
+        latitude_name(var),
+        var,
+        corrected = corrected,
+    )
+    _update_long_name_generic!(reduced_var, var, latitude_name(var), "variance")
     return reduced_var
 end
 

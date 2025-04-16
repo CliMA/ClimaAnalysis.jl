@@ -1,8 +1,9 @@
 using Test
 import ClimaAnalysis
 
+import Statistics
 import Interpolations as Intp
-import NaNStatistics: nanmean, nansum
+import NaNStatistics: nanmean, nansum, nanvar
 import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
 import Unitful: @u_str
@@ -1253,6 +1254,62 @@ end
     )
     @test var.attributes["long_name"] ==
           "hi reduced over time (0.0 to 10.0seconds), x (0.0 to 180.0km), and y (0.0 to 90.0km)"
+end
+
+@testset "Variance" begin
+    time = 0.0:3.0 |> collect
+    lon = 0.0:4.0 |> collect
+    lat = 0.0:5.0 |> collect
+
+    data = collect(reshape(range(0.0, 1000.0, length = 4 * 5 * 6), (4, 5, 6)))
+    data[1, 1, 1] = -10.0
+    data[2, 2, 2] = -100.0
+    data[3, 3, 3] = -1000.0
+
+    dims = OrderedDict(["time" => time, "lon" => lon, "lat" => lat])
+    dim_attributes = OrderedDict([
+        "time" => Dict(),
+        "lon" => Dict("b" => 2),
+        "lat" => Dict("a" => 1),
+    ])
+    attribs = Dict("long_name" => "hi")
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attributes, data)
+
+    # No NaNs
+    var_time = ClimaAnalysis.variance_time(var, ignore_nan = false)
+    var_lat = ClimaAnalysis.variance_lat(var, ignore_nan = false)
+    var_lon = ClimaAnalysis.variance_lon(var, ignore_nan = false)
+
+    # Note: nanvar and var produces slightly different results, so we use
+    # Statistics.var instead of nanvar even though there are NaNs
+    @test var_time.data == dropdims(Statistics.var(data, dims = 1), dims = 1)
+    @test var_time.attributes["long_name"] ==
+          "hi variance over time (0.0 to 3.0)"
+    @test var_time.dims == OrderedDict(["lon" => lon, "lat" => lat])
+
+    @test var_lon.data == dropdims(Statistics.var(data, dims = 2), dims = 2)
+    @test var_lon.attributes["long_name"] == "hi variance over lon (0.0 to 4.0)"
+    @test var_lon.dims == OrderedDict(["time" => time, "lat" => lat])
+
+    @test var_lat.data == dropdims(Statistics.var(data, dims = 3), dims = 3)
+    @test var_lat.attributes["long_name"] == "hi variance over lat (0.0 to 5.0)"
+    @test var_lat.dims == OrderedDict(["time" => time, "lon" => lon])
+
+    # NaNs
+    var.data[1, 1, 1] = NaN
+    var.data[2, 2, 2] = NaN
+    var.data[3, 3, 3] = NaN
+
+    var_time = ClimaAnalysis.variance_time(var)
+    var_lat = ClimaAnalysis.variance_lat(var)
+    var_lon = ClimaAnalysis.variance_lon(var)
+    @test var_time.data == dropdims(nanvar(data, dims = 1), dims = 1)
+    @test var_lon.data == dropdims(nanvar(data, dims = 2), dims = 2)
+    @test var_lat.data == dropdims(nanvar(data, dims = 3), dims = 3)
+
+    # Error handling
+    # Missing dimension
+    @test_throws ErrorException ClimaAnalysis.variance_time(var_time)
 end
 
 @testset "Consistent units checking" begin

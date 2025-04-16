@@ -37,6 +37,9 @@ Var.average_x
 Var.average_y
 Var.average_xy
 Var.average_time
+Var.variance_lon
+Var.variance_lat
+Var.variance_time
 Var.window
 Var.arecompatible
 Var.shift_longitude
