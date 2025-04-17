@@ -4,7 +4,12 @@ import Makie
 import ClimaAnalysis
 import ClimaAnalysis: Visualize
 
-MakiePlace = Union{Makie.Figure, Makie.GridLayout}
+MakiePlace = Union{
+    Makie.Figure,
+    Makie.GridLayout,
+    Makie.GridPosition,
+    Makie.GridSubposition,
+}
 
 """
     heatmap2D!(fig::Makie.Figure,

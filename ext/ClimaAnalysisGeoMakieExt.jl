@@ -7,7 +7,12 @@ import ClimaAnalysis: Visualize
 
 import NaNStatistics: nanextrema
 
-MakiePlace = Union{Makie.Figure, Makie.GridLayout}
+MakiePlace = Union{
+    Makie.Figure,
+    Makie.GridLayout,
+    Makie.GridPosition,
+    Makie.GridSubposition,
+}
 
 """
     oceanmask()

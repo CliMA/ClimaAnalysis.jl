@@ -233,7 +233,7 @@ using OrderedCollections
         true_val = 0.0,
     )
     var = mask_fn(var)
-    ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig13, var)
+    ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig13[1, 1], var) # also testing Makie.GridPosition
     output_name = joinpath(tmp_dir, "plot_custom_mask.png")
     Makie.save(output_name, fig13)
 
@@ -265,7 +265,7 @@ using OrderedCollections
     mask_fn = ClimaAnalysis.make_lonlat_mask(var_mask; set_to_val = isnan)
 
     ClimaAnalysis.Visualize.plot_bias_on_globe!(
-        fig14,
+        fig14[1, 1][1, 1][1, 1][1, 1], # also testing Makie.GridSubposition
         var,
         var_zero,
         mask = mask_fn,
