@@ -57,6 +57,18 @@ Similar to `split_by_season` and `split_by_season_across_time`, the function
 `split_by_month` splits a `OutputVar` by month and return a vector of `OutputVar`s where
 each `OutputVar` corresponds to a single month.
 
+## More Makie types for plotting
+Before this release, plotting was limited to `Makie.Figure` and `Makie.Layout`. With this
+release, plotting is extended to `Makie.GridPosition` and `Makie.GridSubposition`. See the
+example below.
+
+```
+var = get(sim_dir, "ta")
+fig = Makie.Figure()
+ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig[1, 1], var)
+ClimaAnalysis.Visualize.heatmap2D_on_globe!(fig[1, 2][1, 1], var)
+```
+
 v0.5.16
 -------
 
