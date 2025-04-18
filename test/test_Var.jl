@@ -854,19 +854,7 @@ end
     )
 
     # Test order of time, lon, lat
-    time = [0.0]
-    lon = [-20.0]
-    lat = [-30.0]
-    data = [1.0]
-    dims = OrderedDict(["time" => time, "lon" => lon, "lat" => lat])
-    attribs = Dict("long_name" => "hi")
-    dim_attribs = OrderedDict([
-        "time" => Dict("units" => "s"),
-        "lon" => Dict("units" => "deg"),
-        "lat" => Dict("units" => "deg"),
-    ])
-    dummy_var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    var_reordered_3d = ClimaAnalysis.reordered_as(var_3d, dummy_var)
+    var_reordered_3d = permutedims(var_3d, ("time", "lon", "lat"))
 
     avg_var_3d = ClimaAnalysis.average_lonlat(
         var_reordered_3d,

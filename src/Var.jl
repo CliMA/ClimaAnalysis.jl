@@ -2476,16 +2476,7 @@ function make_lonlat_mask(
         )
     end
 
-    # Make a dummy OutputVar so we can reorder on it
-    lon = [42.0]
-    lat = [42.0]
-    data = ones(length(lon), length(lat))
-    dims = OrderedDict(["lon" => lon, "lat" => lat])
-    attribs = Dict{String, String}()
-    dim_attribs = OrderedDict{String, Dict{String, String}}()
-    reordered_var = OutputVar(attribs, dims, dim_attribs, data)
-
-    mask_var = reordered_as(var, reordered_var)
+    mask_var = permutedims(var, ("lon", "lat"))
 
     return apply_lonlat_mask(input_var) = begin
         # Check if lon and lat exist
