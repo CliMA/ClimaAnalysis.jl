@@ -80,6 +80,16 @@ along the longitude, latitude, or time dimension respectively.
 In addition to `reordered_as`, there is also `permutedims(var, perm)` which permute the
 dimensions of an `OutputVar` according to `perm`, an iterable of dimension names.
 
+## Resample with keyword arguments of dimension name and array
+
+You can now resample without needing another `OutputVar` to resample on. Note
+that checking for units is not done. See the example below.
+
+```julia
+resampled_var = resampled_as(src_var, long = [0.0, 1.0], lat = [2.0, 3.0])
+```
+
+
 v0.5.16
 -------
 

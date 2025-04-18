@@ -215,6 +215,20 @@ partial_resampled_var.data
 partial_resampled_var.dims
 ```
 
+## How do I resample without needing another `OutputVar`?
+
+You can resample by passing keyword arguments of the dimension name and the
+vectors to resample on. See the example below.
+
+```@repl resampled_as
+src_var.data
+src_var.dims
+resampled_var =
+    ClimaAnalysis.resampled_as(src_var, long = [0.0, 1.0], lat = [0.0, 1.0, 2.0]);
+resampled_var.data
+resampled_var.dims
+```
+
 ## How do I apply a land or sea mask to a `OutputVar`?
 
 You can use `apply_landmask` or `apply_oceanmask` to mask out the land or ocean,
