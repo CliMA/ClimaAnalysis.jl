@@ -1095,8 +1095,7 @@ Return the `units` of the given `dim_name` in `var`, if available.
 If not available, return an empty string.
 """
 function dim_units(var::OutputVar, dim_name)
-    !haskey(var.dims, dim_name) &&
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    dim_name = find_corresponding_dim_name_in_var(dim_name, var)
     # Double get because var.dim_attributes is a dictionary whose values are dictionaries
     string(get(get(var.dim_attributes, dim_name, Dict()), "units", ""))
 end
