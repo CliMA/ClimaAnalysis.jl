@@ -34,6 +34,7 @@ makedocs(;
         "Visualizing RMSEVariables" => "visualize_rmse_var.md",
         "APIs" => "api.md",
         "How do I?" => "howdoi.md",
+        "Developer Documentation" => "developer.md",
     ],
 )
 
