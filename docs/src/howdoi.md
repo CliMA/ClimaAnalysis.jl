@@ -229,6 +229,46 @@ resampled_var.data
 resampled_var.dims
 ```
 
+## How do I concatenate multiple `OutputVar`s together?
+
+You can use `cat` to concatenate multiple OutputVars of the same quantity along
+the same dimension. See the example below of concatenating the December,
+January, Feburary after splitting an `OutputVar` into seasons across time.
+
+```@setup cat
+import ClimaAnalysis
+import OrderedCollections: OrderedDict
+import Dates
+times = [
+        Dates.value(
+            Dates.Second(Dates.DateTime(2010, i) - Dates.DateTime(2010, 1)),
+        ) for i in 1:12
+]
+lon = [-180.0, 0.0, 180.0]
+lat = [-90.0, -45.0, 0.0, 45.0, 90.0]
+data = cat(
+    (i * ones(1, length(lon), length(lat)) for i in eachindex(times))...,
+    dims = 1,
+)
+dims = OrderedDict(["time" => times, "lon" => lon, "lat" => lat])
+attribs = Dict(
+    "long_name" => "LONG_NAME",
+    "short_name" => "shrt_nm",
+    "start_date" => "2010-1-1",
+    "test_key" => "test_val",
+    "units" => "kg",
+)
+dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
+var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+```
+
+```@repl cat
+ClimaAnalysis.dates(var)
+seasons = ClimaAnalysis.split_by_season_across_time(var);
+DJF = cat(seasons[begin:4:end]..., dims = "time");
+ClimaAnalysis.dates(DJF)
+```
+
 ## How do I apply a land or sea mask to a `OutputVar`?
 
 You can use `apply_landmask` or `apply_oceanmask` to mask out the land or ocean,

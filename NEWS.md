@@ -1,5 +1,18 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.18
+-------
+
+## Concatenation of OutputVars
+
+You can concatenate `OutputVar`s along a single dimension. This function is helpful if you
+need to concatenate `OutputVar`s after applying `split_by_season_across_time` or `window`.
+
+```julia
+seasons = ClimaAnalysis.split_by_season_across_time(var);
+DJF = cat(seasons[begin:4:end]..., dim = "time");
+```
+
 v0.5.17
 -------
 

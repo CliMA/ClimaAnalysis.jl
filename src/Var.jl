@@ -2638,6 +2638,120 @@ function reverse_dim!(var::OutputVar, dim_name)
 end
 
 """
+    Base.cat(vars::OutputVar...; dims::String)
+
+Concatenate `vars` along the dimension `dims`.
+
+This function is helpful if you need to concatenate `OutputVar`s after applying
+`split_by_season_across_time` or `window`.
+
+This function does not support concatenating `OutputVar`s of different quantities as
+determined by the `short_name`.
+
+Attributes that are not `start_date`, `short_name`, or "units" are discarded in the process.
+
+Note that concatenation along multiple dimensions is not possible.
+"""
+function Base.cat(vars::OutputVar...; dims::String)
+    last_var = last(vars)
+    vars_dims = (var.dims for var in vars)
+
+    # Find the index of `dim`
+    dim_idx =
+        last_var.dim2index[find_corresponding_dim_name_in_var(dims, last_var)]
+
+    # Check the number of dimensions for all vars
+    all(var -> length(var.dims) == length(last_var.dims), vars) ||
+        error("The number of dimensions are not the same across all OutputVars")
+
+    # Check order of dimensions are the same
+    vars_dim_names = collect.(keys.(vars_dims))
+    all(dim_name -> dim_name == first(vars_dim_names), vars_dim_names) ||
+        return error(
+            "Not all OutputVars has the same order of dimensions; use reordered_as or permutedims to reorder the dimensions of the OutputVars",
+        )
+
+    # Check units of dimensions
+    for dim_name in keys(last_var.dim_attributes)
+        all(
+            var -> dim_units(var, dim_name) == dim_units(last_var, dim_name),
+            vars,
+        ) || error(
+            "Not all OutputVars have the same units for the dimension $dim_name",
+        )
+    end
+
+    # Check values of dimensions except for dim
+    dim_values = values.(vars_dims)
+    for (idx, dim_arrays) in enumerate(zip(dim_values...))
+        if idx != dim_idx
+            all(dim_array -> dim_array ≈ first(dim_arrays), dim_arrays) ||
+                return error(
+                    "Not all OutputVars have the same values for the $(collect(keys(last_var.dims))[idx]) dimension",
+                )
+        end
+    end
+
+    # Check units of the data
+    all(var -> units(var) == units(first(vars)), vars) ||
+        error("Not all OutputVars have the same units")
+
+    # Check start date and short name
+    keep_attribs = ("start_date", "short_name")
+    for attrib in keep_attribs
+        all(
+            var ->
+                get(var.attributes, attrib, nothing) ==
+                get(last_var.attributes, attrib, nothing),
+            vars,
+        ) || error("Not all OutputVars have the same $attrib")
+    end
+
+    # Keep attributes of the last OutputVar. There are multiple approaches for choosing
+    # which attributes to keep, such as merging the attributes recursively, taking an
+    # intersection of the attributes, or keeping the attributes of the last OutputVar. We
+    # take a conservative approach that keep only the short name, units, and start date if
+    # those exist.
+    keep_attribs = (keep_attribs..., "units")
+    ret_attribs = empty(last_var.attributes)
+    for attrib in keep_attribs
+        attrib in keys(last_var.attributes) &&
+            (ret_attribs[attrib] = last_var.attributes[attrib])
+    end
+
+    # Add long name
+    long_name = join(
+        (
+            var.attributes["long_name"] for
+            var in vars if haskey(var.attributes, "long_name")
+        ),
+        " concatenated ",
+    )
+    ret_attribs["long_name"] = long_name
+
+    # Concat all the dim of vars
+    ret_dims = deepcopy(last_var.dims)
+    cat_dim = vcat(
+        (
+            var.dims[find_corresponding_dim_name_in_var(dims, var)] for
+            var in vars
+        )...,
+    )
+    ret_dims[find_corresponding_dim_name_in_var(dims, last_var)] = cat_dim
+
+    # Concat all the data along dim
+    ret_data = cat((var.data for var in vars)..., dims = dim_idx)
+
+    # Keep dim attribs of the last OutputVar
+    return remake(
+        last_var;
+        attributes = ret_attribs,
+        dims = ret_dims,
+        data = ret_data,
+    )
+end
+
+"""
     Base.show(io::IO, var::OutputVar)
 
 Pretty print the contents of an `OutputVar`.
