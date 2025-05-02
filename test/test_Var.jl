@@ -3147,6 +3147,130 @@ end
     @test var_no_nan.dim_attributes == var.dim_attributes
 end
 
+@testset "Concatenate OutputVars" begin
+    # Initialize 3D OutputVar (lon, lat, time)
+    times = [
+        Dates.value(
+            Dates.Second(Dates.DateTime(2010, i) - Dates.DateTime(2010, 1)),
+        ) for i in 1:12
+    ]
+    lon = [-180.0, 0.0, 180.0]
+    lat = [-90.0, -45.0, 0.0, 45.0, 90.0]
+    data = cat(
+        (i * ones(1, length(lon), length(lat)) for i in eachindex(times))...,
+        dims = 1,
+    )
+    dims = OrderedDict(["time" => times, "lon" => lon, "lat" => lat])
+    attribs = Dict(
+        "long_name" => "LONG_NAME",
+        "short_name" => "shrt_nm",
+        "start_date" => "2010-1-1",
+        "test_key" => "test_val",
+        "units" => "kg",
+    )
+    dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    # Test with common situations where you would need to concat
+    # Split by season across time
+    seasons = ClimaAnalysis.split_by_season_across_time(var)
+    MAM = cat(seasons[2], seasons[5], dims = "time")
+    @test MAM.dim_attributes == dim_attribs
+    @test MAM.data == cat(data[3:5, :, :], data[12:12, :, :], dims = 1)
+    @test MAM.dims == OrderedDict([
+        "time" => [times[i] for i in (3, 4, 5, 12)],
+        "lon" => lon,
+        "lat" => lat,
+    ])
+    @test MAM.attributes == Dict(
+        "long_name" => "LONG_NAME concatenated LONG_NAME",
+        "short_name" => "shrt_nm",
+        "start_date" => "2010-1-1",
+        "units" => "kg",
+    )
+
+    # Window
+    window_12 = ClimaAnalysis.window(
+        var,
+        "time",
+        left = Dates.DateTime(2010, 1),
+        right = Dates.DateTime(2010, 2),
+    )
+    window_45 = ClimaAnalysis.window(
+        var,
+        "time",
+        left = Dates.DateTime(2010, 4),
+        right = Dates.DateTime(2010, 5),
+    )
+    window_1245 = cat(window_12, window_45, dims = "time")
+    @test window_1245.dim_attributes == dim_attribs
+    @test window_1245.data == cat(data[1:2, :, :], data[4:5, :, :], dims = 1)
+    @test window_1245.dims == OrderedDict([
+        "time" => [times[i] for i in (1, 2, 4, 5)],
+        "lon" => lon,
+        "lat" => lat,
+    ])
+    @test window_1245.attributes == Dict(
+        "long_name" => "LONG_NAME concatenated LONG_NAME",
+        "short_name" => "shrt_nm",
+        "start_date" => "2010-1-1",
+        "units" => "kg",
+    )
+
+    # Error handling
+    # Dimension does not exist
+    @test_throws ErrorException cat(var, dims = "pfull")
+
+    # Number of dimensions are not the same
+    time = 0.0:10.0 |> collect
+    data = ones(length(time))
+    dims = OrderedDict(["time" => time])
+    attribs = Dict("start_date" => Dates.DateTime(2010))
+    dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
+    time_var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+    @test_throws ErrorException cat(time_var, var, dims = "time")
+
+    # Order of dimensions are not the same
+    diff_order_var = permutedims(var, ("long", "lat", "t"))
+    @test_throws ErrorException cat(diff_order_var, var, dims = "time")
+
+    # Dimension units are not the same
+    dim_attribs = OrderedDict(["time" => Dict("units" => "min")])
+    diff_dim_units_var = ClimaAnalysis.remake(var, dim_attributes = dim_attribs)
+    @test_throws ErrorException cat(diff_dim_units_var, var, dims = "time")
+
+    # Values of dimensions are not the same
+    dims = OrderedDict([
+        "time" => times,
+        "lon" => [-180.0, 10.0, 180.0],
+        "lat" => lat,
+    ])
+    diff_vals_var = ClimaAnalysis.remake(var, dims = dims)
+    @test_throws ErrorException cat(diff_vals_var, var, dims = "time")
+
+    # Units of the data are not the same
+    attribs = Dict(
+        "long_name" => "LONG_NAME",
+        "short_name" => "shrt_nm",
+        "start_date" => "2010-1-1",
+        "test_key" => "test_val",
+        "units" => "kg^-1",
+    )
+    diff_units_var = ClimaAnalysis.remake(var, attributes = attribs)
+    @test_throws ErrorException cat(diff_units_var, var, dims = "time")
+
+    # Short name is different
+    attribs = Dict(
+        "long_name" => "LONG_NAME",
+        "short_name" => "diff_shrt_nm",
+        "start_date" => "2010-1-1",
+        "test_key" => "test_val",
+        "units" => "kg",
+    )
+    diff_shortname_var = ClimaAnalysis.remake(var, attributes = attribs)
+    @test_throws ErrorException cat(diff_shortname_var, var, dims = "time")
+end
+
 @testset "Set units for dimension" begin
     # Units exist in dim_attribs
     lat = collect(range(-89.5, 89.5, 180))
