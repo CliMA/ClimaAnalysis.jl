@@ -96,6 +96,16 @@ Var.reverse_dim!
 Base.show(io::IO, var::OutputVar)
 ```
 
+## FlatVar
+
+```@docs
+Var.Metadata
+Var.FlatVar
+Var.flatten
+Var.unflatten
+Var.flatten_dim_order
+```
+
 ## Leaderboard
 ```@docs
 Leaderboard.RMSEVariable
