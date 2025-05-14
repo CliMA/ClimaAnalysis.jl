@@ -2583,7 +2583,7 @@ end
     replace(var::OutputVar, old_new::Pair...)
 
 Return a `OutputVar` where, for each pair `old  => new`, all occurences of `old` are
-replaced by `new` in `Var.data`
+replaced by `new` in `var.data`
 
 This function is useful if there are `NaN`s or `missing` values in the data. For instance,
 you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
@@ -2592,6 +2592,21 @@ you want to use the ocean mask, but there are `NaN`s in the ocean. You can repla
 function Base.replace(var::OutputVar, old_new::Pair...)
     replaced_data = replace(var.data, old_new...)
     return remake(var, data = replaced_data)
+end
+
+"""
+    replace!(var::OutputVar, old_new::Pair...)
+
+For each pair `old  => new`, all occurences of `old` are replaced by `new` in
+`var.data`. See [`replace!`](@ref).
+
+This function is useful if there are `NaN`s or `missing` values in the data. For instance,
+you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
+`NaN` and `missing` values with 0.0 and apply the ocean mask afterward.
+"""
+function Base.replace!(var::OutputVar, old_new::Pair...)
+    replace!(var.data, old_new...)
+    return nothing
 end
 
 """
