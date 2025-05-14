@@ -283,11 +283,11 @@ var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
 
 ## How do I replace `NaN` and `missing` values in the data of a `OutputVar` with 0.0?
 
-You can use `replace` to replace all `NaN` and `missing` values in the data of a
-`OutputVar` with 0.0. See the example below of this usage.
+You can use `replace` or `replace!` to replace all `NaN` and `missing` values in the data of
+a `OutputVar` with 0.0. See the example below of this usage.
 
 ```julia
-var_no_nan_and_missing = ClimaAnalysis.replace(var, missing => 0.0, NaN => 0.0)
+var_no_nan_and_missing = replace(var, missing => 0.0, NaN => 0.0)
 ```
 
 ## How do I reverse a dimension so that an interpolant can be made?

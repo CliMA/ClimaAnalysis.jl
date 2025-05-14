@@ -3106,7 +3106,7 @@ end
     attribs = Dict("long_name" => "hi")
     dim_attribs = OrderedDict(["time" => Dict("units" => "s")])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    var_no_nan = ClimaAnalysis.replace(var, NaN => 0.0)
+    var_no_nan = replace(var, NaN => 0.0)
     @test var_no_nan.dims == var.dims
     @test var_no_nan.data == vcat(zeros(5), ones(355))
     @test var_no_nan.attributes == var.attributes
@@ -3124,7 +3124,7 @@ end
         "lon" => Dict("units" => "deg"),
     ])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    var_no_nan = ClimaAnalysis.replace(var, NaN => 1.0)
+    var_no_nan = replace(var, NaN => 1.0)
     @test var_no_nan.dims == var.dims
     @test var_no_nan.data == ones(length(lat), length(lon))
     @test var_no_nan.attributes == var.attributes
@@ -3140,11 +3140,15 @@ end
         "lon" => Dict("units" => "deg"),
     ])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
-    var_no_nan = ClimaAnalysis.replace(var, missing => 1.0, NaN => 2.0)
+    var_no_nan = replace(var, missing => 1.0, NaN => 2.0)
     @test var_no_nan.dims == var.dims
     @test var_no_nan.data == [[1.0, 2.0] [2.0, 1.0]]
     @test var_no_nan.attributes == var.attributes
     @test var_no_nan.dim_attributes == var.dim_attributes
+
+    # Test in place replace
+    replace!(var, missing => 1.0, NaN => 2.0)
+    @test var.data == [[1.0, 2.0] [2.0, 1.0]]
 end
 
 @testset "Concatenate OutputVars" begin
