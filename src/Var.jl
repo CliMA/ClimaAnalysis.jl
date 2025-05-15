@@ -72,6 +72,7 @@ export OutputVar,
     apply_oceanmask,
     make_lonlat_mask,
     replace,
+    replace!,
     reverse_dim,
     reverse_dim!,
     remake,
@@ -2598,7 +2599,7 @@ end
     replace!(var::OutputVar, old_new::Pair...)
 
 For each pair `old  => new`, all occurences of `old` are replaced by `new` in
-`var.data`. See [`replace!`](@ref).
+`var.data`. See [`replace`](@ref).
 
 This function is useful if there are `NaN`s or `missing` values in the data. For instance,
 you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
