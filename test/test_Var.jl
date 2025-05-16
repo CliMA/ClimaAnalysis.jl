@@ -3448,6 +3448,119 @@ end
     )
 end
 
+@testset "FlatVar" begin
+    lat = [-90.0, -30.0, 30.0, 90.0]
+    lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
+    time = [0.0, 1.0, 5.0]
+    n_elts = length(lat) * length(lon) * length(time)
+    dims = OrderedDict("lat" => lat, "lon" => lon, "time" => time)
+    size_of_data = (length(lat), length(lon), length(time))
+    data = reshape(collect(1.0:n_elts), size_of_data...)
+    attribs = Dict("long_name" => "hi")
+    dim_attribs = OrderedDict(
+        "lat" => Dict("units" => "degrees"),
+        "lon" => Dict("units" => "degrees"),
+        "time" => Dict("units" => "seconds"),
+    )
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    flat_var =
+        ClimaAnalysis.Var.flatten(var, dims = ("latitude", "longitude", "t"))
+    @test ClimaAnalysis.Var.flatten_dim_order(flat_var) ==
+          ("lat", "lon", "time")
+    @test ClimaAnalysis.Var._data_size(flat_var) == n_elts
+    @test flat_var.data == vec(data)
+    @test flat_var.metadata.attributes == var.attributes
+    @test flat_var.metadata.dims == var.dims
+    @test flat_var.metadata.dim_attributes == var.dim_attributes
+    @test flat_var.metadata.ordered_dims == ("lat", "lon", "time")
+
+    unflatten_var = ClimaAnalysis.Var.unflatten(flat_var)
+    @test var.data == unflatten_var.data
+    @test var.attributes == unflatten_var.attributes
+    @test var.dim_attributes == unflatten_var.dim_attributes
+    @test var.dims == unflatten_var.dims
+
+    flat_var = ClimaAnalysis.Var.flatten(var)
+    @test ClimaAnalysis.Var.flatten_dim_order(flat_var) ==
+          ("lon", "lat", "time")
+    @test flat_var.data == vec(permutedims(data, (2, 1, 3)))
+    @test flat_var.metadata.attributes == var.attributes
+    @test flat_var.metadata.dims == var.dims
+    @test flat_var.metadata.dim_attributes == var.dim_attributes
+    @test flat_var.metadata.ordered_dims == ("lon", "lat", "time")
+
+    unflatten_var = ClimaAnalysis.Var.unflatten(flat_var)
+    @test var.data == unflatten_var.data
+    @test var.attributes == unflatten_var.attributes
+    @test var.dim_attributes == unflatten_var.dim_attributes
+    @test var.dims == unflatten_var.dims
+
+    # Test unflattening with different datas
+    flat_var = ClimaAnalysis.Var.flatten(var)
+    var2 = ClimaAnalysis.Var.remake(
+        var;
+        data = reshape(collect((-n_elts):-1), size_of_data...),
+    )
+    var2 = permutedims(var2, ("lon", "time", "lat"))
+    flat_var2 = ClimaAnalysis.Var.flatten(var2)
+    reconstructed_var =
+        ClimaAnalysis.Var.unflatten(flat_var.metadata, flat_var2.data)
+    reconstructed_var = permutedims(reconstructed_var, ("lon", "time", "lat"))
+    @test reconstructed_var.data == var2.data
+    @test reconstructed_var.attributes == var.attributes
+    @test reconstructed_var.dim_attributes == var.dim_attributes
+    @test reconstructed_var.dims == var.dims
+
+    # Test with NaNs
+    nan_data = reshape(collect(1.0:n_elts), size_of_data...)
+    nan_data[1, 1, 1] = NaN
+    nan_data[3, 2, 3] = NaN
+    var = ClimaAnalysis.remake(var, data = nan_data)
+    flat_var = ClimaAnalysis.Var.flatten(var)
+    @test ClimaAnalysis.Var.flatten_dim_order(flat_var) ==
+          ("lon", "lat", "time")
+    @test ClimaAnalysis.Var._data_size(flat_var) == n_elts - 2
+    @test flat_var.data == filter(!isnan, vec(permutedims(nan_data, (2, 1, 3))))
+    @test flat_var.metadata.attributes == var.attributes
+    @test flat_var.metadata.dims == var.dims
+    @test flat_var.metadata.dim_attributes == var.dim_attributes
+    @test flat_var.metadata.ordered_dims == ("lon", "lat", "time")
+
+    unflatten_var = ClimaAnalysis.Var.unflatten(flat_var)
+    @test isequal(var.data, unflatten_var.data)
+    @test var.attributes == unflatten_var.attributes
+    @test var.dim_attributes == unflatten_var.dim_attributes
+    @test var.dims == unflatten_var.dims
+
+    # Test unflattening with different NaN datas
+    data = reshape(collect((-n_elts):-1), size_of_data...)
+    nan_data[1, 1, 1] = NaN
+    nan_data[3, 2, 3] = NaN
+    var2 = ClimaAnalysis.Var.remake(var; data = nan_data)
+    var2 = permutedims(var2, ("lon", "time", "lat"))
+    flat_var2 = ClimaAnalysis.Var.flatten(var2)
+    reconstructed_var =
+        ClimaAnalysis.Var.unflatten(flat_var.metadata, flat_var2.data)
+    reconstructed_var = permutedims(reconstructed_var, ("lon", "time", "lat"))
+    @test isequal(reconstructed_var.data, var2.data)
+    @test reconstructed_var.attributes == var.attributes
+    @test reconstructed_var.dim_attributes == var.dim_attributes
+    @test reconstructed_var.dims == var.dims
+
+    # Missing dimensions
+    @test_throws ErrorException ClimaAnalysis.Var.flatten(
+        var,
+        dims = ("lat", "lon"),
+    )
+
+    # Length of data is not right
+    @test_throws ErrorException ClimaAnalysis.Var.unflatten(
+        flat_var.metadata,
+        [1.0, 2.0, 3.0],
+    )
+end
+
 @testset "Show" begin
     lat = collect(range(-89.5, 89.5, 180))
     lon = collect(range(-179.5, 179.5, 360))

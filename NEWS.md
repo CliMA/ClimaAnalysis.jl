@@ -13,6 +13,25 @@ seasons = ClimaAnalysis.split_by_season_across_time(var);
 DJF = cat(seasons[begin:4:end]..., dim = "time");
 ```
 
+## FlatVar
+
+You can now flatten `data` of `OutputVar`s using `ClimaAnalysis.flatten` and `ClimaAnalysis.unflatten`.
+Flattening data gives `FlatVar` whose flattened data can be accessed with `flat_var.data` and the metadata
+can be accessed with `flat_var.metadata`. Then, unflattening data reconstructs the original `OutputVar`.
+This feature is helpful with preparing data for use in other pipelines.
+
+```julia
+flat_var = ClimaAnalysis.flatten(var)
+
+# Flattened data and metadata can be accessed like this
+flat_var.data
+flat_var.metadata
+
+# Reconstructing the original OutputVar
+unflattened_var = ClimaAnalysis.unflatten(flat_var)
+unflattened_var = ClimaAnalysis.unflatten(flat_var.metadata, flat_var.data)
+```
+
 v0.5.17
 -------
 
