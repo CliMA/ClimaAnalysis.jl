@@ -2412,6 +2412,66 @@ end
     @test seasonal_vars[6].data == data[:, 10:10, :]
 end
 
+@testset "average_season_across_time" begin
+    lon = collect(range(-179.5, 179.5, 36))
+    lat = collect(range(-89.5, 89.5, 18))
+    time = [0.0]
+    push!(time, 2_678_400.0) # correspond to 2024-2-1
+    push!(time, 5_184_000.0) # correspond to 2024-3-1
+    push!(time, 7_862_400.0) # correspond to 2024-4-1
+    push!(time, 10_454_400.0) # correspond to 2024-5-1
+    push!(time, 13_132_800.0) # correspond to 2024-6-1
+    push!(time, 15_724_800.0) # correspond to 2024-7-1
+    push!(time, 18_403_200.0) # correspond to 2024-8-1
+    push!(time, 21_081_600.0) # correspond to 2024-9-1
+    push!(time, 36_720_000.0) # correspond to 2025-3-1
+    data = zeros(18, 10, 36)
+    val_vec = [1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0, 5.0]
+    for j in 1:10
+        data[:, j, :] .= val_vec[j]
+    end
+    for j in [1, 3, 6]
+        data[1, j, 1] = NaN
+    end
+    dims = OrderedDict(["lat" => lat, "time" => time, "lon" => lon])
+    attribs = Dict("long_name" => "hi", "start_date" => "2024-1-1")
+    dim_attribs = OrderedDict([
+        "lat" => Dict("units" => "deg"),
+        "time" => Dict("units" => "s"),
+        "lon" => Dict("units" => "deg"),
+    ])
+    var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+
+    avg_seasonal_var = ClimaAnalysis.average_season_across_time(var)
+
+    # Cheak season
+    @test avg_seasonal_var.attributes["season"] ==
+          ["DJF", "MAM", "JJA", "SON", "MAM"]
+
+    # Check years
+    @test avg_seasonal_var.attributes["year"] ==
+          ["2024", "2024", "2024", "2024", "2025"]
+
+    # Check times
+    @test ClimaAnalysis.times(avg_seasonal_var) ==
+          [0.0, 5_184_000.0, 13_132_800.0, 21_081_600.0, 36_720_000.0]
+
+    # Check data
+    test_data = zeros(18, 5, 36)
+    for j in 1:5
+        test_data[:, j, :] .= j
+    end
+    @test avg_seasonal_var.data == test_data
+
+    # Check data, but with ignore_nan = false
+    avg_seasonal_var =
+        ClimaAnalysis.average_season_across_time(var, ignore_nan = false)
+    for j in 1:3
+        test_data[1, j, 1] = NaN
+    end
+    @test isequal(avg_seasonal_var.data, test_data)
+end
+
 @testset "split_by_month" begin
     lon = collect(range(-179.5, 179.5, 36))
     lat = collect(range(-89.5, 89.5, 18))
