@@ -346,6 +346,9 @@ function split_by_season_across_time(dates::AbstractArray{<:Dates.DateTime})
     # Find the first date of the season that first(dates) belongs in
     (first_season, first_year) = find_season_and_year(first(dates))
     season_to_month = Dict("MAM" => 3, "JJA" => 6, "SON" => 9, "DJF" => 12)
+    # Because the year is determined from the second month, we need to handle the case when
+    # the season is DJF
+    first_year = first_season == "DJF" ? first_year - 1 : first_year
     first_date_of_season =
         Dates.DateTime(first_year, season_to_month[first_season], 1)
 
@@ -431,8 +434,11 @@ Return a tuple of the year and season belong to `date`. The variable `year` is
 an integer and `season` is a string.
 
 The months of the seasons are March to May, June to August, September to
-November, and December to February. If a date is in December to February, the
-year is chosen to be the year that the season starts.
+November, and December to February.
+
+The year is determined by the second month of the season. For example, if the
+months are December 2009, January 2010, and February 2010, then the year of the
+season is 2010.
 """
 function find_season_and_year(date::Dates.DateTime)
     if Dates.Month(3) <= Dates.Month(date) <= Dates.Month(5)
@@ -442,10 +448,8 @@ function find_season_and_year(date::Dates.DateTime)
     elseif Dates.Month(9) <= Dates.Month(date) <= Dates.Month(11)
         return ("SON", Dates.year(date))
     else
-        # ambiguous what year should be used, so we use the convention that
-        # it is the year of December
         corrected_year =
-            Dates.month(date) == 12 ? Dates.year(date) : Dates.year(date) - 1
+            Dates.month(date) == 12 ? Dates.year(date) + 1 : Dates.year(date)
         return ("DJF", corrected_year)
     end
 end
