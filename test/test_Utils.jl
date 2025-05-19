@@ -107,8 +107,8 @@ end
 
 @testset "find season and year" begin
     dates = [Dates.DateTime(2010, i) for i in 1:12]
-    @test Utils.find_season_and_year(dates[1]) == ("DJF", 2009)
-    @test Utils.find_season_and_year(dates[2]) == ("DJF", 2009)
+    @test Utils.find_season_and_year(dates[1]) == ("DJF", 2010)
+    @test Utils.find_season_and_year(dates[2]) == ("DJF", 2010)
     @test Utils.find_season_and_year(dates[3]) == ("MAM", 2010)
     @test Utils.find_season_and_year(dates[4]) == ("MAM", 2010)
     @test Utils.find_season_and_year(dates[5]) == ("MAM", 2010)
@@ -118,7 +118,7 @@ end
     @test Utils.find_season_and_year(dates[9]) == ("SON", 2010)
     @test Utils.find_season_and_year(dates[10]) == ("SON", 2010)
     @test Utils.find_season_and_year(dates[11]) == ("SON", 2010)
-    @test Utils.find_season_and_year(dates[12]) == ("DJF", 2010)
+    @test Utils.find_season_and_year(dates[12]) == ("DJF", 2011)
 end
 
 @testset "split by season across time" begin
