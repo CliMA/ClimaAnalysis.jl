@@ -1989,8 +1989,12 @@ determined by the dates of the season. The return type is a vector of `OutputVar
 The months of the seasons are March to May (MAM), June to August (JJA), September to
 November (SON), and December to February (DJF). If there are no dates found for a season,
 then the `OutputVar` for that season will be an empty `OutputVar`. The first `OutputVar` is
-guaranteed to not be empty. For non-empty OutputVars, the season can be found by
+guaranteed to not be empty. For non-empty `OutputVar`s, the season can be found by
 `var.attributes["season"]`.
+
+Also, for non-empty `OutputVar`s, the year can be found by `var.attributes["year"]`. The
+convention used is that the second month of the season determines the year. For example, the
+year of DJF is the same year as Janauary.
 
 The function will use the start date in `var.attributes["start_date"]`. The unit of time is
 expected to be second.
@@ -1999,7 +2003,7 @@ This function differs from `split_by_season` as `split_by_season` splits dates b
 season and ignores that seasons can come from different years.
 """
 function split_by_season_across_time(var::OutputVar)
-    _check_time_dim(var::OutputVar)
+    _check_time_dim(var)
     start_date = Dates.DateTime(var.attributes["start_date"])
 
     seasons_across_year_dates =
@@ -2014,10 +2018,13 @@ function split_by_season_across_time(var::OutputVar)
 
     for var in split_by_season_vars
         if !isempty(var)
-            season, _ = find_season_and_year(
+            season, year = find_season_and_year(
                 first(time_to_date.(start_date, times(var))),
             )
+            # This override the attributes if the user sets something for season and year
+            # already
             var.attributes["season"] = season
+            var.attributes["year"] = string(year)
         end
     end
     return split_by_season_vars

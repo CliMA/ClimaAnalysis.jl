@@ -2388,6 +2388,13 @@ end
     @test seasonal_vars[4].attributes["season"] == "SON"
     @test seasonal_vars[6].attributes["season"] == "MAM"
 
+    # Check years
+    @test seasonal_vars[1].attributes["year"] == "2024"
+    @test seasonal_vars[2].attributes["year"] == "2024"
+    @test seasonal_vars[3].attributes["year"] == "2024"
+    @test seasonal_vars[4].attributes["year"] == "2024"
+    @test seasonal_vars[6].attributes["year"] == "2025"
+
     # Check arrays for time is correct
     @test seasonal_vars[1].dims["time"] == [0.0, 2_678_400.0]
     @test seasonal_vars[2].dims["time"] ==
