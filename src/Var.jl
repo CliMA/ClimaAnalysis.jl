@@ -60,6 +60,7 @@ export OutputVar,
     split_by_season,
     split_by_season_across_time,
     split_by_month,
+    average_season_across_time,
     bias,
     global_bias,
     squared_error,
@@ -2075,6 +2076,60 @@ function _check_time_dim(var::OutputVar)
     haskey(var.attributes, "start_date") ||
         error("Start date is not found in var")
     return nothing
+end
+
+"""
+    average_season_across_time(var::OutputVar; ignore_nan = true)
+
+Return a new OutputVar where the seasons are averaged arithmetically in time.
+
+The values of time dimension of `var` correspond to the first date for the season.
+
+The months of the seasons are March to May (MAM), June to August (JJA), September to
+November (SON), and December to February (DJF). If there are no dates found for a season,
+then the season is skipped. The season can be found by `var.attributes["season"]`, which
+returns a vector of season names.
+
+The year can be found by `var.attributes["year"]`, which returns a vector of years as
+strings. The convention used is that the second month of the season determines the year. For
+example, the year of DJF is the same year as Janauary.
+"""
+function average_season_across_time(var; ignore_nan = true)
+    season_vars = split_by_season_across_time(var)
+    nonempty_season_vars = filter(!isempty, season_vars)
+    season_names =
+        [season_var.attributes["season"] for season_var in nonempty_season_vars]
+    year_names =
+        [season_var.attributes["year"] for season_var in nonempty_season_vars]
+    season_times =
+        [first(times(season_var)) for season_var in nonempty_season_vars]
+
+    # Cannot use cat because it is not possible to concatenate along a dimension that does
+    # not exist
+    # Cannot use average_time because average_time squeeze the singleton dimension
+    avg = ignore_nan ? nanmean : mean
+    time_idx = var.dim2index[time_name(var)]
+    ret_data = cat(
+        (avg(var.data, dims = time_idx) for var in nonempty_season_vars)...,
+        dims = time_idx,
+    )
+
+    ret_dims = deepcopy(var.dims)
+    ret_dims[time_name(var)] = season_times
+
+    # Might need to promote the the type of the keys and values
+    attribs_tuple =
+        tuple(var.attributes..., "season" => season_names, "year" => year_names)
+    ret_attribs = Dict(attribs_tuple...)
+    reduced_var =
+        remake(var, data = ret_data, dims = ret_dims, attributes = ret_attribs)
+    _update_long_name_generic!(
+        reduced_var,
+        var,
+        time_name(var),
+        "season averaged",
+    )
+    return reduced_var
 end
 
 """

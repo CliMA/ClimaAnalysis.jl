@@ -32,6 +32,22 @@ unflattened_var = ClimaAnalysis.unflatten(flat_var)
 unflattened_var = ClimaAnalysis.unflatten(flat_var.metadata, flat_var.data)
 ```
 
+## Seasonal average
+
+You can now compute seasonal averages with `average_season_across_time`. This returns
+a `OutputVar`, where the time dimension consists of the first date of each season, and the
+years and seasons can be accessed by `var.attributes["season"]` and `var.attributes["year"]`.
+
+```julia
+seasonal_averages_var = average_season_across_time(var)
+
+# Return a vector of seasons
+seasonal_averages_var.attributes["season"]
+
+# Return a vector of years
+seasonal_averages_var.attributes["year"]
+```
+
 ## Bug fixes
 
 - Fixed support for reductions when dimensions have only one point.
