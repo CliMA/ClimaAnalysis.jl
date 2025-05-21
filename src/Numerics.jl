@@ -83,6 +83,14 @@ function _integrate_over_generic_dim(
     angle_idx,
     int_weights,
 )
+    # Support the `dims` keyword argument
+    if angle_idx isa Tuple || angle_idx isa Array
+        if length(angle_idx) == 1
+            angle_idx = only(angle_idx)
+        else
+            error("Only one `angle_idx` supported")
+        end
+    end
     # Reshape to add extra dimensions for int_weights for broadcasting if needed
     size_to_reshape =
         (i == angle_idx ? length(int_weights) : 1 for i in 1:ndims(data))

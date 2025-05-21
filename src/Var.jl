@@ -698,9 +698,13 @@ function Base.copy(var::OutputVar)
 end
 
 """
-    _reduce_over(reduction::F, dim::String, var::OutputVar, args...; kwargs...)
+    _reduce_over(reduction::F,
+                 dims,
+                 var::OutputVar,
+                 args...;
+                 kwargs...)
 
-Apply the given reduction over the given dimension.
+Apply the given reduction over multiple dimensions in `dims`.
 
 `reduction` has to support the `dims` key. Additional arguments are passed to `reduction`.
 
@@ -724,51 +728,17 @@ _reduce_over(mean, "lat", var)
 """
 function _reduce_over(
     reduction::F,
-    dim::String,
-    var::OutputVar,
-    args...;
-    kwargs...,
-) where {F <: Function}
-    dim_index = var.dim2index[dim]
-
-    # squeeze removes the unnecessary singleton dimension
-    data = squeeze(
-        reduction(var.data, args...; dims = dim_index, kwargs...),
-        dims = (dim_index,),
-    )
-
-    # If we reduce over a dimension, we have to remove it
-    dims = copy(var.dims)
-    dim_attributes = copy(var.dim_attributes)
-    pop!(dims, dim)
-    haskey(var.dim_attributes, dim) && pop!(dim_attributes, dim)
-    return OutputVar(copy(var.attributes), dims, dim_attributes, copy(data))
-end
-
-"""
-    _reduce_over(reduction::F,
-                 dims,
-                 var::OutputVar,
-                 args...;
-                 kwargs...)
-
-Apply the given reduction over multiple dimensions in `dims`.
-
-`reduction` has to support the `dims` key. Additional arguments are passed to `reduction`.
-
-The return type is an `OutputVar` with the same attributes, the new data, and the dimension
-dropped.
-"""
-function _reduce_over(
-    reduction::F,
     dims,
     var::OutputVar,
     args...;
     kwargs...,
 ) where {F <: Function}
+    dims = dims isa String ? (dims,) : dims
+
     dim_indices = Tuple(var.dim2index[dim_name] for dim_name in dims)
 
     # squeeze removes the unnecessary singleton dimension
+    # TODO: We might substitute squeeze with dropdims
     data = squeeze(
         reduction(var.data, args...; dims = dim_indices, kwargs...),
         dims = dim_indices,
@@ -1318,7 +1288,29 @@ function _slice_general(var, val, dim_name)
     val_is_date && (val = date_to_time(var, val))
 
     nearest_index_val = nearest_index(var.dims[dim_name_in_var], val)
-    _slice_over(data; dims) = selectdim(data, dims, nearest_index_val)
+
+    function _slice_over(data; dims)
+        if !(dims isa Integer) && !(length(dims) == 1)
+            throw(
+                ArgumentError(
+                    "selectdim_as_reduction only supports a single dimension",
+                ),
+            )
+        end
+
+        dim = isa(dims, Integer) ? dims : only(dims)
+        sliced = selectdim(data, dim, nearest_index_val)
+
+        # Insert singleton dimension back at the same position, so that it behaves like a reduction
+        new_shape = size(sliced)
+        new_shape_with_dim = ntuple(
+            i -> (i < dim ? new_shape[i] : i == dim ? 1 : new_shape[i - 1]),
+            ndims(data),
+        )
+
+        return reshape(sliced, new_shape_with_dim)
+    end
+
     reduced_var = _reduce_over(_slice_over, dim_name_in_var, var)
 
     # Let's try adding this operation to the long_name, if possible (ie, if the correct
