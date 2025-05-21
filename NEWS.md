@@ -32,6 +32,10 @@ unflattened_var = ClimaAnalysis.unflatten(flat_var)
 unflattened_var = ClimaAnalysis.unflatten(flat_var.metadata, flat_var.data)
 ```
 
+## Bug fixes
+
+- Fixed support for reductions when dimensions have only one point.
+
 v0.5.17
 -------
 
