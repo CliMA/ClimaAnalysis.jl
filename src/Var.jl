@@ -1942,7 +1942,7 @@ end
 
 
 """
-    split_by_season(var::OutputVar)
+    split_by_season(var::OutputVar; seasons = ("MAM", "JJA", "SON", "DJF"))
 
 Return a vector of four `OutputVar`s split by season.
 
@@ -1964,16 +1964,18 @@ expected to be second.
 This function differs from `split_by_season_across_time` as `split_by_season_across_time`
 splits dates by season for each year.
 """
-function split_by_season(var::OutputVar)
-    _check_time_dim(var::OutputVar)
+function split_by_season(var::OutputVar; seasons = ("MAM", "JJA", "SON", "DJF"))
+    _check_time_dim(var)
     start_date = Dates.DateTime(var.attributes["start_date"])
 
-    season_dates = split_by_season(time_to_date.(start_date, times(var)))
+    season_dates = split_by_season(
+        time_to_date.(start_date, times(var)),
+        seasons = seasons,
+    )
     season_times =
         (date_to_time.(start_date, season) for season in season_dates)
 
     season_vars = _split_along_dim(var, time_name(var), season_times)
-    seasons = ["MAM", "JJA", "SON", "DJF"]
     for (season, season_var) in zip(seasons, season_vars)
         isempty(season_var) || (season_var.attributes["season"] = season)
     end

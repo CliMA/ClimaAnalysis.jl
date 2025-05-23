@@ -265,7 +265,8 @@ function warp_string(str::AbstractString; max_width = 70)
 end
 
 """
-    split_by_season(dates::AbstractArray{<: Dates.DateTime})
+    split_by_season(dates::AbstractArray{<: Dates.DateTime};
+                    seasons = ("MAM", "JJA", "SON", "DJF")))
 
 Return four vectors with `dates` split by seasons.
 
@@ -284,11 +285,20 @@ julia> split_by_season(dates)
 ([Dates.DateTime("2024-03-01T00:00:00")], [Dates.DateTime("2024-06-01T00:00:00")], [Dates.DateTime("2024-09-01T00:00:00")], [Dates.DateTime("2024-01-01T00:00:00")])
 ```
 """
-function split_by_season(dates::AbstractArray{<:Dates.DateTime})
+function split_by_season(
+    dates::AbstractArray{<:Dates.DateTime};
+    seasons = ("MAM", "JJA", "SON", "DJF"),
+)
+    all(season -> season in ("MAM", "JJA", "SON", "DJF"), seasons) ||
+        error("$seasons does not contain only seasons")
+
     MAM, JJA, SON, DJF = Vector{Dates.DateTime}(),
     Vector{Dates.DateTime}(),
     Vector{Dates.DateTime}(),
     Vector{Dates.DateTime}()
+
+    season_to_dates =
+        Dict("MAM" => MAM, "JJA" => JJA, "SON" => SON, "DJF" => DJF)
 
     for date in dates
         if Dates.Month(3) <= Dates.Month(date) <= Dates.Month(5)
@@ -302,7 +312,7 @@ function split_by_season(dates::AbstractArray{<:Dates.DateTime})
         end
     end
 
-    return (MAM, JJA, SON, DJF)
+    return tuple((season_to_dates[season] for season in seasons)...)
 end
 
 """
