@@ -2328,6 +2328,25 @@ end
     # Check empty OutputVar
     @test isempty(SON)
 
+    # Split by season with seasons kwarg
+    DJF, JJA = ClimaAnalysis.split_by_season(var, seasons = ("DJF", "JJA"))
+
+    # Check season is available as an attributes
+    @test JJA.attributes["season"] == "JJA"
+    @test DJF.attributes["season"] == "DJF"
+
+    # Check size of data
+    @test size(JJA.data) == (length(lat), 3, length(lon))
+    @test size(DJF.data) == (length(lat), 1, length(lon))
+
+    # Check times are correct in OutputVars
+    @test JJA.dims["time"] == [13_132_800.0, 13_132_802.0, 13_132_803.0]
+    @test DJF.dims["time"] == [0.0]
+
+    # Check start date
+    JJA.attributes["start_date"] == "2024-1-1"
+    DJF.attributes["start_date"] == "2024-1-1"
+
     # Check error handling
     attribs_no_start_date = Dict("long_name" => "hi")
     var =

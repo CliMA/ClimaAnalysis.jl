@@ -219,6 +219,12 @@ isempty(SON) # empty OutputVar because no dates between September to November
 [MAM.data, JJA.data, DJF.data]
 ```
 
+!!! note "`seasons` keyword argument"
+    In ClimaAnalysis v0.5.19, the `seasons` keyword argument allows you to change the order
+    of the seasons or select only certain seasons. For example, you can call
+    `split_by_season(var, seasons = ("DJF", "SON"))` to extract only the seasons `DJF` and
+    `SON`, in that order.
+
 ### Split by season and year
 
 It may be the case that you want to split a `OutputVar` by season, while keeping each year

@@ -48,6 +48,17 @@ seasonal_averages_var.attributes["season"]
 seasonal_averages_var.attributes["year"]
 ```
 
+## New keyword argument for `split_by_season`
+
+You can now specify the order of the seasons for `split_by_season`. See the
+example below of specifying the order of the seasons being returned. This is
+helpful if you only want one season, or you want the seasons in a particular
+order.
+
+```julia
+DJF, SON = split_by_season(var, seasons = ("DJF", "SON"))
+```
+
 ## Bug fixes
 
 - Fixed support for reductions when dimensions have only one point.

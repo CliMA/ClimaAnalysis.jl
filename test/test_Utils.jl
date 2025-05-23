@@ -103,6 +103,18 @@ end
     )
 
     @test Utils.split_by_season(dates) == expected_dates
+
+    # Different order for seasons
+    @test Utils.split_by_season(dates; seasons = ("MAM",)) ==
+          (expected_dates[1],)
+    @test Utils.split_by_season(dates; seasons = ("MAM", "DJF", "MAM")) ==
+          (expected_dates[1], expected_dates[4], expected_dates[1])
+
+    # Error handling
+    @test_throws ErrorException Utils.split_by_season(
+        dates,
+        seasons = ("not a season",),
+    )
 end
 
 @testset "find season and year" begin
