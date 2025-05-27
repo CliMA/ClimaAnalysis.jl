@@ -81,6 +81,9 @@ For more information, see the
 ## Bug fixes
 
 - Fixed support for reductions when dimensions have only one point.
+- Exclude NaNStatistics v0.6.51 and v0.6.52 in compat, because of correctness issue with
+`nanmean`. See this [issue](https://github.com/brenhinkeller/NaNStatistics.jl/issues/59) in
+NaNStatistics.jl.
 
 v0.5.17
 -------
