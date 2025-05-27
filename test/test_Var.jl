@@ -3048,6 +3048,10 @@ end
     ])
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     land_var = ClimaAnalysis.apply_landmask(var) |> ClimaAnalysis.average_time
+    @info "Applying just mask"
+    println(ClimaAnalysis.apply_landmask(var).data)
+    @info "Applying time average too"
+    println(land_var.data)
     ocean_var = ClimaAnalysis.apply_oceanmask(var) |> ClimaAnalysis.average_time
     @test isequal(land_var.data |> transpose, land_var_lonlat.data)
     @test isequal(ocean_var.data |> transpose, ocean_var_lonlat.data)
