@@ -298,7 +298,7 @@ end
 """
     ones_data!(var::TemplateVar; data_type = Float64)
 
-Add ones data to `TemplateVar`.
+Add ones data to `var`.
 
 Designed to be used with function composition.
 """
@@ -327,7 +327,7 @@ end
 """
     zeros_data!(var::TemplateVar; data_type = Float64)
 
-Add zeros data to `TemplateVar`.
+Add zeros data to `var`.
 
 Designed to be used with function composition.
 """
@@ -345,7 +345,7 @@ end
 """
     one_to_n_data(; data_type = Float64, collected = false)
 
-Add data of `1:n` to `var` where `n` is the product of the sizes of the dimensions.
+Add data of `1:n` to `TemplateVar` where `n` is the product of the sizes of the dimensions.
 
 If `collected = false`, then `collect` is not called on the data and if `collected = true`,
 then `collect` is called on the data.
@@ -395,10 +395,24 @@ function one_to_n_data!(
     return var
 end
 
+"""
+    add_data(; data)
+
+Add `data` to `TemplateVar`.
+
+Designed to be used with the pipe operator (`|>`).
+"""
 function add_data(; data)
     return var -> add_data!(var; data = data)
 end
 
+"""
+    add_data!(var::TemplateVar; data)
+
+Add `data` to `var`.
+
+Designed to be used with function composition.
+"""
 function add_data!(var::TemplateVar; data)
     push!(var.data_fn, make_lazy((data; dim_sizes) -> data, data))
     return var
