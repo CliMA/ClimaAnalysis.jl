@@ -78,6 +78,8 @@ Template.add_attribs
 Template.add_attribs!
 Template.add_dim
 Template.add_dim!
+Template.add_data
+Template.add_data!
 Template.ones_data
 Template.ones_data!
 Template.zeros_data
