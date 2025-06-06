@@ -3027,6 +3027,31 @@ end
     @test var.data == [100.0, 2.0, -1.0]
 end
 
+@testset "Replace with function" begin
+    times = [1.0, 2.0, 3.0]
+    data = [NaN, 2.0, NaN]
+    var =
+        TemplateVar() |>
+        add_dim("time", times, units = "s") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = data) |>
+        initialize
+
+    replaced_var = replace(x -> isnan(x) ? 2.0 : x, var)
+    @test replaced_var.data == [2.0, 2.0, 2.0]
+
+    replaced_var = replace(x -> isnan(x) ? 2.0 : x, var, count = 1)
+    @test isequal(replaced_var.data, [2.0, 2.0, NaN])
+
+    var1 = ClimaAnalysis.remake(var)
+    var2 = ClimaAnalysis.remake(var)
+
+    replace!(x -> isnan(x) ? 2.0 : x, var1)
+    @test var1.data == [2.0, 2.0, 2.0]
+    replace!(x -> isnan(x) ? 2.0 : x, var2, count = 1)
+    @test isequal(var2.data, [2.0, 2.0, NaN])
+end
+
 @testset "Concatenate OutputVars" begin
     # Initialize 3D OutputVar (lon, lat, time)
     times = Float64[

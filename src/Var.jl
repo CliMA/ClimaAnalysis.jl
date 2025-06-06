@@ -2673,6 +2673,34 @@ function Base.replace!(
     replace!(var.data, old_new..., count = count)
     return nothing
 end
+
+"""
+    replace!(new::Union{Function, Type}, var::OutputVar; [count::Integer])
+
+Return a new `OutputVar where each value of `var.data` is replaced by `new(x)`. If `count`
+is specified, then replace at most `count` values in total.
+"""
+function Base.replace(
+    new::Union{Function, Type},
+    var::OutputVar;
+    count::Integer = typemax(Int),
+)
+    replaced_data = replace(new, var.data, count = count)
+    return remake(var, data = replaced_data)
+end
+
+"""
+    replace!(new::Union{Function, Type}, var::OutputVar; [count::Integer])
+
+Return each value of `var.data` by `new(x)`. If `count` is specified, then replace at most
+`count` values in total.
+"""
+function Base.replace!(
+    new::Union{Function, Type},
+    var::OutputVar;
+    count::Integer = typemax(Int),
+)
+    replace!(new, var.data, count = count)
     return nothing
 end
 
