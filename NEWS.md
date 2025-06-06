@@ -2,6 +2,13 @@ ClimaAnalysis.jl Release Notes
 ===============================
 v0.5.18
 -------
+This release introduces the following features and bug fixes
+- [Concatenation of OutputVars](#concatenation-of-outputvars)
+- [FlatVar](#flatvar)
+- [Seasonal average](#seasonal-average)
+- [New keyword argument for `split_by_season`](#new-keyword-argument-for-split_by_season)
+- [TemplateVar](#templatevar)
+- [Bug fixes](#bug-fixes)
 
 ## Concatenation of OutputVars
 
