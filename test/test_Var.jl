@@ -3009,6 +3009,22 @@ end
     # Test in place replace
     replace!(var, missing => 1.0, NaN => 2.0)
     @test var.data == [[1.0, 2.0] [2.0, 1.0]]
+
+    # Test with count keyword argument
+    times = [1.0, 2.0, 3.0]
+    data = [-1.0, 2.0, -1.0]
+    var =
+        TemplateVar() |>
+        add_dim("time", times, units = "s") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = data) |>
+        initialize
+
+    replaced_var = replace(var, -1.0 => 100.0, count = 1)
+    @test replaced_var.data == [100.0, 2.0, -1.0]
+
+    replace!(var, -1.0 => 100.0, count = 1)
+    @test var.data == [100.0, 2.0, -1.0]
 end
 
 @testset "Concatenate OutputVars" begin

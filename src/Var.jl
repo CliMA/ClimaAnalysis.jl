@@ -2646,13 +2646,17 @@ This function is useful if there are `NaN`s or `missing` values in the data. For
 you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
 `NaN` and `missing` values with 0.0 and apply the ocean mask afterward.
 """
-function Base.replace(var::OutputVar, old_new::Pair...)
-    replaced_data = replace(var.data, old_new...)
+function Base.replace(
+    var::OutputVar,
+    old_new::Pair...;
+    count::Integer = typemax(Int),
+)
+    replaced_data = replace(var.data, old_new..., count = count)
     return remake(var, data = replaced_data)
 end
 
 """
-    replace!(var::OutputVar, old_new::Pair...)
+    replace!(var::OutputVar, old_new::Pair...; [count::Integer])
 
 For each pair `old  => new`, all occurences of `old` are replaced by `new` in
 `var.data`. See [`replace`](@ref).
@@ -2661,8 +2665,14 @@ This function is useful if there are `NaN`s or `missing` values in the data. For
 you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
 `NaN` and `missing` values with 0.0 and apply the ocean mask afterward.
 """
-function Base.replace!(var::OutputVar, old_new::Pair...)
-    replace!(var.data, old_new...)
+function Base.replace!(
+    var::OutputVar,
+    old_new::Pair...;
+    count::Integer = typemax(Int),
+)
+    replace!(var.data, old_new..., count = count)
+    return nothing
+end
     return nothing
 end
 
