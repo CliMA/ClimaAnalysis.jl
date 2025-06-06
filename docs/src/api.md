@@ -91,7 +91,9 @@ Var.apply_landmask
 Var.apply_oceanmask
 Var.make_lonlat_mask
 Base.replace(var::OutputVar, old_new::Pair...; count::Integer)
+Base.replace(new::Union{Function, Type}, var::OutputVar; count::Integer)
 Base.replace!(var::OutputVar, old_new::Pair...; count::Integer)
+Base.replace!(new::Union{Function, Type}, var::OutputVar; count::Integer)
 Base.cat(vars::OutputVar...; dim::String)
 Var.reverse_dim
 Var.reverse_dim!
