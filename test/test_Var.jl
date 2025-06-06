@@ -3011,6 +3011,31 @@ end
     @test var.data == [[1.0, 2.0] [2.0, 1.0]]
 end
 
+@testset "Replace with function" begin
+    times = [1.0, 2.0, 3.0]
+    data = [-1.0, 2.0, -1.0]
+    var =
+        TemplateVar() |>
+        add_dim("time", times, units = "s") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = data) |>
+        initialize
+
+    replaced_var = replace(x -> x == -1.0 ? 2.0 : x, var)
+    @test replaced_var.data == [2.0, 2.0, 2.0]
+
+    replaced_var = replace(x -> x == -1.0 ? 2.0 : x, var, count = 1)
+    @test replaced_var.data == [2.0, 2.0, -1.0]
+
+    var1 = ClimaAnalysis.remake(var)
+    var2 = ClimaAnalysis.remake(var)
+
+    replace!(x -> x == -1.0 ? 2.0 : x, var1)
+    @test var1.data == [2.0, 2.0, 2.0]
+    replace!(x -> x == -1.0 ? 2.0 : x, var2, count = 1)
+    @test var2.data == [2.0, 2.0, -1.0]
+end
+
 @testset "Concatenate OutputVars" begin
     # Initialize 3D OutputVar (lon, lat, time)
     times = Float64[
