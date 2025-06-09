@@ -85,6 +85,23 @@ var =
 For more information, see the
 [documentation](https://clima.github.io/ClimaAnalysis.jl/dev/developer/).
 
+## Masks
+
+The function `Var.make_lonlat_mask` is now deprecated in favor of
+`Var.generate_lonlat_mask`. Additionally, the land and ocean masks have been improved to
+provide better masking near the coastlines. Finally, the `threshold` keyword argument is
+added for `Var.apply_landmask` and `Var.apply_oceanmask`.
+
+```julia
+# var is a OutputVar whose data consists of zeros and ones
+# In this example. all zeros are replaced with NaNs and all ones are replaced with 1.0 when
+# applying the mask
+mask_fn = generate_lonlat_mask(var, NaN, 1.0, threshold = 0.99)
+
+# Apply mask
+masked_var = mask_fn(another_var)
+```
+
 ## Bug fixes
 
 - Fixed support for reductions when dimensions have only one point.

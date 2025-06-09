@@ -89,6 +89,7 @@ Var.global_rmse
 Var.shift_to_start_of_previous_month
 Var.apply_landmask
 Var.apply_oceanmask
+Var.generate_lonlat_mask
 Var.make_lonlat_mask
 Base.replace(var::OutputVar, old_new::Pair...; count::Integer)
 Base.replace(new::Union{Function, Type}, var::OutputVar; count::Integer)
