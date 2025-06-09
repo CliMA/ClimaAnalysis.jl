@@ -112,7 +112,7 @@ import GeoMakie
 import CairoMakie
 
 mask_var = ClimaAnalysis.OutputVar("ocean_mask.nc")
-mask_fn = ClimaAnalysis.make_lonlat_mask(mask_var; set_to_val = isnan)
+mask_fn = ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0)
 
 obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
 sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
@@ -125,4 +125,3 @@ CairoMakie.save("myfigure.pdf", fig)
 The output produces something like:
 
 ![bias_with_custom_mask_plot](./assets/plot_bias_with_custom_mask.png)
-

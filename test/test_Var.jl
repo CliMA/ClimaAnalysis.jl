@@ -8,6 +8,7 @@ import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
 import Unitful: @u_str
 import Dates
+import Artifacts
 
 import ClimaAnalysis.Template:
     TemplateVar,
@@ -2841,38 +2842,55 @@ end
 end
 
 @testset "Bias and RMSE with masks" begin
+    path = joinpath(
+        Artifacts.artifact"landsea_mask_30arcseconds",
+        "landsea_mask.nc",
+    )
+    lon, lat, data = NCDataset(path) do ds
+        lon = ds["lon"][begin:27:end]
+        lat = ds["lat"][begin:27:end]
+        data = Bool.(ds["landsea"][begin:27:end, begin:27:end])
+        lon, lat, data
+    end
+
+    land_data = replace(data, 0.0 => 1.0, 1.0 => 0.0)
+    ocean_data = Float64.(data)
     # Test bias and global_bias
-    land_var = ClimaAnalysis.Var.LAND_MASK
-    land_var = ClimaAnalysis.replace(land_var, NaN => 0.0)
-    ocean_var = ClimaAnalysis.Var.OCEAN_MASK
-    ocean_var = ClimaAnalysis.replace(ocean_var, NaN => 0.0)
-    land_var = ClimaAnalysis.set_units(land_var, "idk")
-    ocean_var = ClimaAnalysis.set_units(ocean_var, "idk")
-    data_zero = zeros(land_var.data |> size)
+    # ones in ocean and zeros in land
+    land_var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "deg") |>
+        add_dim("lat", lat, units = "deg") |>
+        add_attribs(long_name = "hi", units = "kg") |>
+        add_data(data = land_data) |>
+        initialize
+    # zeros in ocean and ones in land
+    ocean_var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "deg") |>
+        add_dim("lat", lat, units = "deg") |>
+        add_attribs(long_name = "hi", units = "kg") |>
+        add_data(data = ocean_data) |>
+        initialize
+
+    data_zero = zeros(length(lon), length(lat))
     zero_var = ClimaAnalysis.remake(land_var, data = data_zero)
 
-    # Trim data because periodic boundary condition on the edges
     @test isequal(
         ClimaAnalysis.bias(
             land_var,
             zero_var,
             mask = ClimaAnalysis.apply_oceanmask,
-        ).data[
-            begin:(end - 1),
-            :,
-        ] |> A -> replace(A, NaN => 0.0),
-        data_zero[begin:(end - 1), :],
+        ).data |> A -> replace(A, NaN => 0.0),
+        data_zero,
     )
     @test isequal(
         ClimaAnalysis.bias(
             ocean_var,
             zero_var,
             mask = ClimaAnalysis.apply_landmask,
-        ).data[
-            begin:(end - 1),
-            :,
-        ] |> A -> replace(A, NaN => 0.0),
-        data_zero[begin:(end - 1), :],
+        ).data |> A -> replace(A, NaN => 0.0),
+        data_zero,
     )
 
     # Not exactly zero because of the periodic boundary condition on the edges
@@ -2902,18 +2920,12 @@ end
         land_var,
         zero_var,
         mask = ClimaAnalysis.apply_oceanmask,
-    ).data[
-        begin:(end - 1),
-        :,
-    ] |> A -> replace(A, NaN => 0.0) == data_zero[begin:(end - 1), :]
+    ).data |> A -> replace(A, NaN => 0.0) == data_zero
     @test ClimaAnalysis.squared_error(
         ocean_var,
         zero_var,
         mask = ClimaAnalysis.apply_landmask,
-    ).data[
-        begin:(end - 1),
-        :,
-    ] |> A -> replace(A, NaN => 0.0) == data_zero[begin:(end - 1), :]
+    ).data |> A -> replace(A, NaN => 0.0) == data_zero
 
     # Not exactly zero because of the periodic boundary condition on the edges
     # which results in some ones in the data
@@ -3211,7 +3223,7 @@ end
     )
 end
 
-@testset "Generating masks" begin
+@testset "Generating masks (deprecated)" begin
     lat = collect(range(-89.5, 89.5, 180))
     lon = collect(range(-179.5, 179.5, 360))
     data = ones(length(lat), length(lon))
@@ -3255,6 +3267,79 @@ end
 
     var = make_template_var("lon", "lat", "time") |> initialize
     @test_throws ErrorException ClimaAnalysis.make_lonlat_mask(var)
+end
+
+@testset "Generating lonlat masks" begin
+    lon = [0.0, 20.0]
+    lat = [0.0, 7.0, 14.0]
+    # Use Bool, since this is what is done for the land mask and ocean mask
+    data = Bool[[0.0, 1.0] [1.0, 0.0] [0.0, 1.0]]
+    mask_var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = data) |>
+        initialize
+
+    mask = ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 100.0)
+
+    var =
+        TemplateVar() |>
+        add_dim("longitude", lon, units = "degrees") |>
+        add_dim("time", [0.0, 1.0, 2.0, 3.0], units = "s") |>
+        add_dim("latitude", lat, units = "degrees") |>
+        add_attribs(long_name = "hi") |>
+        ones_data(data_type = Float32) |>
+        initialize
+
+    masked_var = mask(var)
+    @test eltype(masked_var.data) == Float32
+    for i in 1:4
+        @test isequal(
+            masked_var.data[:, i, :],
+            [[NaN, 100.0] [100.0, NaN] [NaN, 100.0]],
+        )
+    end
+
+    # Error handling
+    # Binary mask
+    mask_var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(long_name = "hi") |>
+        one_to_n_data() |>
+        initialize
+    @test_throws ErrorException ClimaAnalysis.generate_lonlat_mask(
+        mask_var,
+        42.0,
+        42.0,
+    )
+
+    # Missing longitude dimension
+    lat_var = make_template_var("lat") |> initialize
+    @test_throws ErrorException ClimaAnalysis.generate_lonlat_mask(
+        mask_var,
+        42.0,
+        42.0,
+    )
+
+    # Missing latitude dimension
+    mask_var = make_template_var("lon") |> initialize
+    @test_throws ErrorException ClimaAnalysis.generate_lonlat_mask(
+        mask_var,
+        42.0,
+        42.0,
+    )
+
+    # Contain three or more dimensions
+    mask_var = make_template_var("lon", "lat", "time") |> initialize
+    @test_throws ErrorException ClimaAnalysis.generate_lonlat_mask(
+        mask_var,
+        42.0,
+        42.0,
+    )
 end
 
 @testset "Reverse dimensions" begin
