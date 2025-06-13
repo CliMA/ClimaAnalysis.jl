@@ -272,9 +272,10 @@ ClimaAnalysis.dates(DJF)
 ## How do I apply a land or sea mask to a `OutputVar`?
 
 You can use `apply_landmask` or `apply_oceanmask` to mask out the land or ocean,
-respectively, in a `OutputVar`. The result of `apply_landmask(var)` is data of `var`, where
-any coordinate corresponding to land is zero. Similarly, the result of `apply_oceanmask(var)` is
-data of `var`, where any coordinate corresponding to ocean is zero.
+respectively, in a `OutputVar`. The result of `apply_landmask(var)` is a `OutputVar`, where
+any coordinate corresponding to land is `NaN` in the data. Similarly, the result of
+`apply_oceanmask(var)` is a `OutputVar`, where any coordinate corresponding to ocean is
+`NaN` in the data.
 
 ```julia masks
 var_no_land = ClimaAnalysis.apply_landmask(var)
