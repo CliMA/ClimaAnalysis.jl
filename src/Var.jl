@@ -582,8 +582,7 @@ function convert_dim_units(
     new_units;
     conversion_function = nothing,
 )
-    !haskey(var.dims, dim_name) &&
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    dim_name = find_corresponding_dim_name_in_var(dim_name, var)
     (
         !haskey(var.dim_attributes, dim_name) ||
         !haskey(var.dim_attributes[dim_name], "units")
@@ -635,8 +634,7 @@ function set_dim_units!(
     dim_name::AbstractString,
     units::AbstractString,
 )
-    !haskey(var.dims, dim_name) &&
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    dim_name = find_corresponding_dim_name_in_var(dim_name, var)
     if haskey(var.dim_attributes, dim_name)
         push!(var.dim_attributes[dim_name], "units" => units)
     else
@@ -1080,8 +1078,7 @@ Return the range of the dimension `dim_name` in `var`.
 Range here is a tuple with the minimum and maximum of `dim_name`.
 """
 function range_dim(var::OutputVar, dim_name)
-    !haskey(var.dims, dim_name) &&
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+    dim_name = find_corresponding_dim_name_in_var(dim_name, var)
     first_elt = first(var.dims[dim_name])
     last_elt = last(var.dims[dim_name])
     return first_elt, last_elt
