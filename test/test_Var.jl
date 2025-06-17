@@ -933,6 +933,128 @@ end
     ) match_mode = :any ClimaAnalysis.weighted_average_lonlat(var)
 end
 
+@testset "Selectors" begin
+    lon = [-20.0, -10.0, 0.0, 10.0]
+    lat = [-30.0, 1.0]
+    var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "deg") |>
+        add_dim("lat", lat, units = "deg") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+
+    var_2d_dim =
+        TemplateVar() |>
+        add_dim("2ddim", [[1.0, 2.0] [3.0, 4.0]], units = "idk") |>
+        add_attribs(two_dims = "yes") |>
+        initialize
+
+    @testset "NearestValue" begin
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            -12.0,
+            ClimaAnalysis.NearestValue(),
+        ) == 2
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            -10.0,
+            ClimaAnalysis.NearestValue(),
+        ) == 2
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            -15.0,
+            ClimaAnalysis.NearestValue(),
+        ) == 1
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            100.0,
+            ClimaAnalysis.NearestValue(),
+        ) == 4
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            -100.0,
+            ClimaAnalysis.NearestValue(),
+        ) == 1
+        @test_throws ErrorException ClimaAnalysis.Var.get_index(
+            var_2d_dim,
+            "2ddim",
+            1,
+            ClimaAnalysis.NearestValue(),
+        )
+    end
+
+    @testset "MatchValue" begin
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lat",
+            -30.0,
+            ClimaAnalysis.MatchValue(),
+        ) == 1
+        @test_throws ErrorException ClimaAnalysis.Var.get_index(
+            var,
+            "lat",
+            100.0,
+            ClimaAnalysis.MatchValue(),
+        )
+        @test_throws ErrorException ClimaAnalysis.Var.get_index(
+            var,
+            "lat",
+            -100.0,
+            ClimaAnalysis.MatchValue(),
+        )
+        @test_throws ErrorException ClimaAnalysis.Var.get_index(
+            var_2d_dim,
+            "2ddim",
+            1.0,
+            ClimaAnalysis.MatchValue(),
+        )
+    end
+
+    @testset "Index" begin
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            1,
+            ClimaAnalysis.Index(),
+        ) == 1
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            2,
+            ClimaAnalysis.Index(),
+        ) == 2
+        @test ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            4,
+            ClimaAnalysis.Index(),
+        ) == 4
+        @test ClimaAnalysis.Var.get_index(
+            var_2d_dim,
+            "2ddim",
+            3,
+            ClimaAnalysis.Index(),
+        ) == 3
+        @test_throws ErrorException ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            5,
+            ClimaAnalysis.Index(),
+        )
+        @test_throws ErrorException ClimaAnalysis.Var.get_index(
+            var,
+            "lon",
+            0,
+            ClimaAnalysis.Index(),
+        ) == 1
+    end
+end
+
 @testset "Slicing" begin
     z = 0.0:20.0 |> collect
     time = 100.0:110.0 |> collect
@@ -995,6 +1117,54 @@ end
         var_with_start_date,
         z = Dates.DateTime(2001),
     )
+
+    # Test slicing with MatchValue and Index
+    time = 100.0:110.0 |> collect
+    z = 0.0:20.0 |> collect
+    var =
+        TemplateVar() |>
+        add_dim("time", time, units = "s") |>
+        add_dim("z", z, b = 2) |>
+        add_attribs(long_name = "hi", start_date = "2010-01-01") |>
+        initialize
+    data = var.data
+
+    # Slicing by approximately matching with the value
+    sliced_var =
+        ClimaAnalysis.slice(var, t = 105.0, by = ClimaAnalysis.MatchValue())
+    @test sliced_var.data == data[6, :]
+    @test_throws ErrorException ClimaAnalysis.slice(
+        var,
+        t = 105.5,
+        by = ClimaAnalysis.MatchValue(),
+    )
+
+    # Also test with dates
+    sliced_var = ClimaAnalysis.slice(
+        var,
+        time = Dates.DateTime(2010, 1, 1, 0, 1, 42),
+        by = ClimaAnalysis.MatchValue(),
+    )
+    @test sliced_var.data == data[3, :]
+
+    # Slicing by index
+    sliced_var = ClimaAnalysis.slice(var, t = 3, by = ClimaAnalysis.Index())
+    @test sliced_var.data == data[3, :]
+    @test_throws ErrorException ClimaAnalysis.slice(
+        var,
+        t = 101,
+        by = ClimaAnalysis.Index(),
+    )
+
+    # Test index with OutputVar with a dimension that is 2d
+    var_2d_dim =
+        TemplateVar() |>
+        add_dim("dim2d", [[1.0, 2.0] [3.0, 4.0]], units = "idk") |>
+        add_attribs(two_dims = "yes") |>
+        initialize
+    sliced_var =
+        ClimaAnalysis.slice(var_2d_dim, dim2d = 3, by = ClimaAnalysis.Index())
+    @test sliced_var.data == fill(3)
 end
 
 @testset "Windowing" begin
@@ -1056,6 +1226,61 @@ end
         var,
         "z",
         left = Dates.DateTime(2001),
+    )
+
+    # Test with MatchValue and Index
+    time = 100.0:110.0 |> collect
+    z = 0.0:20.0 |> collect
+    var =
+        TemplateVar() |>
+        add_dim("time", time, units = "s") |>
+        add_dim("z", z, b = 2) |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    data = var.data
+
+    # Windowing by approximately matching with the values
+    windowed_var = ClimaAnalysis.window(
+        var,
+        "time",
+        left = 105.0,
+        right = 108.0,
+        by = ClimaAnalysis.MatchValue(),
+    )
+    @test windowed_var.data == data[6:9, :]
+    windowed_var = ClimaAnalysis.window(
+        var,
+        "time",
+        left = 105.0,
+        by = ClimaAnalysis.MatchValue(),
+    )
+    @test windowed_var.data == data[6:end, :]
+    @test_throws ErrorException ClimaAnalysis.window(
+        var,
+        "time",
+        left = 102.0,
+        right = 103.5,
+        by = ClimaAnalysis.MatchValue(),
+    )
+
+    # Windowing by index
+    windowed_var = ClimaAnalysis.window(
+        var,
+        "time",
+        left = 2,
+        right = 5,
+        by = ClimaAnalysis.Index(),
+    )
+    @test windowed_var.data == data[2:5, :]
+    windowed_var =
+        ClimaAnalysis.window(var, "time", right = 7, by = ClimaAnalysis.Index())
+    @test windowed_var.data == data[begin:7, :]
+    @test_throws ErrorException ClimaAnalysis.window(
+        var,
+        "time",
+        left = 7.5,
+        right = 8,
+        by = ClimaAnalysis.Index(),
     )
 end
 

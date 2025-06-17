@@ -35,6 +35,19 @@ Now, you can apply the usual average functions.
     Did you know that when you are applying `window` on a temporal dimension, you
     can also pass `Dates.DateTime` bounds? (E.g., `left = Dates.DateTime(2008)`).
 
+## How do I get a slice or window of a `OutputVar` by something other than the nearest value?
+
+With versions of ClimaAnalysis after v0.5.18, you can do this with the `by` keyword argument
+for [`ClimaAnalysis.slice`](@ref) and [`ClimaAnalysis.window`](@ref). For example, you can
+do
+
+```julia
+ClimaAnalysis.slice(var, time = 3, by = ClimaAnalysis.Index())
+ClimaAnalysis.slice(var, time = 105.0, by = ClimaAnalysis.MatchValue())
+ClimaAnalysis.window(var, left = 1, right = 3, by = ClimaAnalysis.Index())
+ClimaAnalysis.window(var, left = 102.0, right = 108.0, by = ClimaAnalysis.MatchValue())
+```
+
 ## How do I take a global average over both the longitude and latitude dimensions?
 
 You can use `average_lonlat` to compute the global average over the longitude
