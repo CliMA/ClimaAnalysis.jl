@@ -1,5 +1,27 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+v0.5.19
+-------
+
+## Selectors
+
+For `slice` and `window`, there is a new keyword argument `by`, where you can
+specify how the data is selected.
+
+```julia
+# Default is selecting by using the nearest value
+ClimaAnalysis.slice(var, time = 2.2, by = ClimaAnalysis.NearestValue())
+ClimaAnalysis.window(var, "time", left = 2.2, right = 9.5, by = ClimaAnalysis.NearestValue())
+
+# You can also slice by using the exact value
+ClimaAnalysis.slice(var, time = 2.0, by = ClimaAnalysis.MatchValue())
+ClimaAnalysis.window(var, "time", left = 2.0, right = 9.1, by = ClimaAnalysis.MatchValue())
+
+# You can use an index
+ClimaAnalysis.slice(var, time = 2, by = ClimaAnalysis.Index())
+ClimaAnalysis.window(var, "time", left = 1, right = 4, by = ClimaAnalysis.Index())
+```
+
 v0.5.18
 -------
 This release introduces the following features and bug fixes

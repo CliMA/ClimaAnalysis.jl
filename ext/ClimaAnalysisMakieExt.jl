@@ -115,7 +115,12 @@ function _sliced_plot_generic(
     var_sliced = var
 
     for (dim_name, val) in cut
-        var_sliced = ClimaAnalysis.Var._slice_general(var_sliced, val, dim_name)
+        var_sliced = ClimaAnalysis.Var._slice_general(
+            var_sliced,
+            val,
+            dim_name,
+            ClimaAnalysis.NearestValue(),
+        )
     end
 
     func(fig, var_sliced; p_loc, more_kwargs)
