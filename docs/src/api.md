@@ -101,6 +101,18 @@ Var.reverse_dim!
 Base.show(io::IO, var::OutputVar)
 ```
 
+## Selectors
+
+```@docs
+ClimaAnalysis.AbstractSelector
+ClimaAnalysis.NearestValue
+ClimaAnalysis.MatchValue
+ClimaAnalysis.Index
+ClimaAnalysis.get_index(var, dim_name, val, ::NearestValue)
+ClimaAnalysis.get_index(var, dim_name, val, ::MatchValue)
+ClimaAnalysis.get_index(var, dim_name, val, ::Index)
+```
+
 ## FlatVar
 
 ```@docs
