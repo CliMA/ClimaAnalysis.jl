@@ -69,9 +69,6 @@ export OutputVar,
     set_units,
     set_dim_units!,
     shift_to_start_of_previous_month,
-    apply_landmask,
-    apply_oceanmask,
-    make_lonlat_mask,
     replace,
     replace!,
     reverse_dim,
@@ -2525,115 +2522,6 @@ function shift_to_start_of_previous_month(var::OutputVar)
 end
 
 """
-    apply_landmask(var::OutputVar)
-
-Apply a land mask to `var` by NaNing any data whose coordinates are located on land.
-"""
-function apply_landmask(var::OutputVar)
-    mask_fn = make_lonlat_mask(LAND_MASK)
-    return mask_fn(var)
-end
-
-"""
-    apply_oceanmask(var::OutputVar)
-
-Apply an ocean mask to `var` by NaNing any data whose coordinates are in the ocean.
-"""
-function apply_oceanmask(var::OutputVar)
-    mask_fn = make_lonlat_mask(OCEAN_MASK)
-    return mask_fn(var)
-end
-
-"""
-    make_lonlat_mask(var;
-                     set_to_val = nothing,
-                     true_val = NaN,
-                     false_val = 1.0)
-
-Return a masking function that takes in a `OutputVar` and mask the data using `var.data`.
-
-The parameter `set_to_val` is a function that takes in an element of `var.data` and return
-`true` or `false`. If `set_to_nan` returns `true`, then the value will be `true_val` in the
-mask and if `set_to_nan` returns `false`, then the value will be `false_val` in the mask.
-
-If `set_to_nan` is `nothing`, then no transformation is done and `var.data` is used. This is
-helpful if `var.data` is already an array of NaNs and ones or an array of zeros and ones.
-"""
-function make_lonlat_mask(
-    var;
-    set_to_val = nothing,
-    true_val = NaN,
-    false_val = 1.0,
-)
-    # Check if lon and lat are the only dimensions
-    has_longitude(var) ||
-        error("Longitude does not exist as a dimension in var")
-    has_latitude(var) || error("Latitude does not exist as a dimension in var")
-    length(var.dims) == 2 ||
-        error("Number of dimensions ($(length(var.dims))) is not two")
-
-    # Preprocess data for the mask if needed
-    if !isnothing(set_to_val)
-        true_indices = findall(set_to_val, var.data)
-        false_indices = findall(!set_to_val, var.data)
-        cleaned_up_data = var.data |> copy
-        cleaned_up_data[true_indices] .= true_val
-        cleaned_up_data[false_indices] .= false_val
-        var = OutputVar(
-            var.attributes |> deepcopy,
-            var.dims |> deepcopy,
-            var.dim_attributes |> deepcopy,
-            cleaned_up_data,
-        )
-    end
-
-    mask_var = permutedims(var, ("lon", "lat"))
-
-    return apply_lonlat_mask(input_var) = begin
-        # Check if lon and lat exist
-        has_longitude(input_var) ||
-        error("Longitude does not exist as a dimension in var")
-        has_latitude(input_var) ||
-        error("Latitude does not exist as a dimension in var")
-
-        # Resample so that the mask match up with the grid of var
-        # Round because linear resampling is done and we want the mask to be only ones and zeros
-        intp = _make_interpolant(mask_var.dims, mask_var.data)
-        mask_arr =
-            [
-                intp(pt...) for pt in Base.product(
-                    input_var.dims[longitude_name(input_var)],
-                    input_var.dims[latitude_name(input_var)],
-                )
-            ] .|> round
-
-        # Reshape data for broadcasting
-        lon_idx = input_var.dim2index[longitude_name(input_var)]
-        lat_idx = input_var.dim2index[latitude_name(input_var)]
-        lon_length = input_var.dims[longitude_name(input_var)] |> length
-        lat_length = input_var.dims[latitude_name(input_var)] |> length
-        if lon_idx > lat_idx
-            mask_arr = transpose(mask_arr)
-        end
-        size_to_reshape = (
-            if i == lon_idx
-                lon_length
-            elseif i == lat_idx
-                lat_length
-            else
-                1
-            end for i in 1:ndims(input_var.data)
-        )
-
-        # Mask data
-        mask_arr = reshape(mask_arr, size_to_reshape...)
-        masked_data = input_var.data .* mask_arr
-
-        return remake(input_var, data = masked_data)
-    end
-end
-
-"""
     replace(var::OutputVar, old_new::Pair...)
 
 Return a `OutputVar` where, for each pair `old  => new`, all occurences of `old` are
@@ -2941,7 +2829,7 @@ end
 
 include("outvar_operators.jl")
 include("outvar_dimensions.jl")
-include("constants.jl")
 include("flat.jl")
+include("masks.jl")
 
 end

@@ -387,22 +387,26 @@ ClimaAnalysis.global_rmse(sim_var, obs_var, mask = apply_landmask)
 ```
 
 In other cases, you may want to generate a masking function using a `OutputVar`. For
-instance, you are comparing against observational data over land and you can't use an ocean
-mask since not all of the observational data is defined over the land. The function
-`make_lonlat_mask` allows you to generate a masking function. If
-the data is already zeros and ones, then you can use `make_lonlat_mask(var)`. Otherwise, you
-can specify `set_to_val` which takes in an element of `var.data` and return a boolean. If
-`set_to_val` returns `true`, then the value will be `true_val` in the mask and if `set_to_val`
-returns `false`, then the value will be `false_val` in the mask. See the example below of this
-usage.
+instance, you are comparing against observational data over some parts of the land, and you
+can't use an ocean mask, since not all the observational data is defined over the land. The
+function `generate_lonlat_mask` allows you to generate a masking function. If the data is
+already zeros and ones, then you can use `generate_lonlat_mask(var, zero_to, one_to)` which
+generate a mask where all ones are replaced with `one_to` and zeros are replaced with
+`zero_to`. If this is not the case, then you can use `replace` or `replace!` to make the
+data all zeros and ones. You can also use the `threshold` keyword argument to adjust how the
+values are rounded after resampling from the data of zeros and ones. Values greater than or
+equal to `threshold` are rounded to one and all other values are rounded to zero.
 
 ```julia
+# var is a OutputVar whose data is ones and NaN
+var = replace(x -> isnan(x) ? 0.0 : 1.0, var)
+
 # Any points that are NaNs should be zero in the mask
-mask_fn = ClimaAnalysis.make_lonlat_mask(
-    var;
-    set_to_val = isnan,
-    true_val = 0.0, # default is NaN
-    false_val = 1.0,
+mask_fn = ClimaAnalysis.generate_lonlat_mask(
+    var,
+    NaN, # zero to NaN
+    1.0; # one to one
+    threshold = 0.99
 )
 
 # Apply mask to another OutputVar
