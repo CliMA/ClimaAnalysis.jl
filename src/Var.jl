@@ -1064,7 +1064,7 @@ If not available, return an empty string.
 function dim_units(var::OutputVar, dim_name)
     dim_name = find_corresponding_dim_name_in_var(dim_name, var)
     # Double get because var.dim_attributes is a dictionary whose values are dictionaries
-    string(get(get(var.dim_attributes, dim_name, Dict()), "units", ""))
+    string(get(get(var.dim_attributes, dim_name, empty(valtype(var.dim_attributes))), "units", ""))
 end
 
 """
