@@ -24,6 +24,7 @@ makedocs(;
     format = Documenter.HTML(;
         prettyurls = !isempty(get(ENV, "CI", "")),
         collapselevel = 1,
+        size_threshold_ignore = ["api.md"],
     ),
     checkdocs = :exports,
     pages = [
