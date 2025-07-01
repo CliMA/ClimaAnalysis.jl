@@ -242,6 +242,16 @@ resampled_var.data
 resampled_var.dims
 ```
 
+## How do I load multiple NetCDF files along the time dimension?
+
+To load multiple NetCDF files along the time dimension, you can pass in
+multiple NetCDF files in a vector. For example, to load "pr1.nc" and "pr2.nc"
+along the time dimension, you can do
+
+```julia
+pr_var = ClimaAnalysis.OutputVar(["pr1.nc", "pr2.nc"])
+```
+
 ## How do I concatenate multiple `OutputVar`s together?
 
 You can use `cat` to concatenate multiple OutputVars of the same quantity along
