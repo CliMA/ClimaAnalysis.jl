@@ -39,6 +39,18 @@ mask_fn = generate_lonlat_mask(var, NaN, 1.0, threshold = 0.99)
 masked_var = mask_fn(another_var)
 ```
 
+## Read multiple NetCDF files
+
+Reading multiple NetCDF files along the time dimension is now supported for the `OutputVar`
+constructor. For example, you can now do
+
+```julia
+pr_var = ClimaAnalysis.OutputVar(["pr1.nc", "pr2.nc"])
+```
+
+to load the NetCDF files "pr1.nc" and "pr2.nc" along the time dimension in a
+`OutputVar`.
+
 v0.5.18
 -------
 This release introduces the following features and bug fixes

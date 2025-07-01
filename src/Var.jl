@@ -258,14 +258,17 @@ function OutputVar(dims, data)
 end
 
 """
-    OutputVar(path,
+    OutputVar(path::Union{String, Vector{String}},
               short_name = nothing;
               new_start_date = nothing,
               shift_by = identity)
 
-Read the NetCDF file in `path` as an `OutputVar`.
+Read the NetCDF file(s) in `path` as a `OutputVar`.
 
 If `short_name` is `nothing`, automatically find the name.
+
+If `path` is a `Vector{String}`, then the files should contain the same variable, and the
+times should be sorted. The non-temporal dimensions should be the same across all the files.
 
 Dates in the time dimension are automatically converted to seconds with respect to the first
 date in the time dimension array or the `new_start_date`. The parameter `new_start_date` can
@@ -278,12 +281,12 @@ each element of the time array. Shifting the dates and converting to seconds is 
 order.
 """
 function OutputVar(
-    path::String,
+    path::Union{String, Vector{String}},
     short_name = nothing;
     new_start_date = nothing,
     shift_by = identity,
 )
-    var = read_var(path; short_name)
+    var = read_var(path, short_name = short_name)
     # Check if it is possible to convert dates to seconds in the time dimension
     if (
         has_time(var) && (
@@ -331,7 +334,6 @@ function read_var(path::String; short_name = nothing)
         unordered_dims = NCDatasets.dimnames(nc)
         isnothing(short_name) &&
             (short_name = pop!(setdiff(keys(nc), unordered_dims)))
-
         dims =
             map(NCDatasets.dimnames(nc[short_name])) do dim_name
                 return dim_name => Array(nc[dim_name])
@@ -382,7 +384,7 @@ function read_var(paths::Vector{String}; short_name = nothing)
     # If there is only one path, then use `read_var(path::String)`
     # We do this because SimDir always store file paths in a vector even if there is only one
     # file path
-    length(paths) == 1 && return read_var(first(paths))
+    length(paths) == 1 && return read_var(first(paths), short_name = short_name)
 
     # Helper function to find the name of the time dimension
     function find_time_name(dim_names)
@@ -397,14 +399,14 @@ function read_var(paths::Vector{String}; short_name = nothing)
     # Check if each NCDataset got a time dimension
     if nothing in time_names
         error(
-            "Time dimension does not exist in one of the NetCDF files. Provide the specific folder in SimDir",
+            "Time dimension does not exist in one of the NetCDF files. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
         )
     end
 
     # Check if the name for the time dimension is the same across alll NetCDF files
     if length(unique(time_names)) != 1
         error(
-            " Names of the time dimension are not the same across all NetCDF files. Provide the specific folder in SimDir",
+            " Names of the time dimension are not the same across all NetCDF files. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
         )
     end
 
@@ -423,7 +425,7 @@ function read_var(paths::Vector{String}; short_name = nothing)
     )
     if length(unique(start_dates)) != 1
         error(
-            "Start dates are not the same across all the NetCDF files. Provide the specific folder in SimDir",
+            "Start dates are not the same across all the NetCDF files. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
         )
     end
 
@@ -432,7 +434,7 @@ function read_var(paths::Vector{String}; short_name = nothing)
     time_dim_concat = vcat(time_dim_arrays...)
     if !issorted(time_dim_concat)
         error(
-            "Time dimension is not in increasing order after aggregating datasets. Provide the specific folder in SimDir",
+            "Time dimension is not in increasing order after aggregating datasets. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
         )
     end
 
