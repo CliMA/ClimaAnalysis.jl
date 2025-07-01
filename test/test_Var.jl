@@ -2961,6 +2961,56 @@ end
     @test_throws ErrorException ClimaAnalysis.Var._dates_to_seconds(var)
 end
 
+@testset "Read multiple NetCDF files" begin
+    # Both datasets are the same beside the time dimension and data
+    ncpath1 = joinpath(@__DIR__, "sample_nc/test_pr.nc")
+    ncpath2 = joinpath(@__DIR__, "sample_nc/test_pr2.nc")
+
+    var1 = ClimaAnalysis.OutputVar(ncpath1)
+    var2 = ClimaAnalysis.OutputVar(ncpath2)
+
+    var_all = ClimaAnalysis.OutputVar([ncpath1, ncpath2])
+
+    @test var1.attributes == var_all.attributes
+    @test ClimaAnalysis.dates(var_all) ==
+          vcat(ClimaAnalysis.dates(var1), ClimaAnalysis.dates(var2))
+    @test var_all.dims["lon"] == var1.dims["lon"]
+    @test var_all.dims["lat"] == var1.dims["lat"]
+    @test var_all.data == cat(var1.data, var2.data, dims = 3)
+    @test var_all.dim_attributes == var1.dim_attributes
+
+    # Test new_start_date
+    new_start_date = Dates.DateTime(1979, 2)
+    var_all_new_start = ClimaAnalysis.OutputVar(
+        [ncpath1, ncpath2],
+        new_start_date = new_start_date,
+    )
+    @test ClimaAnalysis.times(var_all_new_start) ==
+          ClimaAnalysis.Utils.date_to_time.(
+        new_start_date,
+        ClimaAnalysis.dates(var_all),
+    )
+
+    # Test shift_by
+    shift_by = t -> t + Dates.Month(1)
+    var_all_shift_by =
+        ClimaAnalysis.OutputVar([ncpath1, ncpath2], shift_by = shift_by)
+    @test ClimaAnalysis.dates(var_all_shift_by) ==
+          Dates.Month(1) .+ ClimaAnalysis.dates(var_all)
+
+    # Test both new_start_date and shift_by
+    var_all_both = ClimaAnalysis.OutputVar(
+        [ncpath1, ncpath2],
+        new_start_date = new_start_date,
+        shift_by = shift_by,
+    )
+    @test ClimaAnalysis.times(var_all_both) ==
+          ClimaAnalysis.Utils.date_to_time.(
+        new_start_date,
+        Dates.Month(1) .+ ClimaAnalysis.dates(var_all),
+    )
+end
+
 @testset "End of previous month" begin
     # Shift to beginning of month and shift back one month
     time_arr = [
