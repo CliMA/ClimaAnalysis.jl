@@ -295,7 +295,7 @@ function OutputVar(
         )
     )
         var = _dates_to_seconds(
-            read_var(path; short_name),
+            var,
             new_start_date = new_start_date,
             shift_by = shift_by,
         )
