@@ -110,7 +110,7 @@ function generate_lonlat_mask(
 end
 
 """
-    apply_landmask(var::OutputVar)
+    apply_landmask(var::OutputVar; threshold = 0.5)
 
 Apply a land mask to `var` by NaNing any data whose coordinates are located on land.
 
@@ -124,14 +124,14 @@ function apply_landmask(var::OutputVar; threshold = 0.5)
 end
 
 """
-    apply_oceanmask(var::OutputVar)
+    apply_oceanmask(var::OutputVar; threshold = 0.5)
 
 Apply an ocean mask to `var` by NaNing any data whose coordinates are in the ocean.
 
 !!! note "Threshold keyword argument"
     The `threshold` keyword argument is available in ClimaAnalysis v0.5.18 and beyond.
 """
-function apply_oceanmask(var::OutputVar, threshold = 0.5)
+function apply_oceanmask(var::OutputVar; threshold = 0.5)
     mask_fn =
         generate_lonlat_mask(LANDSEA_MASK, NaN, 1.0, threshold = threshold)
     return mask_fn(var)
