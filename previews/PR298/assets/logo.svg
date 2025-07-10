@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 500 500"
+   version="1.1"
+   id="svg5"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <!-- Green -->
+  <circle
+     style="fill:#399746;stroke:#000000"
+     cx="245"
+     cy="155"
+     r="90" />
+  <!-- Purple -->
+  <circle
+     style="fill:#9259a3;stroke:#000000"
+     cx="355"
+     cy="355"
+     r="90" />
+  <!-- Red -->
+  <circle
+     style="fill:#ca3c32;stroke:#000000"
+     cx="135"
+     cy="355"
+     r="90" />
+  <text
+     style="fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 100px;"
+     x="180"
+     y="185">☁️</text>
+  <text
+     style="fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 100px;"
+     x="70"
+     y="385">🌊</text>
+  <text
+     style="fill: rgb(51, 51, 51); font-family: Arial, sans-serif; font-size: 100px;"
+     x="290"
+     y="390">🌱</text>
+</svg>
