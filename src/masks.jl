@@ -68,6 +68,8 @@ function generate_lonlat_mask(
     length(mask_var.dims) == 2 ||
         error("Number of dimensions ($(length(mask_var.dims))) is not two")
 
+    mask_var = permutedims(mask_var, ("lon", "lat"))
+
     function apply_lonlat_mask(var)
         # Check if longitude and latitude exist in var
         has_longitude(var) || error("var does not has a longitude dimension")

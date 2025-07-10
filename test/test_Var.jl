@@ -3509,6 +3509,9 @@ end
 
     mask = ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 100.0)
 
+    permuted_var = permutedims(mask_var, ("latitude", "longitude"))
+    permuted_mask = ClimaAnalysis.generate_lonlat_mask(permuted_var, NaN, 100.0)
+
     var =
         TemplateVar() |>
         add_dim("longitude", lon, units = "degrees") |>
@@ -3526,6 +3529,18 @@ end
             [[NaN, 100.0] [100.0, NaN] [NaN, 100.0]],
         )
     end
+
+    # Permuting the mask should not change the mask
+    permuted_masked_var = permuted_mask(var)
+    @test isequal(masked_var.data, permuted_masked_var.data)
+
+    # Permute the OutputVar should not change the mask
+    permuted_var = permutedims(var, ("time", "longitude", "latitude"))
+    masked_permuted_var = mask(permuted_var)
+    masked_permuted_var =
+        permutedims(masked_permuted_var, ("longitude", "time", "latitude"))
+    @test isequal(masked_var.data, masked_permuted_var.data)
+
 
     # Error handling
     # Binary mask
