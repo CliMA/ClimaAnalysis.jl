@@ -1440,7 +1440,9 @@ function Base.permutedims(var::OutputVar, perm)
 
     # Find permutation indices to reorder dims
     reorder_indices =
-        indexin(conventional_dim_name_perm, conventional_dim_name_var)
+        something.(
+            indexin(conventional_dim_name_perm, conventional_dim_name_var)
+        )
 
     # Reorder dims, dim_attribs, and data, but not attribs
     ret_dims = deepcopy(var.dims)
