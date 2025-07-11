@@ -38,6 +38,32 @@ const LANDSEA_MASK = let
     var = OutputVar(attribs, dims, dim_attribs, data)
 end
 
+struct MaskVar
+    "Attributes associated to this variable, such as short/long name"
+    attributes::Dict{String, B}
+
+    "Dimensions over which the variable is defined"
+    dims::OrderedDict{String, T}
+
+    "Attributes associated to the dimensions"
+    dim_attributes::OrderedDict{String, C}
+
+    "Array that contains all the data with zeros and ones"
+    data::A
+
+    """TODO: idk"""
+    zero_to::FT1
+
+    """TODO: idk"""
+    one_to::FT2
+
+    """TODO: idk"""
+    threshold::FT3
+end
+
+# Support mask aware replace and mask aware flatten
+# So, I need a function to extract the binary data which is just var.data
+
 """
     generate_lonlat_mask(var::OutputVar, zero_to, one_to; threshold = 0.5)
 
