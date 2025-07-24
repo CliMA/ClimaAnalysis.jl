@@ -65,11 +65,30 @@ isequal(flat_permuted_var.data, flat_var.data)
 The data can be extracted by `flat_var.data` and the metadata can be extracted by
 `flatvar.metadata`. More information about the metadata will discussed in the section below.
 
+### Ignore NaNs
+
 Furthermore, if `ignore_nan = true`, then `NaNs` are excluded when flattening the data.
 
 ```@repl flat
 count(isnan, nan_var.data) # nan_var is the same as var, but contains three NaNs
 flat_nan_var = ClimaAnalysis.flatten(nan_var, ignore_nan = true); # default is true
+length(flat_nan_var.data)
+```
+
+### Masking
+
+In addition to ignoring `NaN`s, you can also pass in a
+[`ClimaAnalysis.Var.LonLatMask`](@ref) for the keyword argument `mask_var`. This will
+do a mask-aware flatten on the `OutputVar.
+
+!!! note "Zeros and ones"
+    `ClimaAnalysis` drop any values whose coordinates correspond to zero in the mask.
+
+```@example flat
+# Mask map coordinates on the ocean to NaN and coordinates on the land to 1.0
+ocean_mask = ClimaAnalysis.generate_ocean_mask(NaN, 1.0; threshold = 0.5)
+flat_masked_var = ClimaAnalysis.flatten(var, mask = ocean_mask)
+# All values on the ocean are not considered when flattening
 length(flat_nan_var.data)
 ```
 

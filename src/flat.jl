@@ -4,7 +4,7 @@ export flatten, unflatten, flatten_dim_order
     Representing the metadata of an `OutputVar` and contain all the necessary
     information to reconstruct an `OutputVar`.
 """
-struct Metadata{T <: AbstractArray, B, C, I <: Integer}
+struct Metadata{T <: AbstractArray, B, C, FT}
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
 
@@ -17,8 +17,11 @@ struct Metadata{T <: AbstractArray, B, C, I <: Integer}
     "Order of dimensions when flattening the data of the OutputVar"
     ordered_dims::Tuple{Vararg{String}}
 
-    "Indices of NaNs in data"
-    nan_indices::Vector{I}
+    "Bit mask of the dropped values when flattening"
+    drop_mask::BitVector
+
+    "Values that are dropped when flattening"
+    dropped_values::Vector{FT}
 end
 
 """
@@ -35,21 +38,32 @@ end
 """
     flatten(var::OutputVar;
             dims = ("longitude", "latitude", "pressure_level", "z", "time"),
-            ignore_nan = true)
+            ignore_nan = true,
+            mask = nothing)
 
 Flatten `var` into a `FlatVar` according to the ordering `dims`.
 
-The default order of dimensions for flattening is 
+The default order of dimensions for flattening is
 `("longitude", "latitude", "pressure_level", "z", "time")`. Dimensions not present in `var`
 are excluded from this ordering.
 
 If `ignore_nan = true`, then `NaNs` are excluded from the flattened data. Otherwise, `NaN`s
 are included.
+
+If `mask` is `nothing`, then values are not removed by masking. If `mask` is a
+`ClimaAnalysis.LonLatMask`, then values are removed according to the mask. Any value of
+`var` whose coordinates correspond to zeros on the mask are excluded from the flattened
+data.
+
+!!! note "Mask aware flatten"
+    The `mask` keyword argument is only available for versions of ClimaAnalysis after
+    v0.5.19.
 """
 function flatten(
     var::OutputVar;
     dims = ("longitude", "latitude", "pressure_level", "z", "time"),
     ignore_nan = true,
+    mask = nothing,
 )
 
     # Filter unnecessary dimension names
@@ -65,20 +79,17 @@ function flatten(
         "All the dimensions in var ($(keys(var.dims))) are not present in dims ($dims)",
     )
 
-    # To flatten data, we need to permute, vectorize, and remove NaNs
-    # Permute and vectorize data
+    # To flatten data, we need to permute, vectorize, and mask the data
     perm = Tuple(indexin(dims, collect(keys(var.dims))))
     permute_data = PermutedDimsArray(var.data, perm)
     vec_data = vec(permute_data)
 
-    # Remove NaNs if necessary
-    if ignore_nan
-        nan_indices = findall(isnan, vec_data)
-        if !isempty(nan_indices)
-            valid_indices = setdiff(collect(eachindex(vec_data)), nan_indices)
-            vec_data = @view vec_data[valid_indices]
-        end
-    end
+    drop_mask = _drop_mask(var, ignore_nan, mask)
+    permute_drop_mask = PermutedDimsArray(drop_mask, perm)
+    drop_mask = vec(permute_drop_mask)
+
+    dropped_values = vec_data[drop_mask]
+    vec_data = view(vec_data, .!drop_mask)
 
     # Make metadata
     metadata = Metadata(
@@ -86,9 +97,27 @@ function flatten(
         deepcopy(var.dims),
         deepcopy(var.dim_attributes),
         dims,
-        nan_indices,
+        copy(drop_mask),
+        dropped_values,
     )
     return FlatVar(metadata, copy(vec_data))
+end
+
+"""
+    _drop_mask(var, mask, ignore_nan)
+
+Create a bitmask for values to exclude during flattening.
+
+Returns a `BitArray` where `true` indicates a value should be dropped and `false` indicates
+a value should be kept in the flattened data.
+"""
+function _drop_mask(var::OutputVar, ignore_nan, mask)
+    bitmask = falses(size(var.data))
+    ignore_nan && (bitmask .|= isnan.(var.data))
+    if !isnothing(mask)
+        bitmask .|= .!(_generate_binary_mask(mask, var))
+    end
+    return bitmask
 end
 
 """
@@ -110,27 +139,22 @@ This function assumes that order of `data` before flattened is the same as
 """
 function unflatten(metadata::Metadata, data::AbstractVector)
     # Check length of data match the length of the dimensions in metadata
-    data_size = _data_size(metadata, ignore_nan = true)
+    data_size = _data_length(metadata, ignore_dropped = true)
     length(data) == data_size || error(
         "Flattened data should be of length $data_size; got length $(length(data))",
     )
 
-    # To unflatten data, we need to remove NaNs, vectorize, and permute. Note that this is
+    # To unflatten data, we need to undo the mask, vectorize, and permute. Note that this is
     # the operations of flattening data, but in reverse.
-    # Include NaNs
-    if !isempty(metadata.nan_indices)
-        data_length = values(metadata.dims) |> collect .|> length |> prod
-        nan_data = fill(zero(eltype(data)), data_length)
-        # NaN can be NaN32 or NaN64
-        nan_data[metadata.nan_indices] .= eltype(data)(NaN)
-        valid_indices = findall(!isnan, nan_data)
-        nan_data[valid_indices] = data
-        data = nan_data
-    end
+    data_length = values(metadata.dims) |> collect .|> length |> prod
+    flat_data = fill(zero(eltype(data)), data_length)
+    # Cast to the type of flat_data since NaN can be NaN32 or NaN64
+    flat_data[metadata.drop_mask] .= eltype(flat_data).(metadata.dropped_values)
+    flat_data[.!metadata.drop_mask] = data
 
     # Reshape data
     reshape_dims = (length(metadata.dims[dim]) for dim in metadata.ordered_dims)
-    data = reshape(data, reshape_dims...)
+    unflattened_data = reshape(flat_data, reshape_dims...)
 
     # Permute dimensions of data
     dim2index = Dict([
@@ -140,7 +164,7 @@ function unflatten(metadata::Metadata, data::AbstractVector)
     perm = invperm(
         collect(dim2index[dim_name] for dim_name in metadata.ordered_dims),
     )
-    data = permutedims(data, perm)
+    data = permutedims(unflattened_data, perm)
 
     return OutputVar(
         deepcopy(metadata.attributes),
@@ -169,27 +193,27 @@ function flatten_dim_order(metadata::Metadata)
 end
 
 """
-    _data_size(var::FlatVar; ignore_nan = true)
+    _data_length(var::FlatVar; ignore_dropped = true)
 
 Get the length of `var.data`.
 
-If `ignore_nan = true`, then the length is computed excluding `NaN`s. If
-`ignore_nan = false`, then the length is computed including `NaN`s.
+If `ignore_dropped = true`, then the length is computed excluding the dropped values. If
+`ignore_dropped = false`, then the length is computed including the dropped values.
 """
-function _data_size(var::FlatVar; ignore_nan = true)
-    return _data_size(var.metadata; ignore_nan = ignore_nan)
+function _data_length(var::FlatVar; ignore_dropped = true)
+    return _data_length(var.metadata; ignore_dropped = ignore_dropped)
 end
 
 """
-    _data_size(metadata::Metadata; ignore_nan = true)
+    _data_length(metadata::Metadata; ignore_dropped = true)
 
 Get the length of the flattened `data` according to the `metadata`.
 
-If `ignore_nan = true`, then the length is computed excluding `NaN`s. If
-`ignore_nan = false`, then the length is computed including `NaN`s.
+If `ignore_dropped = true`, then the length is computed excluding the dropped values. If
+`ignore_dropped = false`, then the length is computed including the dropped values.
 """
-function _data_size(metadata::Metadata; ignore_nan = true)
+function _data_length(metadata::Metadata; ignore_dropped = true)
     data_size_with_nans = prod(length.(values(metadata.dims)))
-    return ignore_nan ? data_size_with_nans - length(metadata.nan_indices) :
-           data_size_excluding_nans
+    return ignore_dropped ? data_size_with_nans - sum(metadata.drop_mask) :
+           data_size_with_nans
 end
