@@ -1,5 +1,20 @@
 ClimaAnalysis.jl Release Notes
 ===============================
+Main
+-------
+
+## Mask aware flatten
+
+With this release, you can pass in a mask to `flatten` to do a mask aware
+flatten, where all the values corresponding to zeros in the mask are dropped.
+Any value of the `OutputVar` whose coordinates correspond to zeros on the mask are
+excluded from the flattened data.
+
+```julia
+ocean_mask = ClimaAnalysis.generate_ocean_mask(NaN, 1.0; threshold = 0.5)
+flat_masked_var = ClimaAnalysis.flatten(var, mask = ocean_mask)
+```
+
 v0.5.19
 -------
 This release introduces the following features and bug fixes

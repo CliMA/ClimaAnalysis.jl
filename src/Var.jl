@@ -2663,7 +2663,7 @@ end
 include("outvar_operators.jl")
 include("outvar_dimensions.jl")
 include("outvar_selectors.jl")
-include("flat.jl")
 include("masks.jl")
+include("flat.jl")
 
 end
