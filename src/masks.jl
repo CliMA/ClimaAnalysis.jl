@@ -39,6 +39,31 @@ const LANDSEA_MASK = let
 end
 
 """
+    Representing a mask that can be applied to a `OutputVar`.
+
+`LonLatMask` is a struct that is callable. If `mask` is a `LonLatMask`, you can apply the
+mask by doing `mask(var)`, where `var` is a `OutputVar`.
+"""
+struct LonLatMask{
+    OV <: OutputVar,
+    ZERO <: Number,
+    ONE <: Number,
+    THRESHOLD <: AbstractFloat,
+}
+    "OutputVar containing the longitude and latitude dimension and binary data for masking"
+    output_var::OV
+
+    "Replace zeros to this value after masking"
+    zero_to::ZERO
+
+    "Replace ones to this value after masking"
+    one_to::ONE
+
+    "Threshold for determining what values are rounded to zero or one after interpolating"
+    threshold::THRESHOLD
+end
+
+"""
     generate_lonlat_mask(var::OutputVar, zero_to, one_to; threshold = 0.5)
 
 Returns a masking function that takes an `OutputVar` and masks its data using `var.data`,
@@ -57,8 +82,11 @@ function generate_lonlat_mask(
 )
     # Check mask is binary
     all(x -> iszero(x) || isone(x), mask_var.data) || error(
-        "var is not a OutputVar whose data contains only zeros and ones. Use replace or replace! to to ensure that all values in the data are zeros and ones",
+        "Var is not a OutputVar whose data contains only zeros and ones. Use replace or replace! to ensure that all values in the data are zeros and ones",
     )
+
+    (zero(threshold) <= threshold <= one(threshold)) ||
+        error("Threshold ($threshold)")
 
     # Check if lon and lat are the only dimensions
     has_longitude(mask_var) ||
@@ -68,47 +96,73 @@ function generate_lonlat_mask(
     length(mask_var.dims) == 2 ||
         error("Number of dimensions ($(length(mask_var.dims))) is not two")
 
+    # Cast data to BitArray to save memory
+    if !(mask_var.data isa BitArray)
+        mask_var = replace(x -> isone(x), mask_var)
+    end
     mask_var = permutedims(mask_var, ("lon", "lat"))
 
-    function apply_lonlat_mask(var)
-        # Check if longitude and latitude exist in var
-        has_longitude(var) || error("var does not has a longitude dimension")
-        has_latitude(var) || error("var does not has a latitude dimension")
-        # Use _resampled_as_partial as we do not want to do units checking as
-        # it would be too restrictive
-        resampled_mask_var =
-            _resampled_as_partial(mask_var, var, ("lon", "lat"))
-        # Apply threshold and zero_to and one_to in a single step
-        mask = replace(resampled_mask_var.data) do val
-            val >= threshold ? one_to : zero_to
-        end
+    return LonLatMask(mask_var, zero_to, one_to, threshold)
+end
+"""
+    _generate_binary_mask(mask::LonLatMask, var::OutputVar)
 
-        # Reshape data for broadcasting
-        lon_idx = var.dim2index[longitude_name(var)]
-        lat_idx = var.dim2index[latitude_name(var)]
-        lon_length = var.dims[longitude_name(var)] |> length
-        lat_length = var.dims[latitude_name(var)] |> length
-        if lon_idx > lat_idx
-            mask = transpose(mask)
-        end
-        size_to_reshape = (
-            if i == lon_idx
-                lon_length
-            elseif i == lat_idx
-                lat_length
-            else
-                1
-            end for i in 1:ndims(var.data)
-        )
-        mask = reshape(mask, size_to_reshape...)
+Generate a binary mask of zeros and ones from `mask` that is appropriate for `var`.
 
-        # Apply mask
-        data = copy(var.data)
-        data .*= mask
+The binary mask will have the same number of dimensions as `var.data`. For example, if the
+dimensions of `var` is longitude, time, and latitude, then the dimensions of the binary
+mask will be the number of longitude points, 1, and the number of latitude points. This is
+useful if you need do any broadcasting operations with the array.
+"""
+function _generate_binary_mask(mask_var::LonLatMask, var::OutputVar)
+    # Use _resampled_as_partial as we do not want to do units checking as
+    # it would be too restrictive
+    resampled_mask_var =
+        _resampled_as_partial(mask_var.output_var, var, ("lon", "lat"))
 
-        return remake(var, data = data)
+    mask = copy(resampled_mask_var.data)
+    # Reshape data for broadcasting
+    lon_idx = var.dim2index[longitude_name(var)]
+    lat_idx = var.dim2index[latitude_name(var)]
+    lon_length = var.dims[longitude_name(var)] |> length
+    lat_length = var.dims[latitude_name(var)] |> length
+    # If the longitude dimension is after the latitude dimension, then a
+    # transpose is applied, because the mask's order of dimensions is latitude
+    # and longitude
+    if lon_idx > lat_idx
+        mask = transpose(mask)
     end
-    return apply_lonlat_mask
+    # Extra singleton dimensions are added to the mask to make broadcasting
+    # easier (e.g. multiplying var.data and the mask elementwise)
+    size_to_reshape = ntuple(
+        i -> i == lon_idx ? lon_length : i == lat_idx ? lat_length : 1,
+        ndims(var.data),
+    )
+    mask = reshape(mask, size_to_reshape...)
+    mask = BitArray(mask .>= mask_var.threshold)
+    return mask
+end
+
+"""
+    (mask_var::LonLatMask)(var::OutputVar)
+
+Apply a mask on `var` using `mask_var`.
+
+See [`ClimaAnalysis.Var.generate_lonlat_mask`](@ref) for more information about the masking
+procedure.
+"""
+function (mask_var::LonLatMask)(var::OutputVar)
+    has_longitude(var) || error("var does not have a longitude dimension")
+    has_latitude(var) || error("var does not have a latitude dimension")
+
+    mask = _generate_binary_mask(mask_var, var)
+    mask = replace(mask, 1.0 => mask_var.one_to, 0.0 => mask_var.zero_to)
+
+    # Apply mask
+    data = copy(var.data)
+    data .*= mask
+
+    return remake(var, data = data)
 end
 
 """
