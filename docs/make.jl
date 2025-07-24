@@ -31,6 +31,7 @@ makedocs(;
         "Home" => "index.md",
         "OutputVars" => "var.md",
         "Visualizing OutputVars" => "visualize.md",
+        "Reading NetCDF files" => "read_files.md",
         "RMSEVariables" => "rmse_var.md",
         "Visualizing RMSEVariables" => "visualize_rmse_var.md",
         "FlatVar" => "flat.md",
