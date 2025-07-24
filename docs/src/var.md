@@ -402,7 +402,7 @@ equal to `threshold` are rounded to one and all other values are rounded to zero
 var = replace(x -> isnan(x) ? 0.0 : 1.0, var)
 
 # Any points that are NaNs should be zero in the mask
-mask_fn = ClimaAnalysis.generate_lonlat_mask(
+lonlat_mask = ClimaAnalysis.generate_lonlat_mask(
     var,
     NaN, # zero to NaN
     1.0; # one to one
@@ -410,9 +410,9 @@ mask_fn = ClimaAnalysis.generate_lonlat_mask(
 )
 
 # Apply mask to another OutputVar
-another_masked_var = mask_fn(another_var)
+another_masked_var = lonlat_mask(another_var)
 
 # Compute squared error and global MSE with custom masking function
-ClimaAnalysis.squared_error(sim_var, obs_var, mask = mask_fn)
-ClimaAnalysis.global_mse(sim_var, obs_var, mask = mask_fn)
+ClimaAnalysis.squared_error(sim_var, obs_var, mask = lonlat_mask)
+ClimaAnalysis.global_mse(sim_var, obs_var, mask = lonlat_mask)
 ```

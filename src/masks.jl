@@ -1,5 +1,9 @@
-export apply_landmask, apply_oceanmask, make_lonlat_mask, generate_lonlat_mask
-
+export apply_landmask,
+    apply_oceanmask,
+    make_lonlat_mask,
+    generate_lonlat_mask,
+    generate_ocean_mask,
+    generate_land_mask
 import NCDatasets
 import OrderedCollections: OrderedDict
 import Artifacts
@@ -104,6 +108,52 @@ function generate_lonlat_mask(
 
     return LonLatMask(mask_var, zero_to, one_to, threshold)
 end
+
+"""
+    generate_land_mask(land, ocean; threshold = 0.5)
+
+Generate a land mask, where values on the land are multiplied by `land` and values on the
+ocean are multipled by `ocean`.
+
+The land mask is a binary mask, where zeros represent the land and ones represent the ocean.
+
+See [`ClimaAnalysis.Var.generate_lonlat_mask`](@ref) for more information about the masking
+procedure.
+"""
+function generate_land_mask(land, ocean; threshold = 0.5)
+    # Because other functions could treat zeros and ones differently, we need to swap the
+    # zeros and ones. For example, for an implementation of mask aware flatten, you would
+    # want to drop all the values corresponding to zeros in the mask.
+    landsea_mask = replace(LANDSEA_MASK, true => false, false => true)
+    return generate_lonlat_mask(
+        landsea_mask,
+        land,
+        ocean,
+        threshold = threshold,
+    )
+end
+
+"""
+    generate_ocean_mask(ocean, land; threshold = 0.5)
+
+Generate an ocean mask, where values on the land are multiplied by `land` and values on the
+ocean are multipled by `ocean`.
+
+The ocean mask is a binary mask, where zeros represent the ocean and ones represent the
+land.
+
+See [`ClimaAnalysis.Var.generate_lonlat_mask`](@ref) for more information about the masking
+procedure.
+"""
+function generate_ocean_mask(ocean, land; threshold = 0.5)
+    return generate_lonlat_mask(
+        LANDSEA_MASK,
+        ocean,
+        land,
+        threshold = threshold,
+    )
+end
+
 """
     _generate_binary_mask(mask::LonLatMask, var::OutputVar)
 
@@ -174,8 +224,7 @@ Apply a land mask to `var` by NaNing any data whose coordinates are located on l
     The `threshold` keyword argument is available in ClimaAnalysis v0.5.18 and beyond.
 """
 function apply_landmask(var::OutputVar; threshold = 0.5)
-    mask_fn =
-        generate_lonlat_mask(LANDSEA_MASK, 1.0, NaN, threshold = threshold)
+    mask_fn = generate_land_mask(NaN, 1.0, threshold = threshold)
     return mask_fn(var)
 end
 
@@ -188,8 +237,7 @@ Apply an ocean mask to `var` by NaNing any data whose coordinates are in the oce
     The `threshold` keyword argument is available in ClimaAnalysis v0.5.18 and beyond.
 """
 function apply_oceanmask(var::OutputVar; threshold = 0.5)
-    mask_fn =
-        generate_lonlat_mask(LANDSEA_MASK, NaN, 1.0, threshold = threshold)
+    mask_fn = generate_ocean_mask(NaN, 1.0, threshold = threshold)
     return mask_fn(var)
 end
 
