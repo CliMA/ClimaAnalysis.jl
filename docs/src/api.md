@@ -8,11 +8,22 @@ CurrentModule = ClimaAnalysis
 
 ```@docs
 Sim.SimDir
-Base.get
-Sim.available_vars
+get(simdir::SimDir)
+get(simdir::SimDir, short_names...)
+available_vars(simdir::SimDir)
 Sim.available_reductions
 Sim.available_periods
 Base.show(io::IO, simdir::SimDir)
+```
+
+## Catalog
+
+```@docs
+Catalog.NCCatalog
+Catalog.NCCatalog()
+Catalog.add_file!
+get(catalog::NCCatalog, short_name; var_kwargs = ())
+Catalog.available_vars(catalog::NCCatalog)
 ```
 
 ## Var
