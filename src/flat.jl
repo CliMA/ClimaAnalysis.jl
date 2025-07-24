@@ -24,9 +24,9 @@ end
 """
     Representing a flat output variable
 """
-struct FlatVar{A <: AbstractVector}
+struct FlatVar{MD <: Metadata, A <: AbstractVector}
     "Metadata associated with the OutputVar"
-    metadata::Metadata
+    metadata::MD
 
     "Vector that contains all the data"
     data::A
