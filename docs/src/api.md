@@ -87,9 +87,12 @@ Var.squared_error
 Var.global_mse
 Var.global_rmse
 Var.shift_to_start_of_previous_month
+Var.LonLatMask
 Var.apply_landmask
 Var.apply_oceanmask
 Var.generate_lonlat_mask
+Var.generate_land_mask
+Var.generate_ocean_mask
 Var.make_lonlat_mask
 Base.replace(var::OutputVar, old_new::Pair...; count::Integer)
 Base.replace(new::Union{Function, Type}, var::OutputVar; count::Integer)
