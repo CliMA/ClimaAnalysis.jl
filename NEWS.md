@@ -51,6 +51,20 @@ pr_var = ClimaAnalysis.OutputVar(["pr1.nc", "pr2.nc"])
 to load the NetCDF files "pr1.nc" and "pr2.nc" along the time dimension in a
 `OutputVar`.
 
+## NCCatalog
+
+You can now organize and easily load external NetCDF files with `ClimaAnalysis.NCCatalog`.
+See the example below of adding a file and loading a variable from the file as a
+`OutputVar`.
+
+```julia
+catalog = ClimaAnalysis.NCCatalog()
+# The file "precip.nc" contains a variable named "precip", but you can retrieve it as "pr".
+ClimaAnalysis.add_file!(catalog, "precip.nc", "precip" => "pr")
+# The short name of pr_var is "pr".
+pr_var = get(catalog, "pr")
+```
+
 v0.5.18
 -------
 This release introduces the following features and bug fixes
