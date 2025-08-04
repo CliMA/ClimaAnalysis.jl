@@ -217,3 +217,22 @@ function _data_length(metadata::Metadata; ignore_dropped = true)
     return ignore_dropped ? data_size_with_nans - sum(metadata.drop_mask) :
            data_size_with_nans
 end
+
+"""
+    Base.getproperty(var::FlatVar, s::Symbol)
+
+Add `attributes`, `dims`, and `dim_attributes` as properties for `var`.
+
+This is necessary to make functions compatible with both `OutputVar` and `FlatVar`.
+"""
+function Base.getproperty(var::FlatVar, s::Symbol)
+    if s === :attributes
+        return Base.getfield(Base.getfield(var, :metadata), :attributes)
+    elseif s === :dims
+        return Base.getfield(Base.getfield(var, :metadata), :dims)
+    elseif s === :dim_attributes
+        return Base.getfield(Base.getfield(var, :metadata), :dim_attributes)
+    else
+        return Base.getfield(var, s)
+    end
+end
