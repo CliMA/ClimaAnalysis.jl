@@ -98,6 +98,15 @@ struct OutputVar{T <: AbstractArray, A <: AbstractArray, B, C <: AbstractDict}
     index2dim::Vector{String}
 end
 
+# Define FlatVar and Metadata
+include("flat.jl")
+
+# Union type for objects that contains the fields `attributes`, `dims`, and
+# `dim_attributes`. The implementation of these fields must be identical to
+# the fields for `OutputVar`. This union type is needed to make functions that
+# only use these fields work for `OutputVar`, `FlatVar`, and `Metadata`.
+const HasDimAndAttribs = Union{OutputVar, FlatVar, Metadata}
+
 """
     _make_interpolant(dims, data)
 
@@ -467,7 +476,7 @@ Return the `short_name` of the given `var`, if available.
 
 If not available, return an empty string.
 """
-function short_name(var::OutputVar)
+function short_name(var::HasDimAndAttribs)
     get(var.attributes, "short_name", "")
 end
 
@@ -478,7 +487,7 @@ Return the `long_name` of the given `var`, if available.
 
 If not available, return an empty string.
 """
-function long_name(var::OutputVar)
+function long_name(var::HasDimAndAttribs)
     get(var.attributes, "long_name", "")
 end
 
@@ -489,7 +498,7 @@ Return the `units` of the given `var`, if available.
 
 If not available, return an empty string.
 """
-function units(var::OutputVar)
+function units(var::HasDimAndAttribs)
     string(get(var.attributes, "units", ""))
 end
 
@@ -498,7 +507,7 @@ end
 
 Return whether the given `var` has `units` or not.
 """
-function has_units(var::OutputVar)
+function has_units(var::HasDimAndAttribs)
     return haskey(var.attributes, "units")
 end
 
@@ -1061,7 +1070,7 @@ Return the `units` of the given `dim_name` in `var`, if available.
 
 If not available, return an empty string.
 """
-function dim_units(var::OutputVar, dim_name)
+function dim_units(var::HasDimAndAttribs, dim_name)
     dim_name = find_corresponding_dim_name_in_var(dim_name, var)
     # Double get because var.dim_attributes is a dictionary whose values are dictionaries
     string(get(get(var.dim_attributes, dim_name, Dict()), "units", ""))
