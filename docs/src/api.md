@@ -129,6 +129,10 @@ ClimaAnalysis.get_index(var, dim_name, val, ::Index)
 
 ## FlatVar
 
+!!! note "Accessor functions for versions of ClimaAnalysis after v0.5.18"
+    For `Metadata` and `FlatVar`, you can use accessor functions (e.g. `has_time` and
+    `times`) defined for `OutputVar`s on them.
+
 ```@docs
 Var.Metadata
 Var.FlatVar

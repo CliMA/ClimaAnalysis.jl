@@ -65,6 +65,20 @@ ClimaAnalysis.add_file!(catalog, "precip.nc", "precip" => "pr")
 pr_var = get(catalog, "pr")
 ```
 
+## Accessors for FlatVar and Metadata
+
+You can now access data about the dimensions from `FlatVar` and `Metadata` with
+the functions you would use for `OutputVar`s. See the example below.
+
+```julia
+# var is a OutputVar
+flat_var = ClimaAnalysis.flatten(var)
+lon_exists = ClimaAnalysis.has_longitude(flat_var)
+lon = ClimaAnalysis.longitudes(flat_var)
+lon_exists = ClimaAnalysis.has_longitude(flat_var.metadata)
+lon = ClimaAnalysis.longitudes(flat_var.metadata)
+```
+
 v0.5.18
 -------
 This release introduces the following features and bug fixes

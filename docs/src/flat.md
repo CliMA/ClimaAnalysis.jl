@@ -73,6 +73,18 @@ flat_nan_var = ClimaAnalysis.flatten(nan_var, ignore_nan = true); # default is t
 length(flat_nan_var.data)
 ```
 
+### Accessors
+
+Information about the dimensions can be accessed with the typical functions used for
+`OutputVar`s. See the example below.
+
+```@repl flat
+ClimaAnalysis.times(flat_var)
+ClimaAnalysis.has_pressure(flat_var)
+ClimaAnalysis.times(flat_var.metadata)
+ClimaAnalysis.has_pressure(flat_var.metadata)
+```
+
 ## Unflatten
 
 To solve the second problem, there is the `metadata` field in `FlatVar` that stores the
