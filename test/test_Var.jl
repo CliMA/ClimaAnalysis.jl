@@ -4002,6 +4002,69 @@ end
     )
 end
 
+@testset "Extracting dimensions, units, and names for FlatVar" begin
+    lat = collect(range(-89.5, 89.5, 3))
+    lon = collect(range(-179.5, 179.5, 4))
+    time = [0.0, 1.0, 2.0]
+    pfull = [0.0, 2.0, 4.0, 6.0]
+    z = [0.0, 5.0]
+    var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees_north") |>
+        add_dim("lon", lon, units = "degrees_east") |>
+        add_dim("time", time, units = "s") |>
+        add_dim("pfull", pfull, units = "Pa") |>
+        add_dim("z", z, units = "m") |>
+        add_attribs(
+            short_name = "hi",
+            long_name = "hello",
+            units = "idk",
+            start_date = "1979-1-1",
+        ) |>
+        initialize
+
+    flat_var = ClimaAnalysis.flatten(var)
+
+    @test ClimaAnalysis.has_latitude(flat_var)
+    @test ClimaAnalysis.has_longitude(flat_var)
+    @test ClimaAnalysis.has_time(flat_var)
+    @test ClimaAnalysis.has_pressure(flat_var)
+    @test ClimaAnalysis.has_altitude(flat_var)
+    @test !ClimaAnalysis.has_date(flat_var)
+    @test_throws ErrorException ClimaAnalysis.date_name(flat_var)
+    @test ClimaAnalysis.latitudes(flat_var) == lat
+    @test ClimaAnalysis.longitudes(flat_var) == lon
+    @test ClimaAnalysis.times(flat_var) == time
+    @test ClimaAnalysis.pressures(flat_var) == pfull
+    @test ClimaAnalysis.altitudes(flat_var) == z
+    @test ClimaAnalysis.dates(flat_var) == ClimaAnalysis.dates(var)
+    @test ClimaAnalysis.has_units(flat_var)
+    @test ClimaAnalysis.units(flat_var) == "idk"
+    @test ClimaAnalysis.dim_units(flat_var, "lon") == "degrees_east"
+    @test ClimaAnalysis.short_name(flat_var) == "hi"
+    @test ClimaAnalysis.long_name(flat_var) == "hello"
+
+    metadata = flat_var.metadata
+    @test ClimaAnalysis.has_latitude(metadata)
+    @test ClimaAnalysis.has_longitude(metadata)
+    @test ClimaAnalysis.has_time(metadata)
+    @test ClimaAnalysis.has_pressure(metadata)
+    @test ClimaAnalysis.has_altitude(metadata)
+    @test !ClimaAnalysis.has_date(metadata)
+    @test_throws ErrorException ClimaAnalysis.date_name(metadata)
+    @test ClimaAnalysis.latitudes(metadata) == lat
+    @test ClimaAnalysis.longitudes(metadata) == lon
+    @test ClimaAnalysis.times(metadata) == time
+    @test ClimaAnalysis.pressures(metadata) == pfull
+    @test ClimaAnalysis.altitudes(metadata) == z
+    @test ClimaAnalysis.dates(metadata) == ClimaAnalysis.dates(var)
+    @test ClimaAnalysis.has_units(metadata)
+    @test ClimaAnalysis.units(metadata) == "idk"
+    @test ClimaAnalysis.dim_units(metadata, "lon") == "degrees_east"
+    @test ClimaAnalysis.short_name(metadata) == "hi"
+    @test ClimaAnalysis.long_name(metadata) == "hello"
+end
+
 @testset "Show" begin
     lat = collect(range(-89.5, 89.5, 180))
     lon = collect(range(-179.5, 179.5, 360))

@@ -15,6 +15,20 @@ ocean_mask = ClimaAnalysis.generate_ocean_mask(NaN, 1.0; threshold = 0.5)
 flat_masked_var = ClimaAnalysis.flatten(var, mask = ocean_mask)
 ```
 
+## Accessors for FlatVar and Metadata
+
+You can now access data about the dimensions from `FlatVar` and `Metadata` with
+the functions you would use for `OutputVar`s. See the example below.
+
+```julia
+# var is a OutputVar
+flat_var = ClimaAnalysis.flatten(var)
+lon_exists = ClimaAnalysis.has_longitude(flat_var)
+lon = ClimaAnalysis.longitudes(flat_var)
+lon_exists = ClimaAnalysis.has_longitude(flat_var.metadata)
+lon = ClimaAnalysis.longitudes(flat_var.metadata)
+```
+
 v0.5.19
 -------
 This release introduces the following features and bug fixes

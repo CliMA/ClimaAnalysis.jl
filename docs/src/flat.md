@@ -92,6 +92,18 @@ flat_masked_var = ClimaAnalysis.flatten(var, mask = ocean_mask)
 length(flat_nan_var.data)
 ```
 
+### Accessors
+
+Information about the dimensions can be accessed with the typical functions used for
+`OutputVar`s. See the example below.
+
+```@repl flat
+ClimaAnalysis.times(flat_var)
+ClimaAnalysis.has_pressure(flat_var)
+ClimaAnalysis.times(flat_var.metadata)
+ClimaAnalysis.has_pressure(flat_var.metadata)
+```
+
 ## Unflatten
 
 To solve the second problem, there is the `metadata` field in `FlatVar` that stores the
