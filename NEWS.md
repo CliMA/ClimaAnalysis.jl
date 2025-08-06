@@ -1,7 +1,12 @@
 ClimaAnalysis.jl Release Notes
 ===============================
-Main
+v0.5.19
 -------
+This release introduces the following features and bug fixes
+- [Selectors](#selectors)
+- [Masks](#masks)
+- [Read multiple NetCDF files](#read-multiple-netcdf-files)
+- [NCCatalog](#nccatalog)
 
 ## Selectors
 
