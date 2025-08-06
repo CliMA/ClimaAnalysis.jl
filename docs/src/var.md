@@ -53,7 +53,8 @@ mass flux:
 new_var = ClimaAnalysis.convert_units(var, "kg m/s", conversion_function = (x) -> 1000x)
 ```
 
-!!! note If you find some unparseable units, please open an issue. We can fix them!
+!!! note "Unparseable units"
+    If you find some unparseable units, please open an issue. We can fix them!
 
 
 If units do not exist, or you want to change the name of the units, then one can use the

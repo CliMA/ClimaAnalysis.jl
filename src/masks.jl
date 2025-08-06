@@ -221,7 +221,7 @@ end
 Apply a land mask to `var` by NaNing any data whose coordinates are located on land.
 
 !!! note "Threshold keyword argument"
-    The `threshold` keyword argument is available in ClimaAnalysis v0.5.18 and beyond.
+    The `threshold` keyword argument is available in ClimaAnalysis v0.5.19 and beyond.
 """
 function apply_landmask(var::OutputVar; threshold = 0.5)
     mask_fn = generate_land_mask(NaN, 1.0, threshold = threshold)

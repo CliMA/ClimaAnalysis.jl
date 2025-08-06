@@ -30,7 +30,7 @@ reduced_var = window(var, "time", left = 10, right = 100)
 
 Now, you can apply the usual average functions.
 
-!!! note Did you know?
+!!! note "Did you know?"
 
     Did you know that when you are applying `window` on a temporal dimension, you
     can also pass `Dates.DateTime` bounds? (E.g., `left = Dates.DateTime(2008)`).
