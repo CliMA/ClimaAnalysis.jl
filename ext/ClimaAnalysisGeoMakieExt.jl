@@ -196,7 +196,7 @@ function Visualize.heatmap2D_on_globe!(
 end
 
 """
-    contours2D_on_globe!(fig::Makie.Figure,
+    contour2D_on_globe!(fig::Makie.Figure,
                         var::ClimaAnalysis.OutputVar;
                         p_loc = (1,1),
                         plot_coastline = true,
@@ -204,7 +204,7 @@ end
                         plot_contours = true,
                         mask = nothing,
                         more_kwargs)
-    contours2D_on_globe!(grid_layout::Makie.GridLayout,
+    contour2D_on_globe!(grid_layout::Makie.GridLayout,
                         var::ClimaAnalysis.OutputVar;
                         p_loc = (1,1),
                         plot_coastline = true,

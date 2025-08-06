@@ -2125,8 +2125,8 @@ end
 
 Return a `OutputVar` whose data is the squared error (`(sim.data - obs.data)^2`) and compute
 the global mean squared error (MSE) and global root mean squared error (RMSE) of `data` in
-`sim` and `obs` over longitude and latitude. The result is stored in `var.attributes["mse"]`
-and `var.attributes["rmse"]`.
+`sim` and `obs` over longitude and latitude. The result is stored in
+`var.attributes["global_mse"]` and `var.attributes["global_rmse"]`.
 
 This function is currently implemented for `OutputVar`s with only the dimensions longitude
 and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
