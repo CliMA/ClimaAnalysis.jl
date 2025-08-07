@@ -3717,6 +3717,64 @@ end
     )
 end
 
+@testset "Drop mask" begin
+    lon = [-60.0, 45.0]
+    lat = [-90.0, -30.0, 90.0]
+    time = [0.0, 1.0]
+    ones_var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(long_name = "hi") |>
+        ones_data() |>
+        initialize
+
+    nan_data = copy(ones_var.data)
+    nan_data[1, 1, 1] = NaN
+    nan_data[1, 2, 1] = NaN
+    nan_data[2, 1, 1] = NaN
+    nan_var = ClimaAnalysis.remake(ones_var, data = nan_data)
+
+    mask_var = ClimaAnalysis.slice(ones_var, time = 0)
+    mask_var.data[1, 1] = 0
+    mask_var.data[2, 1] = 0
+    lonlat_mask = ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1)
+
+    # ignore_nan = false and mask = nothing
+    drop_mask = ClimaAnalysis.Var._drop_mask(nan_var, false, nothing)
+    @test !all(drop_mask)
+
+    # ignore_nan = false and mask is not nothing
+    drop_mask = ClimaAnalysis.Var._drop_mask(nan_var, false, lonlat_mask)
+    @test all(drop_mask[:, 1, :])
+    @test !all(drop_mask[:, 2:3, :])
+
+    # ignore_nan = true and mask is nothing
+    drop_mask = ClimaAnalysis.Var._drop_mask(nan_var, true, nothing)
+    @test drop_mask[1, 1, 1]
+    @test drop_mask[1, 2, 1]
+    @test drop_mask[2, 1, 1]
+    drop_indices = CartesianIndex.([(1, 1, 1), (1, 2, 1), (2, 1, 1)])
+    @test !all(
+        drop_mask[idx] for
+        idx in CartesianIndices(drop_mask) if !(idx in drop_indices)
+    )
+
+    # ignore_nan = true and mask is not nothing
+    drop_mask = ClimaAnalysis.Var._drop_mask(nan_var, true, lonlat_mask)
+    drop_indices =
+        CartesianIndex.([(1, 1, 1), (1, 2, 1), (2, 1, 1), (1, 1, 2), (2, 1, 2)])
+    @test all(
+        drop_mask[idx] for
+        idx in CartesianIndices(drop_mask) if idx in drop_indices
+    )
+    @test !all(
+        drop_mask[idx] for
+        idx in CartesianIndices(drop_mask) if !(idx in drop_indices)
+    )
+end
+
 @testset "FlatVar" begin
     lat = [-90.0, -30.0, 30.0, 90.0]
     lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
@@ -3733,18 +3791,16 @@ end
         add_data(data = data) |>
         initialize
 
-    flat_var =
-        ClimaAnalysis.Var.flatten(var, dims = ("latitude", "longitude", "t"))
-    @test ClimaAnalysis.Var.flatten_dim_order(flat_var) ==
-          ("lat", "lon", "time")
-    @test ClimaAnalysis.Var._data_size(flat_var) == n_elts
+    flat_var = ClimaAnalysis.flatten(var, dims = ("latitude", "longitude", "t"))
+    @test ClimaAnalysis.flatten_dim_order(flat_var) == ("lat", "lon", "time")
+    @test ClimaAnalysis.Var._data_length(flat_var) == n_elts
     @test flat_var.data == vec(data)
     @test flat_var.metadata.attributes == var.attributes
     @test flat_var.metadata.dims == var.dims
     @test flat_var.metadata.dim_attributes == var.dim_attributes
     @test flat_var.metadata.ordered_dims == ("lat", "lon", "time")
 
-    unflatten_var = ClimaAnalysis.Var.unflatten(flat_var)
+    unflatten_var = ClimaAnalysis.unflatten(flat_var)
     @test var.data == unflatten_var.data
     @test var.attributes == unflatten_var.attributes
     @test var.dim_attributes == unflatten_var.dim_attributes
@@ -3781,41 +3837,157 @@ end
     @test reconstructed_var.dim_attributes == var.dim_attributes
     @test reconstructed_var.dims == var.dims
 
-    # Test with NaNs
+    # Test with ignore_nan = false
+    flat_var = ClimaAnalysis.Var.flatten(var2, ignore_nan = false)
+    reconstructed_var =
+        ClimaAnalysis.unflatten(flat_var.metadata, flat_var.data)
+    @test isequal(reconstructed_var.data, var2.data)
+    @test reconstructed_var.attributes == var2.attributes
+    @test reconstructed_var.dim_attributes == var2.dim_attributes
+    @test reconstructed_var.dims == var2.dims
+
+    # Test with NaNs and ignore_nan = true
     nan_data = reshape(collect(1.0:n_elts), size_of_data...)
     nan_data[1, 1, 1] = NaN
     nan_data[3, 2, 3] = NaN
-    var = ClimaAnalysis.remake(var, data = nan_data)
-    flat_var = ClimaAnalysis.Var.flatten(var)
+    nan_var = ClimaAnalysis.remake(var, data = nan_data)
+    flat_var = ClimaAnalysis.Var.flatten(nan_var)
     @test ClimaAnalysis.Var.flatten_dim_order(flat_var) ==
           ("lon", "lat", "time")
-    @test ClimaAnalysis.Var._data_size(flat_var) == n_elts - 2
+    @test ClimaAnalysis.Var._data_length(flat_var) == n_elts - 2
     @test flat_var.data == filter(!isnan, vec(permutedims(nan_data, (2, 1, 3))))
-    @test flat_var.metadata.attributes == var.attributes
-    @test flat_var.metadata.dims == var.dims
-    @test flat_var.metadata.dim_attributes == var.dim_attributes
+    @test flat_var.metadata.attributes == nan_var.attributes
+    @test flat_var.metadata.dims == nan_var.dims
+    @test flat_var.metadata.dim_attributes == nan_var.dim_attributes
     @test flat_var.metadata.ordered_dims == ("lon", "lat", "time")
 
     unflatten_var = ClimaAnalysis.Var.unflatten(flat_var)
-    @test isequal(var.data, unflatten_var.data)
-    @test var.attributes == unflatten_var.attributes
-    @test var.dim_attributes == unflatten_var.dim_attributes
-    @test var.dims == unflatten_var.dims
+    @test isequal(nan_var.data, unflatten_var.data)
+    @test nan_var.attributes == unflatten_var.attributes
+    @test nan_var.dim_attributes == unflatten_var.dim_attributes
+    @test nan_var.dims == unflatten_var.dims
 
     # Test unflattening with different NaN datas
-    data = reshape(collect((-n_elts):-1), size_of_data...)
-    nan_data[1, 1, 1] = NaN
-    nan_data[3, 2, 3] = NaN
-    var2 = ClimaAnalysis.Var.remake(var; data = nan_data)
-    var2 = permutedims(var2, ("lon", "time", "lat"))
-    flat_var2 = ClimaAnalysis.Var.flatten(var2)
+    nan_data2 = reshape(collect(Float64.((-n_elts):-1)), size_of_data...)
+    nan_data2[1, 1, 1] = NaN
+    nan_data2[3, 2, 3] = NaN
+    nan_var2 = ClimaAnalysis.remake(var, data = nan_data2)
+    nan_var2 = permutedims(nan_var2, ("lon", "time", "lat"))
+    flat_var2 = ClimaAnalysis.flatten(nan_var2)
+    # Reconstruct with different data
     reconstructed_var =
         ClimaAnalysis.Var.unflatten(flat_var.metadata, flat_var2.data)
     reconstructed_var = permutedims(reconstructed_var, ("lon", "time", "lat"))
-    @test isequal(reconstructed_var.data, var2.data)
+    @test isequal(reconstructed_var.data, nan_var2.data)
     @test reconstructed_var.attributes == var.attributes
     @test reconstructed_var.dim_attributes == var.dim_attributes
     @test reconstructed_var.dims == var.dims
+
+    # Test with masking and ignore_nan = false
+    mask_var = ClimaAnalysis.slice(var, t = 0.0)
+    replace!(x -> 1.0, mask_var)
+    mask_var = permutedims(mask_var, ("lon", "lat"))
+    mask_var.data[:, 1] .= 0.0
+    mask_var =
+        ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0, threshold = 0.5)
+
+    flat_var = ClimaAnalysis.flatten(var, ignore_nan = false, mask = mask_var)
+    @test ClimaAnalysis.Var._data_length(flat_var) == 45
+
+    permuted_var = permutedims(var, ("lon", "lat", "time"))
+    data = copy(permuted_var.data)
+    data[:, 1, :] .= NaN
+    @test flat_var.data == filter(!isnan, vec(data))
+
+    reconstructed_var = ClimaAnalysis.unflatten(flat_var)
+    @test isequal(var.data, reconstructed_var.data)
+    @test var.dims == reconstructed_var.dims
+    @test var.dim_attributes == reconstructed_var.dim_attributes
+    @test var.attributes == reconstructed_var.attributes
+
+    # Test comparing apply_oceanmask and ignore_nan
+    ocean_mask = ClimaAnalysis.generate_ocean_mask(NaN, 1.0)
+    masked_var = ocean_mask(var)
+
+    flat_var_mask = ClimaAnalysis.flatten(var, mask = ocean_mask)
+    flat_var_ignore = ClimaAnalysis.flatten(masked_var, ignore_nan = true)
+
+    @test flat_var_mask.data == flat_var_ignore.data
+    @test flat_var_mask.metadata.drop_mask == flat_var_ignore.metadata.drop_mask
+    @test flat_var.metadata.dims == flat_var_ignore.metadata.dims
+    @test flat_var.metadata.dim_attributes ==
+          flat_var_ignore.metadata.dim_attributes
+    @test flat_var.metadata.attributes == flat_var_ignore.metadata.attributes
+
+    reconstructed_var_mask = ClimaAnalysis.unflatten(flat_var_mask)
+    reconstructed_var_ignore = ClimaAnalysis.unflatten(flat_var_ignore)
+    @test reconstructed_var_mask.attributes ==
+          reconstructed_var_ignore.attributes
+    @test reconstructed_var_mask.dims == reconstructed_var_ignore.dims
+    @test reconstructed_var_mask.dim_attributes ==
+          reconstructed_var_ignore.dim_attributes
+
+    # Test with ignore_nan = true and masking
+    nan_data = copy(var.data)
+    nan_data[:, 1, 1] .= NaN
+    nan_var3 = ClimaAnalysis.remake(var, data = nan_data)
+    flat_var =
+        ClimaAnalysis.flatten(nan_var3, ignore_nan = true, mask = mask_var)
+    @test ClimaAnalysis.Var._data_length(flat_var) == 42
+
+    permuted_var = permutedims(var, ("lon", "lat", "time"))
+    data = copy(permuted_var.data)
+    data[:, 1, :] .= NaN
+    data[1, :, 1] .= NaN
+    @test flat_var.data == filter(!isnan, vec(data))
+
+    reconstructed_var = ClimaAnalysis.unflatten(flat_var)
+    @test isequal(nan_var3.data, reconstructed_var.data)
+    @test nan_var3.dims == reconstructed_var.dims
+    @test nan_var3.dim_attributes == reconstructed_var.dim_attributes
+    @test nan_var3.attributes == reconstructed_var.attributes
+
+    # Test with ignore_nan = false and masking
+    mask_var = ClimaAnalysis.slice(var, t = 0.0)
+    replace!(x -> 1.0, mask_var)
+    mask_var = permutedims(mask_var, ("lon", "lat"))
+    mask_var.data[:, 1] .= 0.0
+    mask_var =
+        ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0, threshold = 0.5)
+
+    flat_var = ClimaAnalysis.flatten(var, ignore_nan = false, mask = mask_var)
+    @test ClimaAnalysis.Var._data_length(flat_var) == 45
+
+    permuted_var = permutedims(var, ("lon", "lat", "time"))
+    data = copy(permuted_var.data)
+    data[:, 1, :] .= NaN
+    @test flat_var.data == filter(!isnan, vec(data))
+
+    reconstructed_var = ClimaAnalysis.unflatten(flat_var)
+    @test isequal(var.data, reconstructed_var.data)
+    @test var.dims == reconstructed_var.dims
+    @test var.dim_attributes == reconstructed_var.dim_attributes
+    @test var.attributes == reconstructed_var.attributes
+
+    # Test with ignore_nan = true and masking
+    nan_data = copy(var.data)
+    nan_data[:, 1, 1] .= NaN
+    nan_var3 = ClimaAnalysis.remake(var, data = nan_data)
+    flat_var =
+        ClimaAnalysis.flatten(nan_var3, ignore_nan = true, mask = mask_var)
+    @test ClimaAnalysis.Var._data_length(flat_var) == 42
+
+    permuted_var = permutedims(var, ("lon", "lat", "time"))
+    data = copy(permuted_var.data)
+    data[:, 1, :] .= NaN
+    data[1, :, 1] .= NaN
+    @test flat_var.data == filter(!isnan, vec(data))
+
+    reconstructed_var = ClimaAnalysis.unflatten(flat_var)
+    @test isequal(nan_var3.data, reconstructed_var.data)
+    @test nan_var3.dims == reconstructed_var.dims
+    @test nan_var3.dim_attributes == reconstructed_var.dim_attributes
+    @test nan_var3.attributes == reconstructed_var.attributes
 
     # Missing dimensions
     @test_throws ErrorException ClimaAnalysis.Var.flatten(
