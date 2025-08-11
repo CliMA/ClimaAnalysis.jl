@@ -4002,6 +4002,25 @@ end
     )
 end
 
+@testset "Flatten with metadata" begin
+    # Dimensions are not the same
+
+    # Start date present in one and not the other
+
+    # Non temporal dimension is not the same
+
+    # Temporal dimension is the same with same start date
+
+    # Temporal dimension is the same with different start dates
+
+    # Temporal dimension is the same with no start dates
+
+    # Flatten with the OutputVar and metadata created from flatten
+
+    # Flatten with a OutputVar and different metadata that contain dropped values
+    # Permute over all 6 possible combinations
+end
+
 @testset "Extracting dimensions, units, and names for FlatVar" begin
     lat = collect(range(-89.5, 89.5, 3))
     lon = collect(range(-179.5, 179.5, 4))
