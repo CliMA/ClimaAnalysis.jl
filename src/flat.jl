@@ -64,6 +64,7 @@ function flatten(
     dims = ("longitude", "latitude", "pressure_level", "z", "time"),
     ignore_nan = true,
     mask = nothing,
+    drop_mask = nothing,
 )
 
     # Filter unnecessary dimension names
@@ -84,9 +85,11 @@ function flatten(
     permute_data = PermutedDimsArray(var.data, perm)
     vec_data = vec(permute_data)
 
-    drop_mask = _drop_mask(var, ignore_nan, mask)
-    permute_drop_mask = PermutedDimsArray(drop_mask, perm)
-    drop_mask = vec(permute_drop_mask)
+    if isnothing(drop_mask)
+        drop_mask = _drop_mask(var, ignore_nan, mask)
+        permute_drop_mask = PermutedDimsArray(drop_mask, perm)
+        drop_mask = vec(permute_drop_mask)
+    end
 
     dropped_values = vec_data[drop_mask]
     vec_data = view(vec_data, .!drop_mask)
@@ -101,6 +104,57 @@ function flatten(
         dropped_values,
     )
     return FlatVar(metadata, copy(vec_data))
+end
+
+"""
+    flatten(var::OutputVar, metadata::Metadata)
+
+Flatten `var` into a `FlatVar` according to `metadata`.
+
+!!! note "Dropped values"
+    This function flattens `var` such that the coordinates of the dropped values
+    in `var` are the same as the coordinates of the dropped values in the
+    metadata.
+"""
+function flatten(var::OutputVar, metadata::Metadata)
+    # Check dimensions are the same in metadata and var
+    Set(conventional_dim_name.(keys(var.dims))) ==
+    Set(conventional_dim_name.(keys(metadata.dims))) || error(
+        "Dimensions in var ($(keys(var.dims))) is not the same as the dimensions in the metadata ($(keys(metadata.dims)))",
+    )
+
+    # Check if start_date are the same or not in var and metadata
+    var_start_date = get(var.attributes, "start_date", nothing)
+    md_start_date = get(metadata.attributes, "start_date", nothing)
+
+    if !isnothing(var_start_date) && !isnothing(md_start_date)
+        has_start_date = true
+    elseif isnothing(var_start_date) && isnothing(md_start_date)
+        has_start_date = false
+    else
+        error(
+            "Mismatch in start dates in var ($var_start_date) and metadata ($md_start_date); both must be present or missing",
+        )
+    end
+
+    # Check the dimension arrays are the same
+    for var_dim_name in keys(var.dims)
+        md_dim_name = find_corresponding_dim_name_in_var(var_dim_name, metadata)
+        if conventional_dim_name(var_dim_name) != "time" || !has_start_date
+            all(isapprox(var.dims[var_dim_name], metadata.dims[md_dim_name])) ||
+                error(
+                    "Dimensions in var ($var_dim_name) and metadata ($md_dim_name) are not the same",
+                )
+        else
+            dates(var) == dates(metadata) ||
+                error("Dates between var and metadata are not the same")
+        end
+    end
+    return flatten(
+        var,
+        dims = flatten_dim_order(metadata),
+        drop_mask = metadata.drop_mask,
+    )
 end
 
 """
