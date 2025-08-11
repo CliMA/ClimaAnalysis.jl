@@ -96,6 +96,20 @@ flat_masked_var = ClimaAnalysis.flatten(var, mask = ocean_mask)
 length(flat_nan_var.data)
 ```
 
+### With `Metadata` or `FlatVar`
+
+You can also flatten a `OutputVar` with `Metadata` or `FlatVar`. This flatten
+the `OutputVar`, so that the coordinates of the kept values match with the
+coordinates of the kept values in `Metadata` or `FlatVar`.
+
+```@example flat
+# No NaNs in var
+matched_flat_var = ClimaAnalysis.flatten(var, flat_nan_var);
+# Since NaNs were removed when creating `flat_nan_var`, the corresponding values at those
+# same coordinates are also removed from `var` when creating `matched_flat_var`
+isequal(length(flat_nan_var.data), length(matched_flat_var.data))
+```
+
 ### Accessors
 
 Information about the dimensions can be accessed with the typical functions used for

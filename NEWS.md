@@ -63,6 +63,21 @@ shifted_daily = ClimaAnalysis.shift_to_previous_day(var)
 shifted_weekly = ClimaAnalysis.shift_to_previous_week(var)
 ```
 
+## Flatten with a FlatVar or metadata
+
+You can now flatten a `OutputVar` using the metadata of a `FlatVar` or another
+`FlatVar`. This is useful if you want a `OutputVar` to be flattened exactly like
+how `FlatVar` was created.
+
+```julia
+# var1 and var2 are OutputVars
+flat_var1 = ClimaAnalysis.flatten(var1)
+flat_var2 = flatten(var2, flat_var1)
+# This is also the same as the following
+flat_var2 = flatten(var2, flat_var1.metadata)
+
+```
+
 ## Bug fixes
 - Fixed conversion from dates to relative times for NetCDF files where the
   temporal dimension is typed as `Union{T, Missing}`, where `T` is a subtype of
