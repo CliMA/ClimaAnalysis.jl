@@ -4277,6 +4277,172 @@ end
     )
 end
 
+@testset "Flatten with metadata" begin
+    lat = [-90.0, -30.0, 30.0, 90.0]
+    lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
+    time = [0.0, 1.0, 5.0]
+    n_elts = length(lat) * length(lon) * length(time)
+    size_of_data = (length(lat), length(lon), length(time))
+    data = reshape(collect(1.0:n_elts), size_of_data...)
+    start_date_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        add_data(data = data) |>
+        initialize
+
+    flat_var = ClimaAnalysis.flatten(start_date_var)
+
+    # Number of dimensions are not the same
+    less_dim_var =
+        TemplateVar() |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    @test_throws ErrorException ClimaAnalysis.flatten(less_dim_var, flat_var)
+
+    # Start date present in one and not the other
+    no_start_date_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(long_name = "hello") |>
+        initialize
+    @test_throws ErrorException ClimaAnalysis.flatten(
+        no_start_date_var,
+        flat_var,
+    )
+
+    # Absolute times not the same with the same start dates
+    diff_start_date_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", [0.0, 1.0, 2.0], units = "seconds") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        add_data(data = data) |>
+        initialize
+
+    @test_throws ErrorException ClimaAnalysis.flatten(
+        diff_start_date_var,
+        flat_var,
+    )
+
+    # Absolute times not the same with no start dates
+    no_start_date_var2 =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", [0.0, 1.0, 2.0], units = "seconds") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = data) |>
+        initialize
+    no_start_date_metadata2 = ClimaAnalysis.flatten(no_start_date_var2).metadata
+    @test_throws ErrorException ClimaAnalysis.flatten(
+        no_start_date_var,
+        no_start_date_metadata2,
+    )
+
+    # Units of dimensions do not match
+    radian_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "radians") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        add_data(data = lat) |>
+        initialize
+    degrees_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        add_data(data = lat) |>
+        initialize
+    @test_throws ErrorException ClimaAnalysis.flatten(
+        radian_var,
+        ClimaAnalysis.flatten(degrees_var),
+    )
+
+    # Units are missing for both
+    missing_units_var =
+        TemplateVar() |>
+        add_dim("lat", lat) |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        add_data(data = lat) |>
+        initialize
+    @test_logs (:warn, r"missing in") ClimaAnalysis.flatten(
+        missing_units_var,
+        ClimaAnalysis.flatten(missing_units_var),
+    )
+
+    # Good cases
+    function test_flatten(src_var, target_var, perms)
+        for perm in perms
+            flat_var = ClimaAnalysis.flatten(permutedims(src_var, perm))
+            for perm in perms
+                flat_target_var = ClimaAnalysis.flatten(
+                    permutedims(target_var, perm),
+                    flat_var,
+                )
+                @test flat_target_var.data == flat_var.data
+                @test ClimaAnalysis.flatten_dim_order(flat_target_var) ==
+                      ClimaAnalysis.flatten_dim_order(flat_var)
+            end
+        end
+    end
+    perms_3d = (
+        ("lon", "lat", "time"),
+        ("lat", "lon", "time"),
+        ("lat", "lon", "time"),
+        ("lat", "time", "lon"),
+        ("time", "lon", "lat"),
+        ("time", "lat", "lon"),
+    )
+
+    # Flatten with the OutputVar and metadata created from flatten for a OutputVar with
+    # a start date and no start date
+    test_flatten(start_date_var, start_date_var, perms_3d)
+    test_flatten(no_start_date_var, no_start_date_var, perms_3d)
+
+    # Absolute times are different with different start dates
+    different_start_date_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", [-5.0, -4.0, 0.0], units = "seconds") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-01T00:00:05") |>
+        add_data(data = data) |>
+        initialize
+    test_flatten(start_date_var, different_start_date_var, perms_3d)
+    test_flatten(different_start_date_var, start_date_var, perms_3d)
+
+    # No time dimension but one OutputVar has a start date and the other one does not
+    start_date_no_time_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        add_data(data = data[:, :, 1]) |>
+        initialize
+
+    attribs = Dict("long_name" => "hi")
+    no_start_date_no_time_var =
+        ClimaAnalysis.remake(start_date_no_time_var, attributes = attribs)
+    perms_2d = (("lon", "lat"), ("lat", "lon"))
+    test_flatten(start_date_no_time_var, no_start_date_no_time_var, perms_2d)
+    test_flatten(no_start_date_no_time_var, start_date_no_time_var, perms_2d)
+
+    # Flatten with dropping NaNs
+    nan_data = reshape(collect(1.0:n_elts), size_of_data...)
+    nan_data[1, 1, 1] = NaN
+    nan_data[1, 2, 3] = NaN
+    nan_data[2, 3, 2] = NaN
+    nan_data[4, 5, 1] = NaN
+    nan_var = ClimaAnalysis.remake(start_date_var, data = nan_data)
+    test_flatten(nan_var, nan_var, perms_3d)
+end
+
 @testset "Extracting dimensions, units, and names for FlatVar" begin
     lat = collect(range(-89.5, 89.5, 3))
     lon = collect(range(-179.5, 179.5, 4))

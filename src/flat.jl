@@ -64,7 +64,14 @@ function flatten(
     dims = ("longitude", "latitude", "pressure_level", "z", "time"),
     ignore_nan = true,
     mask = nothing,
+    drop_mask = nothing,
 )
+    # The keyword argument `drop_mask` is not exposed to the user and is needed
+    # to implement flatten(var::OutputVar, flat_var::FlatVar) and
+    # flatten(var::OutputVar, metadata::Metadata). The `drop_mask` is a
+    # `BitVector` with length equal to the product of all dimension lengths. If
+    # `true`, the corresponding value is dropped. If `false`, the value is kept.
+    # When `drop_mask` is provided, both `ignore_nan` and `mask` are ignored.
 
     # Filter unnecessary dimension names
     dims = conventional_dim_name.(dims)
@@ -84,9 +91,11 @@ function flatten(
     permute_data = PermutedDimsArray(var.data, perm)
     vec_data = vec(permute_data)
 
-    drop_mask = _drop_mask(var, ignore_nan, mask)
-    permute_drop_mask = PermutedDimsArray(drop_mask, perm)
-    drop_mask = vec(permute_drop_mask)
+    if isnothing(drop_mask)
+        drop_mask = _drop_mask(var, ignore_nan, mask)
+        permute_drop_mask = PermutedDimsArray(drop_mask, perm)
+        drop_mask = vec(permute_drop_mask)
+    end
 
     dropped_values = vec_data[drop_mask]
     vec_data = view(vec_data, .!drop_mask)
@@ -104,7 +113,93 @@ function flatten(
 end
 
 """
-    _drop_mask(var, mask, ignore_nan)
+    flatten(var::OutputVar, flat_var::FlatVar)
+
+Flatten `var` into a `FlatVar` according to the `metadata` of `flat_var`.
+
+!!! note "Dropped values"
+    This function flattens `var` such that the coordinates of the dropped values
+    in `var` are the same as the coordinates of the dropped values in
+    `metadata`.
+"""
+function flatten(var::OutputVar, flat_var::FlatVar)
+    return flatten(var, flat_var.metadata)
+end
+
+"""
+    flatten(var::OutputVar, metadata::Metadata)
+
+Flatten `var` into a `FlatVar` according to `metadata`.
+
+This function will not succeed if:
+- the dimension names in the metadata and var are not the same,
+- the coordinate values of corresponding dimensions are not approximately equal,
+- the units of corresponding dimensions are not the same.
+
+Ordering of the dimensions does not matter.
+
+!!! note "Dropped values"
+    This function flattens `var` such that the coordinates of the kept values
+    in `var` are the same as the coordinates of the kept values in
+    `metadata`.
+"""
+function flatten(var::OutputVar, metadata::Metadata)
+    # Check dimensions are the same in metadata and var
+    Set(conventional_dim_name.(keys(var.dims))) ==
+    Set(conventional_dim_name.(keys(metadata.dims))) || error(
+        "Dimensions in var ($(keys(var.dims))) is not the same as the dimensions in the metadata ($(keys(metadata.dims)))",
+    )
+
+    # Instead of trying to determine whether dates or times should be used, we try dates
+    # first and if it does not work, then use the time dimension instead
+    function dates_or_times(var)
+        temporal_dim = try
+            dates(var)
+        catch
+            times(var)
+        end
+        return temporal_dim
+    end
+
+    # Check the dimension arrays are the same
+    for var_dim_name in keys(var.dims)
+        md_dim_name = find_corresponding_dim_name_in_var(var_dim_name, metadata)
+        if conventional_dim_name(var_dim_name) != "time"
+            all(isapprox(var.dims[var_dim_name], metadata.dims[md_dim_name])) ||
+                error(
+                    "Dimensions in var ($var_dim_name) and metadata ($md_dim_name) are not the same",
+                )
+        else
+            dates_or_times(var) == dates_or_times(metadata) || error(
+                "The dates or times between var and metadata are not the same",
+            )
+        end
+    end
+
+    # Check the units of the dimensions are the same
+    for var_dim_name in keys(var.dims)
+        md_dim_name = find_corresponding_dim_name_in_var(var_dim_name, metadata)
+        var_dim_units = dim_units(var, var_dim_name)
+        md_dim_units = dim_units(metadata, md_dim_name)
+        var_dim_units == md_dim_units || error(
+            "Units of $var_dim_name in var ($var_dim_units) is not the same as the units of $md_dim_name in metadata",
+        )
+        if var_dim_units == "" || md_dim_units == ""
+            @warn(
+                "Units for $(conventional_dim_name(var_dim_name)) is missing in var or metadata"
+            )
+        end
+    end
+
+    return flatten(
+        var,
+        dims = flatten_dim_order(metadata),
+        drop_mask = metadata.drop_mask,
+    )
+end
+
+"""
+    _drop_mask(var::OutputVar, ignore_nan, mask)
 
 Create a bitmask for values to exclude during flattening.
 
@@ -132,7 +227,7 @@ end
 """
     unflatten(metadata::Metadata, data::AbstractVector)
 
-Unflatten `data` according the `metadata` and reconstruct the `OutputVar`.
+Unflatten `data` according to the `metadata` and reconstruct the `OutputVar`.
 
 This function assumes that order of `data` before flattened is the same as
 `flatten_dim_order(metadata)`.
