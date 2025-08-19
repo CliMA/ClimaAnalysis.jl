@@ -43,6 +43,7 @@ export OutputVar,
     center_longitude!,
     short_name,
     long_name,
+    has_start_date,
     units,
     dim_units,
     range_dim,
@@ -489,6 +490,16 @@ If not available, return an empty string.
 """
 function long_name(var::HasDimAndAttribs)
     get(var.attributes, "long_name", "")
+end
+
+"""
+    has_start_date(var::OutputVar)
+
+Return whether `var` has a start date or not.
+"""
+function has_start_date(var::HasDimAndAttribs)
+    return (has_time(var) || has_date(var)) &&
+           haskey(var.attributes, "start_date")
 end
 
 """

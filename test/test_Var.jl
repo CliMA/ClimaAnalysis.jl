@@ -1355,6 +1355,28 @@ end
     @test ClimaAnalysis.pressure_name(pressure_var) == "pfull"
 end
 
+@testset "Start date" begin
+    vec = [0.0, 1.0, 2.0, 3.0]
+    time_var =
+        TemplateVar() |>
+        add_dim("time", vec, units = "seconds") |>
+        add_attribs(start_date = "2010-12-1") |>
+        initialize
+
+    no_time_var =
+        TemplateVar() |>
+        add_dim("lon", vec, units = "degrees_east") |>
+        initialize
+
+    no_time_and_start_date_var =
+        TemplateVar() |> add_dim("time", vec, units = "seconds") |> initialize
+
+    @test ClimaAnalysis.has_start_date(time_var)
+    @test !ClimaAnalysis.has_start_date(no_time_var)
+    @test !ClimaAnalysis.has_start_date(no_time_and_start_date_var)
+
+end
+
 @testset "Interpolation" begin
     # 1D interpolation with linear data, should yield correct results
     long = -175.0:175.0 |> collect
