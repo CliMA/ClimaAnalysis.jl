@@ -1375,6 +1375,7 @@ end
     @test !ClimaAnalysis.has_start_date(no_time_var)
     @test !ClimaAnalysis.has_start_date(no_time_and_start_date_var)
 
+    @test ClimaAnalysis.start_date(time_var) == Dates.DateTime(2010, 12, 1)
 end
 
 @testset "Interpolation" begin

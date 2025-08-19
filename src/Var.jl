@@ -44,6 +44,7 @@ export OutputVar,
     short_name,
     long_name,
     has_start_date,
+    start_date,
     units,
     dim_units,
     range_dim,
@@ -500,6 +501,23 @@ Return whether `var` has a start date or not.
 function has_start_date(var::HasDimAndAttribs)
     return (has_time(var) || has_date(var)) &&
            haskey(var.attributes, "start_date")
+end
+
+"""
+    start_date(var::OutputVar)
+
+Return the `start_date` of the given `var` as a `Dates.DateTime`, if available.
+
+If not available, throw an error.
+
+!!! note "Type of date"
+    There is currently no support for `CFTime`, so the type of the start date is always
+    `Dates.DateTime`.
+"""
+function start_date(var::HasDimAndAttribs)
+    has_start_date(var) ||
+        error("Start date is not available as an attribute in var")
+    return Dates.DateTime(var.attributes["start_date"])
 end
 
 """
