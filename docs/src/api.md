@@ -37,6 +37,8 @@ Var.short_name
 Var.long_name
 Var.units
 Var.has_units
+Var.start_date
+Var.has_start_date
 Var.remake
 Var.slice
 Var.average_lat

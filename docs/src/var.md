@@ -191,12 +191,12 @@ julia> long_name(integrated_var) # updated long name to reflect the data being i
 
 ## Split by season
 `OutputVar`s can be split by seasons using `split_by_season(var)` provided that a start date
-can be found in `var.attributes["start_date"]` and time is a dimension in the `OutputVar`.
-The unit of time is expected to be second. The function `split_by_season(var)` returns a
-vector of four `OutputVar`s with each `OutputVar` corresponding to a season. The months of
-the seasons are March to May, June to August, September to November, and December to
-February. The order of the vector is MAM, JJA, SON, and DJF. If there are no dates found for
-a season, then the `OutputVar` for that season will be an empty `OutputVar`.
+can be found in `start_date(var)` and time is a dimension in the `OutputVar`. The unit of
+time is expected to be second. The function `split_by_season(var)` returns a vector of four
+`OutputVar`s with each `OutputVar` corresponding to a season. The months of the seasons are
+March to May, June to August, September to November, and December to February. The order of
+the vector is MAM, JJA, SON, and DJF. If there are no dates found for a season, then the
+`OutputVar` for that season will be an empty `OutputVar`.
 
 ```@setup split_by_season
 import ClimaAnalysis
@@ -264,7 +264,7 @@ var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
 ```
 
 ```@repl split_by_season_across_time
-var.attributes["start_date"]
+ClimaAnalysis.start_date(var)
 ClimaAnalysis.times(var) # dates from the first of January, March, June, August, and December
 split_var = ClimaAnalysis.split_by_season_across_time(var);
 length(split_var) # months span over 5 seasons
