@@ -1281,7 +1281,7 @@ end
     date_to_time(var::OutputVar, date::Dates.DateTime)
 
 Convert the given calendar date to a time (in seconds) where t=0 is
-`var.attributes["start_date"]`.
+`ClimaAnalysis.start_date(var)`.
 
 This function throws an error if this conversion is not possible with the information in
 `var`.
@@ -1289,10 +1289,8 @@ This function throws an error if this conversion is not possible with the inform
 function date_to_time(var::OutputVar, date::Dates.DateTime)
     # NOTE: this a method in Utils
 
-    var_has_start_date = haskey(var.attributes, "start_date")
-
-    if var_has_start_date
-        return date_to_time(Dates.DateTime(var.attributes["start_date"]), date)
+    if has_start_date(var)
+        return date_to_time(start_date(var), date)
     else
         error(
             "$date is a Date but `var` does not contain `start_date` in the attributes",
@@ -1817,7 +1815,7 @@ and DJF. If there are no dates found for a season, then the `OutputVar` for that
 be an empty `OutputVar`. For non-empty OutputVars, the season can be found by
 `var.attributes["season"]`.
 
-The function will use the start date in `var.attributes["start_date"]`. The unit of time is
+The function will use the start date in `ClimaAnalysis.start_date(var)`. The unit of time is
 expected to be second.
 
 !!! note "Interpolating between seasons"
@@ -1831,14 +1829,11 @@ splits dates by season for each year.
 """
 function split_by_season(var::OutputVar; seasons = ("MAM", "JJA", "SON", "DJF"))
     _check_time_dim(var)
-    start_date = Dates.DateTime(var.attributes["start_date"])
+    startdate = start_date(var)
 
-    season_dates = split_by_season(
-        time_to_date.(start_date, times(var)),
-        seasons = seasons,
-    )
-    season_times =
-        (date_to_time.(start_date, season) for season in season_dates)
+    season_dates =
+        split_by_season(time_to_date.(startdate, times(var)), seasons = seasons)
+    season_times = (date_to_time.(startdate, season) for season in season_dates)
 
     season_vars = _split_along_dim(var, time_name(var), season_times)
     for (season, season_var) in zip(seasons, season_vars)
@@ -1864,7 +1859,7 @@ Also, for non-empty `OutputVar`s, the year can be found by `var.attributes["year
 convention used is that the second month of the season determines the year. For example, the
 year of DJF is the same year as Janauary.
 
-The function will use the start date in `var.attributes["start_date"]`. The unit of time is
+The function will use the start date in `ClimaAnalysis.start_date(var)`. The unit of time is
 expected to be second.
 
 This function differs from `split_by_season` as `split_by_season` splits dates by
@@ -1872,12 +1867,12 @@ season and ignores that seasons can come from different years.
 """
 function split_by_season_across_time(var::OutputVar)
     _check_time_dim(var)
-    start_date = Dates.DateTime(var.attributes["start_date"])
+    startdate = start_date(var)
 
     seasons_across_year_dates =
-        split_by_season_across_time(time_to_date.(start_date, times(var)))
+        split_by_season_across_time(time_to_date.(startdate, times(var)))
     seasons_across_year_times = (
-        date_to_time.(start_date, season) for
+        date_to_time.(startdate, season) for
         season in seasons_across_year_dates
     )
 
@@ -1887,7 +1882,7 @@ function split_by_season_across_time(var::OutputVar)
     for var in split_by_season_vars
         if !isempty(var)
             season, year = find_season_and_year(
-                first(time_to_date.(start_date, times(var))),
+                first(time_to_date.(startdate, times(var))),
             )
             # This override the attributes if the user sets something for season and year
             # already
@@ -1909,16 +1904,15 @@ If there are no dates found for a month, then the `OutputVar` for that season wi
 empty `OutputVar`. For non-empty `OutputVar`s, the month can be found by
 `var.attributes["month"]`.
 
-The function will use the start date in `var.attributes["start_date"]`. The unit of time is
+The function will use the start date in `ClimaAnalysis.start_date(var)`. The unit of time is
 expected to be second.
 """
 function split_by_month(var::OutputVar)
     _check_time_dim(var)
-    start_date = Dates.DateTime(var.attributes["start_date"])
+    startdate = start_date(var)
 
-    monthly_dates = split_by_month(time_to_date.(start_date, times(var)))
-    monthly_times =
-        (date_to_time.(start_date, month) for month in monthly_dates)
+    monthly_dates = split_by_month(time_to_date.(startdate, times(var)))
+    monthly_times = (date_to_time.(startdate, month) for month in monthly_dates)
 
     monthly_vars = _split_along_dim(var, time_name(var), monthly_times)
 
@@ -2367,9 +2361,7 @@ function shift_to_start_of_previous_month(var::OutputVar)
         error("Unit of data is not in second")
 
     # Convert to seconds to dates
-    date_arr =
-        Dates.Second.(times(var)) .+
-        Dates.DateTime.(var.attributes["start_date"])
+    date_arr = Dates.Second.(times(var)) .+ start_date(var)
 
     # Apply transformations (find first day of month and subtract one month)
     date_arr .=
@@ -2382,11 +2374,11 @@ function shift_to_start_of_previous_month(var::OutputVar)
     )
 
     # Convert from dates to seconds
-    start_date = date_arr[begin]
-    time_arr = map(date -> date_to_time(start_date, date), date_arr)
+    startdate = date_arr[begin]
+    time_arr = map(date -> date_to_time(startdate, date), date_arr)
 
     ret_attribs = deepcopy(var.attributes)
-    ret_attribs["start_date"] = string(start_date)
+    ret_attribs["start_date"] = string(startdate)
     ret_dims = deepcopy(var.dims)
     ret_dims["time"] = time_arr
     return remake(var, attributes = ret_attribs, dims = ret_dims)

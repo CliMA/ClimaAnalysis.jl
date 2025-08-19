@@ -149,10 +149,7 @@ function dates(var::HasDimAndAttribs)
 
     # Assuming time is in seconds
     if has_time(var) && haskey(var.attributes, "start_date")
-        return time_to_date.(
-            Dates.DateTime(var.attributes["start_date"]),
-            times(var),
-        )
+        return time_to_date.(start_date(var), times(var))
     end
 
     error(
