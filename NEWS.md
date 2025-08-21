@@ -29,6 +29,21 @@ lon_exists = ClimaAnalysis.has_longitude(flat_var.metadata)
 lon = ClimaAnalysis.longitudes(flat_var.metadata)
 ```
 
+## Flatten with a FlatVar or metadata
+
+You can now flatten a `OutputVar` using the metadata of a `FlatVar` or another
+`FlatVar`. This is useful if you want a `OutputVar` to be flattened exactly like
+how `FlatVar` was created.
+
+```julia
+# var1 and var2 are OutputVars
+flat_var1 = ClimaAnalysis.flatten(var1)
+flat_var2 = flatten(var2, flat_var1)
+# This is also the same as the following
+flat_var2 = flatten(var2, flat_var1.metadata)
+
+```
+
 v0.5.19
 -------
 This release introduces the following features and bug fixes
