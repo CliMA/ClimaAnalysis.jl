@@ -31,6 +31,5 @@ jobs:
         with:
           julia_version: ${{ matrix.version }}
           skip: Artifacts, Dates, Test, Statistics
-          mode: 'all'
-      - uses: julia-actions/julia-buildpkg@latest
-      - uses: julia-actions/julia-runtest@latest
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
