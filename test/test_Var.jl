@@ -2943,6 +2943,28 @@ end
     @test ClimaAnalysis.times(file_var) == [0.0]
     @test file_var.attributes["start_date"] == "1980-01-15T00:00:00"
 
+    # Test if Missing is part of the type, but missing is not in times
+    no_missing_time_arr =
+        convert(Vector{Union{Missing, Dates.DateTime}}, time_arr)
+    var =
+        TemplateVar() |>
+        add_dim("time", no_missing_time_arr, blah = "blah") |>
+        initialize
+    var_s = ClimaAnalysis.Var._dates_to_seconds(var)
+    @test ClimaAnalysis.times(var_s) == [0.0, 60.0, 120.0]
+    @test var_s.attributes["start_date"] == "2020-03-01T01:01:00"
+
+    # Test if Missing is part of the type and missing is in times
+    missing_time_arr =
+        convert(Vector{Union{Missing, Dates.DateTime}}, deepcopy(time_arr))
+    missing_time_arr[begin] = missing
+    var =
+        TemplateVar() |>
+        add_dim("time", missing_time_arr, blah = "blah") |>
+        initialize
+    @test_throws ErrorException ClimaAnalysis.Var._dates_to_seconds(var)
+
+
     # Test for error handling
     # Use date dimension instead of time dimension
     date_arr = [

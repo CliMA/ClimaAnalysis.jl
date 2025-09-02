@@ -29,6 +29,12 @@ lon_exists = ClimaAnalysis.has_longitude(flat_var.metadata)
 lon = ClimaAnalysis.longitudes(flat_var.metadata)
 ```
 
+## Bug fixes
+- Fixed conversion from dates to relative times for NetCDF files where the
+  temporal dimension is typed as `Union{T, Missing}`, where `T` is a subtype of
+  `Dates.AbstractDateTime`, but contains no actual `missing` values.
+
+
 v0.5.19
 -------
 This release introduces the following features and bug fixes
