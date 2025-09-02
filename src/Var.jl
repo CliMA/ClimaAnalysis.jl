@@ -297,17 +297,20 @@ function OutputVar(
 )
     var = read_var(path, short_name = short_name)
     # Check if it is possible to convert dates to seconds in the time dimension
-    if (
-        has_time(var) && (
-            eltype(times(var)) <:
-            Union{Dates.DateTime, NCDatasets.CFTime.AbstractCFDateTime}
-        )
-    )
-        var = _dates_to_seconds(
-            var,
-            new_start_date = new_start_date,
-            shift_by = shift_by,
-        )
+    if has_time(var)
+        time_type = eltype(times(var))
+        # For some datasets, the type of the temporal dimension includes Missing even though
+        # missing is not in the temporal dimension
+        any(t -> ismissing(t), times(var)) ||
+            (time_type = nonmissingtype(time_type))
+        if time_type <:
+           Union{Dates.DateTime, NCDatasets.CFTime.AbstractCFDateTime}
+            var = _dates_to_seconds(
+                var,
+                new_start_date = new_start_date,
+                shift_by = shift_by,
+            )
+        end
     end
     return var
 end
@@ -2269,8 +2272,13 @@ function _dates_to_seconds(
     has_time(var) || error(
         "Converting from dates to seconds is only supported for the time dimension",
     )
-    eltype(times(var)) <:
-    Union{Dates.DateTime, NCDatasets.CFTime.AbstractCFDateTime} ||
+
+    time_type = eltype(times(var))
+    # For some datasets, the type of the temporal dimension includes Missing even though
+    # missing is not in the temporal dimension
+    any(t -> ismissing(t), times(var)) ||
+        (time_type = nonmissingtype(time_type))
+    time_type <: Union{Dates.DateTime, NCDatasets.CFTime.AbstractCFDateTime} ||
         error("Type of time dimension is not dates")
 
     # Reinterpret everything as DateTime.Dates
