@@ -29,6 +29,18 @@ lon_exists = ClimaAnalysis.has_longitude(flat_var.metadata)
 lon = ClimaAnalysis.longitudes(flat_var.metadata)
 ```
 
+## Select based on values or indices
+
+In addition to `slice` and `window`, you can now use `select` or `select_view` to extract
+multiple values or indices from a `OutputVar` along any dimension.
+
+The `select` function supports the same selector types as `slice` and `window`:
+```julia
+ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = [1,2,3], lon = 1:3)
+ClimaAnalysis.select(var, by = ClimaAnalysis.NearestValue(), lat = -90.0, long = [0.0, 10.0, 20.0])
+ClimaAnalysis.select(var, by = ClimaAnalysis.MatchValue(), latitude = [90.0], long = 180.0)
+```
+
 ## Bug fixes
 - Fixed conversion from dates to relative times for NetCDF files where the
   temporal dimension is typed as `Union{T, Missing}`, where `T` is a subtype of

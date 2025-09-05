@@ -52,6 +52,8 @@ Var.variance_lon
 Var.variance_lat
 Var.variance_time
 Var.window
+Var.select
+Var.view_select
 Var.arecompatible
 Var.shift_longitude
 Var.center_longitude!

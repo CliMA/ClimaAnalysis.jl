@@ -1,5 +1,12 @@
 export slice,
-    window, NearestValue, MatchValue, Index, AbstractSelector, get_index
+    window,
+    select,
+    view_select,
+    NearestValue,
+    MatchValue,
+    Index,
+    AbstractSelector,
+    get_index
 
 """
     AbstractSelector
@@ -333,4 +340,142 @@ function _create_slice_over(var, dim_name, idx_or_val, by::AbstractSelector)
         return reshape(sliced, new_shape_with_dim)
     end
     return _slice_over
+end
+
+"""
+    select(var::OutputVar; by = NearestValue(), kwargs...)
+
+Return a new `OutputVar` by selecting indices or values according to `by` across dimensions
+as defined by the keyword arguments.
+
+The keyword argument `by` can be `ClimaAnalysis.NearestValue()`,
+`ClimaAnalysis.MatchValue()`, or `ClimaAnalysis.Index()`.
+- `NearestValue()`: The nearest value will be selected for slicing.
+- `MatchValue()`: The approximately matched value will be selected for slicing.
+- `Index()`: The index passed in will be used for slicing.
+
+Examples
+===========
+```julia
+import ClimaAnalysis: select, Index, NearestValue, MatchValue
+select(var, by = Index(), lat = [1,2,3], lon = 1:3)
+select(var, by = NearestValue(), lat = -90.0, long = [0.0, 10.0, 20.0])
+select(var, by = MatchValue(), latitude = [90.0], long = 180.0)
+```
+
+!!! note "Supported indices and values"
+    Indices or values could be a single value, a vector of values, or an `AbstractRange`.
+    All other forms of indexing are not supported.
+
+See also [`view_select`](@ref).
+"""
+function select(var::OutputVar; by = NearestValue(), kwargs...)
+    dims, data = _select(var, by; kwargs...)
+    return remake(var, dims = dims, data = copy(data))
+end
+
+"""
+    view_select(var::OutputVar, by = NearestValue(), kwargs...)
+
+Return a new `OutputVar` by selecting indices or values according to `by` across dimensions
+as defined by the keyword arguments. The data of the returned `OutputVar` is a view of
+`var.data`.
+
+The keyword argument `by` can be `ClimaAnalysis.NearestValue()`,
+`ClimaAnalysis.MatchValue()`, or `ClimaAnalysis.Index()`.
+- `NearestValue()`: The nearest value will be selected for slicing.
+- `MatchValue()`: The approximately matched value will be selected for slicing.
+- `Index()`: The index passed in will be used for slicing.
+
+Examples
+===========
+```julia
+import ClimaAnalysis: view_select, Index, NearestValue, MatchValue
+view_select(var, by = Index(), lat = [1,2,3], lon = 1:3)
+view_select(var, by = NearestValue(), lat = -90.0, long = [0.0, 10.0, 20.0])
+view_select(var, by = MatchValue(), latitude = [90.0], long = 180.0)
+```
+
+See also [`select`](@ref).
+"""
+function view_select(var::OutputVar; by = NearestValue(), kwargs...)
+    dims, data = _select(var, by; kwargs...)
+    # The size of data is much bigger than dims and the other parts of a
+    # `OutputVar`, so it is okay to copy them rather than reuse them
+    return remake(var, dims = dims, data = data)
+end
+
+"""
+    _select(var::OutputVar, by::AbstractSelector; kwargs...)
+
+Return the dimensions and data by selecting indices or values according to `by` and the
+keyword arguments.
+"""
+function _select(var::OutputVar, by::AbstractSelector; kwargs...)
+    # Wrong dimension names or dimensions that do not exist in var are checked
+    # by find_corresponding_dim_name_in_var
+    dim_names = collect(
+        find_corresponding_dim_name_in_var(String(dim_name), var) for
+        (dim_name, _) in kwargs
+    )
+    vals_or_indices_per_dims =
+        collect(vals_or_indices for (_, vals_or_indices) in kwargs)
+    new_indices = collect(
+        _select_indices(var, by, dim_name, vals_or_indices) for
+        (dim_name, vals_or_indices) in zip(dim_names, vals_or_indices_per_dims)
+    )
+
+    # Reorder dimensions
+    var_dim_names = collect(keys(var.dims))
+    all_indices = ntuple(length(var.dims)) do i
+        var_dim_name = var_dim_names[i]
+        dim_idx = findfirst(==(var_dim_name), dim_names)
+        if isnothing(dim_idx)
+            Colon()
+        else
+            new_indices[dim_idx]
+        end
+    end
+    # Needed because indices in all_indices could be CartesianIndex which is not
+    # an integer, but behave like scalar indexing
+    all_indices = to_indices(var.data, all_indices)
+    data = view(var.data, all_indices...)
+    dims = typeof(var.dims)(
+        dim_name => copy(selectdim(dim, ndims(dim), indices)) for
+        ((dim_name, dim), indices) in zip(var.dims, all_indices) if
+        !(indices isa Integer)
+    )
+    return dims, data
+end
+
+"""
+    function _select_indices(var::OutputVar,
+                             by::AbstractSelector,
+                             dim_name,
+                             indices_or_vals)
+
+Return the indices for `var.data` corresponding to the given `indices_or_vals` in the
+specified dimension.
+
+This is an internal helper function used by `select` and `view_select` to convert
+user-provided values or indices into indices for data selection.
+"""
+function _select_indices(
+    var::OutputVar,
+    by::AbstractSelector,
+    dim_name,
+    indices_or_vals,
+)
+    # We cannot support `CartesianIndex` because of the line below, because it is difficult
+    # to tell whether indices_or_vals is a Dates.DateTime or an iterable of Dates.DateTime
+    val_is_date =
+        indices_or_vals isa Dates.AbstractDateTime ||
+        first(indices_or_vals) isa Dates.AbstractDateTime
+    dim_is_time = conventional_dim_name(dim_name) == "time"
+    (val_is_date && !dim_is_time) &&
+        error("Dates are only supported with time dimension")
+    # If val is a Date, let's compute the associated time
+    val_is_date && (indices_or_vals = date_to_time.(Ref(var), indices_or_vals))
+    indices = get_index.(Ref(var), Ref(dim_name), indices_or_vals, Ref(by))
+    return indices
 end
