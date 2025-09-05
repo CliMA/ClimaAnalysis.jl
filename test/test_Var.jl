@@ -1284,6 +1284,137 @@ end
     )
 end
 
+@testset "Selecting" begin
+    time = 0.0:7.0 |> collect
+    lon = 0.0:4.0 |> collect
+    lat = 40.0:55.0 |> collect
+    var =
+        TemplateVar() |>
+        add_dim("time", time, units = "s") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(long_name = "hi", start_date = "2010-1-1") |>
+        initialize
+
+    # 1 dimension
+    # With values
+    nearest_var1 = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.NearestValue(),
+        lat = [20, 60],
+    )
+    @test isequal(nearest_var1.data, var.data[:, :, [begin, end]])
+    nearest_var2 =
+        ClimaAnalysis.select(var, by = ClimaAnalysis.NearestValue(), lat = 60)
+    @test isequal(nearest_var2.data, var.data[:, :, end])
+    nearest_var3 =
+        ClimaAnalysis.select(var, by = ClimaAnalysis.NearestValue(), lat = [60])
+    @test isequal(nearest_var3.data, var.data[:, :, [end]])
+    nearest_var4 = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.NearestValue(),
+        lat = 53:55,
+    )
+    @test isequal(nearest_var4.data, var.data[:, :, [14, 15, 16]])
+
+    # With indices
+    index_var1 = ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = 1)
+    @test isequal(index_var1.data, var.data[:, :, 1])
+    index_var2 =
+        ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = [1])
+    @test isequal(index_var2.data, var.data[:, :, [1]])
+    index_var3 =
+        ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = [1, 5])
+    @test isequal(index_var3.data, var.data[:, :, [1, 5]])
+    index_var4 =
+        ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = 1:3)
+    @test isequal(index_var4.data, var.data[:, :, 1:3])
+
+    # With dates
+    dates_var1 = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.MatchValue(),
+        time = Dates.DateTime(2010),
+    )
+    @test isequal(dates_var1.data, var.data[1, :, :])
+    dates_var2 = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.MatchValue(),
+        time = [Dates.DateTime(2010)],
+    )
+    @test isequal(dates_var2.data, var.data[[1], :, :])
+    dates_var3 = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.MatchValue(),
+        time = [Dates.DateTime(2010), Dates.DateTime(2010, 1, 1, 0, 0, 2)],
+    )
+    @test isequal(dates_var3.data, var.data[[1, 3], :, :])
+    dates_var4 = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.MatchValue(),
+        time = Dates.DateTime(2010, 1, 1, 0, 0, 0):Dates.Second(2):Dates.DateTime(
+            2010,
+            1,
+            1,
+            0,
+            0,
+            7,
+        ),
+    )
+    @test isequal(dates_var4.data, var.data[[1, 3, 5, 7], :, :])
+
+    # Duplicate indices / values
+    duplicate_var = ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.Index(),
+        lat = [1, 2, 2, 3, 3, 5],
+    )
+    @test isequal(duplicate_var.data, var.data[:, :, [1, 2, 2, 3, 3, 5]])
+
+    # 2D dims
+    var_2d_dim =
+        TemplateVar() |>
+        add_dim("dim2d", [[1.0, 2.0, 3.0] [4.0, 5.0, 6.0]], units = "idk") |>
+        add_attribs(two_dims = "yes") |>
+        add_data(data = [7.0, 8.0, 9.0]) |>
+        initialize
+    var_2d_dim_selected = ClimaAnalysis.select(
+        var_2d_dim,
+        by = ClimaAnalysis.Index(),
+        dim2d = [1],
+    )
+    @test isequal(var_2d_dim.data[[1]], var_2d_dim_selected.data)
+    @test isequal(
+        var_2d_dim_selected.dims["dim2d"],
+        var_2d_dim.dims["dim2d"][:, [1]],
+    )
+
+    # Error handling
+    # Invalid indices
+    @test_throws ErrorException ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.Index(),
+        cool = 42,
+    )
+    @test_throws ErrorException ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.Index(),
+        cool = 1:42,
+    )
+    @test_throws ErrorException ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.Index(),
+        cool = [1, 42],
+    )
+
+    # Missing dimensions
+    @test_throws ErrorException ClimaAnalysis.select(
+        var,
+        by = ClimaAnalysis.Index(),
+        cool = 42,
+    )
+end
+
 @testset "Extracting dimension" begin
     @test ClimaAnalysis.Var.find_dim_name(["a", "b"], ["c", "a"]) == "a"
     @test_throws ErrorException ClimaAnalysis.Var.find_dim_name(
