@@ -48,6 +48,76 @@ ClimaAnalysis.window(var, left = 1, right = 3, by = ClimaAnalysis.Index())
 ClimaAnalysis.window(var, left = 102.0, right = 108.0, by = ClimaAnalysis.MatchValue())
 ```
 
+## How do I select specific indices or ranges from a `OutputVar`?
+
+You can use [`ClimaAnalysis.select`](@ref) and [`ClimaAnalysis.view_select`](@ref) to
+arbitrarily index into a `OutputVar` along any dimension.
+
+Use `select` when you want a new `OutputVar` with copied data and `view_select` when you
+want a view into the original data. All selectors supported by [`ClimaAnalysis.slice`](@ref)
+and [`ClimaAnalysis.window`](@ref) can be used for `select` and `view_select`.
+
+```@setup select
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar,
+    add_attribs,
+    add_dim,
+    initialize
+
+time = 0.0:10.0 |> collect
+lon = 0.0:15.0 |> collect
+lat = 0.0:20.0 |> collect
+var =
+    TemplateVar() |>
+    add_dim("time", time, units = "s") |>
+    add_dim("lon", time, units = "degrees") |>
+    add_dim("lat", time, units = "degrees") |>
+    add_attribs(short_name = "pr", start_date = "2010-1-1") |>
+    initialize
+```
+
+In the following examples, `var` is a `OutputVar` with a time dimension of length 10, a
+longitude dimension of length 15, and a latitude dimension of length 20. You can select
+indices using a range.
+
+```@repl select
+var_subset = ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), time = 1:5);
+ClimaAnalysis.times(var_subset)
+size(var_subset.data)
+```
+
+You can also select using the nearest value to find the closest match.
+
+```@repl select
+var_subset = ClimaAnalysis.select(var, by = ClimaAnalysis.NearestValue(), time = [2.1]);
+ClimaAnalysis.times(var_subset)
+size(var_subset.data)
+```
+You can select by matching values. This example also creates a view of the data
+instead of a copy.
+
+```@repl select
+var_subset = ClimaAnalysis.view_select(var, by = ClimaAnalysis.MatchValue(), time = 2.0);
+ClimaAnalysis.has_time(var_subset)
+size(var_subset.data)
+```
+
+!!! warning "Scalar versus vector indexing"
+    Be careful about the difference between scalar (e.g., `5`) and vector indexing (e.g.,
+    `[5]`) when using `select` or `view_select`. In the examples above, indexing with a
+    scalar removes the dimension entirely, while indexing with a vector preserves the
+    dimension as a singleton dimension.
+
+!!! warning "Avoid duplicate indices"
+    You can include duplicate indices when selecting which may lead to unexpected behavior.
+
+    ```@repl select
+    var_subset = ClimaAnalysis.select(var, time = [1, 2, 2, 3]);
+    ClimaAnalysis.times(var_subset)
+    size(var_subset.data)
+    ```
+
 ## How do I take a global average over both the longitude and latitude dimensions?
 
 You can use `average_lonlat` to compute the global average over the longitude
