@@ -141,6 +141,7 @@ Var.FlatVar
 Var.flatten
 Var.unflatten
 Var.flatten_dim_order
+Var.flattened_length
 ```
 
 ## Leaderboard

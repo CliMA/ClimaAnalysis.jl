@@ -4041,7 +4041,7 @@ end
 
     flat_var = ClimaAnalysis.flatten(var, dims = ("latitude", "longitude", "t"))
     @test ClimaAnalysis.flatten_dim_order(flat_var) == ("lat", "lon", "time")
-    @test ClimaAnalysis.Var._data_length(flat_var) == n_elts
+    @test ClimaAnalysis.flattened_length(flat_var) == n_elts
     @test flat_var.data == vec(data)
     @test flat_var.metadata.attributes == var.attributes
     @test flat_var.metadata.dims == var.dims
@@ -4102,7 +4102,7 @@ end
     flat_var = ClimaAnalysis.Var.flatten(nan_var)
     @test ClimaAnalysis.Var.flatten_dim_order(flat_var) ==
           ("lon", "lat", "time")
-    @test ClimaAnalysis.Var._data_length(flat_var) == n_elts - 2
+    @test ClimaAnalysis.flattened_length(flat_var) == n_elts - 2
     @test flat_var.data == filter(!isnan, vec(permutedims(nan_data, (2, 1, 3))))
     @test flat_var.metadata.attributes == nan_var.attributes
     @test flat_var.metadata.dims == nan_var.dims
@@ -4140,7 +4140,7 @@ end
         ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0, threshold = 0.5)
 
     flat_var = ClimaAnalysis.flatten(var, ignore_nan = false, mask = mask_var)
-    @test ClimaAnalysis.Var._data_length(flat_var) == 45
+    @test ClimaAnalysis.flattened_length(flat_var) == 45
 
     permuted_var = permutedims(var, ("lon", "lat", "time"))
     data = copy(permuted_var.data)
@@ -4181,7 +4181,7 @@ end
     nan_var3 = ClimaAnalysis.remake(var, data = nan_data)
     flat_var =
         ClimaAnalysis.flatten(nan_var3, ignore_nan = true, mask = mask_var)
-    @test ClimaAnalysis.Var._data_length(flat_var) == 42
+    @test ClimaAnalysis.flattened_length(flat_var) == 42
 
     permuted_var = permutedims(var, ("lon", "lat", "time"))
     data = copy(permuted_var.data)
@@ -4204,7 +4204,7 @@ end
         ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0, threshold = 0.5)
 
     flat_var = ClimaAnalysis.flatten(var, ignore_nan = false, mask = mask_var)
-    @test ClimaAnalysis.Var._data_length(flat_var) == 45
+    @test ClimaAnalysis.flattened_length(flat_var) == 45
 
     permuted_var = permutedims(var, ("lon", "lat", "time"))
     data = copy(permuted_var.data)
@@ -4223,7 +4223,7 @@ end
     nan_var3 = ClimaAnalysis.remake(var, data = nan_data)
     flat_var =
         ClimaAnalysis.flatten(nan_var3, ignore_nan = true, mask = mask_var)
-    @test ClimaAnalysis.Var._data_length(flat_var) == 42
+    @test ClimaAnalysis.flattened_length(flat_var) == 42
 
     permuted_var = permutedims(var, ("lon", "lat", "time"))
     data = copy(permuted_var.data)

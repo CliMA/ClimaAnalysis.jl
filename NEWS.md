@@ -41,6 +41,17 @@ ClimaAnalysis.select(var, by = ClimaAnalysis.NearestValue(), lat = -90.0, long =
 ClimaAnalysis.select(var, by = ClimaAnalysis.MatchValue(), latitude = [90.0], long = 180.0)
 ```
 
+## Add flattened_length for FlatVar and Metadata
+
+You can now query the data length of a `FlatVar` and its `Metadata` using the
+new `flattened_length` function.
+
+```julia
+# flat_var is a FlatVar
+ClimaAnalysis.flattened_length(flat_var)
+ClimaAnalysis.flattened_length(flat_var.metadata)
+```
+
 ## Bug fixes
 - Fixed conversion from dates to relative times for NetCDF files where the
   temporal dimension is typed as `Union{T, Missing}`, where `T` is a subtype of

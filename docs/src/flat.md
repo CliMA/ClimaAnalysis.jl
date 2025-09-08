@@ -63,7 +63,8 @@ isequal(flat_permuted_var.data, flat_var.data)
 ```
 
 The data can be extracted by `flat_var.data` and the metadata can be extracted by
-`flatvar.metadata`. More information about the metadata will discussed in the section below.
+`flatvar.metadata`. More information about the metadata will be discussed in the section
+below.
 
 ### Ignore NaNs
 
@@ -72,8 +73,11 @@ Furthermore, if `ignore_nan = true`, then `NaNs` are excluded when flattening th
 ```@repl flat
 count(isnan, nan_var.data) # nan_var is the same as var, but contains three NaNs
 flat_nan_var = ClimaAnalysis.flatten(nan_var, ignore_nan = true); # default is true
-length(flat_nan_var.data)
+ClimaAnalysis.flattened_length(flat_nan_var)
 ```
+
+You can get the length of the flattened data in a `FlatVar` or its `Metadata` using
+[`ClimaAnalysis.flattened_length`](@ref).
 
 ### Masking
 
