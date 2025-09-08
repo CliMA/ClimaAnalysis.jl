@@ -16,10 +16,10 @@ plot!(var, more_kwargs = Dict(:axis => [:dim_on_y => true]))
 arguments a little bit more easily without having to think about `Symbol`s too
 much.
 ```julia
-plot!(var, more_kwargs = Dict(:axis => kwargs(dim_on_y = true))
+plot!(var, more_kwargs = Dict(:axis => kwargs(dim_on_y = true)))
 ```
 
-## How do I take an average of a a variable in a given window of time?
+## How do I take an average of a variable in a given window of time?
 
 You can use the `window` function to select a portion of a given `var`. For
 example, to select only the time from 10 seconds to 100 for `var`
