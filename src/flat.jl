@@ -1,4 +1,4 @@
-export flatten, unflatten, flatten_dim_order
+export flatten, unflatten, flatten_dim_order, flattened_length
 
 """
     Representing the metadata of an `OutputVar` and contain all the necessary
@@ -139,15 +139,17 @@ This function assumes that order of `data` before flattened is the same as
 """
 function unflatten(metadata::Metadata, data::AbstractVector)
     # Check length of data match the length of the dimensions in metadata
-    data_size = _data_length(metadata, ignore_dropped = true)
-    length(data) == data_size || error(
-        "Flattened data should be of length $data_size; got length $(length(data))",
+    flattened_length_without_dropped =
+        flattened_length(metadata, ignore_dropped = true)
+    length(data) == flattened_length_without_dropped || error(
+        "Flattened data should be of length $flattened_length_without_dropped; got length $(length(data))",
     )
 
     # To unflatten data, we need to undo the mask, vectorize, and permute. Note that this is
     # the operations of flattening data, but in reverse.
-    data_length = values(metadata.dims) |> collect .|> length |> prod
-    flat_data = fill(zero(eltype(data)), data_length)
+    flattened_length_with_dropped =
+        values(metadata.dims) |> collect .|> length |> prod
+    flat_data = fill(zero(eltype(data)), flattened_length_with_dropped)
     # Cast to the type of flat_data since NaN can be NaN32 or NaN64
     flat_data[metadata.drop_mask] .= eltype(flat_data).(metadata.dropped_values)
     flat_data[.!metadata.drop_mask] = data
@@ -193,26 +195,26 @@ function flatten_dim_order(metadata::Metadata)
 end
 
 """
-    _data_length(var::FlatVar; ignore_dropped = true)
+    flattened_length(var::FlatVar; ignore_dropped = true)
 
-Get the length of `var.data`.
+Get the length of the flattened `data` according to the `var`.
 
 If `ignore_dropped = true`, then the length is computed excluding the dropped values. If
 `ignore_dropped = false`, then the length is computed including the dropped values.
 """
-function _data_length(var::FlatVar; ignore_dropped = true)
-    return _data_length(var.metadata; ignore_dropped = ignore_dropped)
+function flattened_length(var::FlatVar; ignore_dropped = true)
+    return flattened_length(var.metadata; ignore_dropped = ignore_dropped)
 end
 
 """
-    _data_length(metadata::Metadata; ignore_dropped = true)
+    flattened_length(metadata::Metadata; ignore_dropped = true)
 
 Get the length of the flattened `data` according to the `metadata`.
 
 If `ignore_dropped = true`, then the length is computed excluding the dropped values. If
 `ignore_dropped = false`, then the length is computed including the dropped values.
 """
-function _data_length(metadata::Metadata; ignore_dropped = true)
+function flattened_length(metadata::Metadata; ignore_dropped = true)
     data_size_with_nans = prod(length.(values(metadata.dims)))
     return ignore_dropped ? data_size_with_nans - sum(metadata.drop_mask) :
            data_size_with_nans
