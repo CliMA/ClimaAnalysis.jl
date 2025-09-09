@@ -67,6 +67,8 @@ export OutputVar,
     set_units,
     set_dim_units!,
     shift_to_start_of_previous_month,
+    shift_to_previous_week,
+    shift_to_previous_day,
     replace,
     replace!,
     reverse_dim,
@@ -2336,10 +2338,47 @@ the monthly average for January.
 
 Note that this function only works for the time dimension and will not work for the date
 dimension.
+
+See also [`shift_to_previous_week`](@ref) and [`shift_to_previous_day`](@ref).
 """
 function shift_to_start_of_previous_month(var::OutputVar)
     return _shift_by(var, date -> Dates.firstdayofmonth(date) - Dates.Month(1))
 end
+
+"""
+    shift_to_previous_day(var::OutputVar)
+
+Shift the times in the time dimension to the previous day.
+
+After applying this function, the start date in the attributes correspond to the first
+element in the time array.
+
+Note that this function only works for the time dimension and will not work for the date
+dimension.
+
+See also [`shift_to_start_of_previous_month`](@ref) and [`shift_to_previous_week`](@ref).
+"""
+function shift_to_previous_day(var::OutputVar)
+    return _shift_by(var, date -> date - Dates.Day(1))
+end
+
+"""
+    shift_to_previous_week(var::OutputVar)
+
+Shift the times in the time dimension to the previous week.
+
+After applying this function, the start date in the attributes correspond to the first
+element in the time array.
+
+Note that this function only works for the time dimension and will not work for the date
+dimension.
+
+See also [`shift_to_start_of_previous_month`](@ref) and [`shift_to_previous_day`](@ref).
+"""
+function shift_to_previous_week(var::OutputVar)
+    return _shift_by(var, date -> date - Dates.Week(1))
+end
+
 """
     _shift_by(var::OutputVar, date_func)
 

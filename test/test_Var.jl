@@ -3320,6 +3320,33 @@ end
     )
 end
 
+@testset "Shift by previous week and day" begin
+    # Most of the functionality of these functions are already tested
+    # when testing shift_to_start_of_previous_month, so these tests mainly focus
+    # on the computation of the dates
+    time_arr = [
+        Dates.DateTime("2010-02-01T00:00:00"),
+        Dates.DateTime("2010-03-01T00:02:00"),
+        Dates.DateTime("2010-04-01T00:03:00"),
+    ]
+    var =
+        TemplateVar() |> add_dim("time", time_arr, blah = "blah") |> initialize
+    var_s = ClimaAnalysis.Var._dates_to_seconds(var)
+
+    shift_by_week = ClimaAnalysis.shift_to_previous_week(var_s)
+    shift_by_day = ClimaAnalysis.shift_to_previous_day(var_s)
+
+    shifted_dates_by_week = time_arr .- Dates.Week(1)
+    shifted_dates_by_day = time_arr .- Dates.Day(1)
+
+    @test ClimaAnalysis.dates(shift_by_week) == shifted_dates_by_week
+    @test Dates.DateTime(shift_by_week.attributes["start_date"]) ==
+          first(shifted_dates_by_week)
+    @test ClimaAnalysis.dates(shift_by_day) == shifted_dates_by_day
+    @test Dates.DateTime(shift_by_day.attributes["start_date"]) ==
+          first(shifted_dates_by_day)
+end
+
 @testset "Land and ocean masks" begin
     # Order of dimensions should not matter
     lat = collect(range(-89.5, 89.5, 180))

@@ -100,6 +100,8 @@ Var.squared_error
 Var.global_mse
 Var.global_rmse
 Var.shift_to_start_of_previous_month
+Var.shift_to_previous_week
+Var.shift_to_previous_day
 Var.LonLatMask
 Var.apply_landmask
 Var.apply_oceanmask
