@@ -2338,30 +2338,29 @@ Note that this function only works for the time dimension and will not work for 
 dimension.
 """
 function shift_to_start_of_previous_month(var::OutputVar)
+    return _shift_by(var, date -> Dates.firstdayofmonth(date) - Dates.Month(1))
+end
+"""
+    _shift_by(var::OutputVar, date_func)
+
+Apply `date_func` element-wise to the dates in `var`.
+"""
+function _shift_by(var::OutputVar, date_func)
     # Check if time dimension exists, floats are in the array, and unit of data is
     # second
     has_time(var) || error("Time is not a dimension of var")
-    eltype(times(var)) <: Dates.DateTime && ("Dates found in time array")
+    eltype(times(var)) <: Dates.DateTime && error("Dates found in time array")
     dim_units(var, time_name(var)) != "s" &&
         error("Unit of data is not in second")
 
-    # Convert to seconds to dates
-    date_arr =
-        Dates.Second.(times(var)) .+
-        Dates.DateTime.(var.attributes["start_date"])
-
-    # Apply transformations (find first day of month and subtract one month)
-    date_arr .=
-        date_arr .|> Dates.firstdayofmonth .|> date -> date - Dates.Month(1)
+    date_arr = dates(var)
+    @. date_arr = date_func(date_arr)
 
     # Check for duplicate dates
-    unique_dates = unique(date_arr)
-    unique_dates != date_arr && error(
-        "Dates are not unique after applying shift_to_start_of_previous_month",
-    )
+    allunique(date_arr) || error("Dates are not unique after shifting dates")
 
     # Convert from dates to seconds
-    start_date = date_arr[begin]
+    start_date = first(date_arr)
     time_arr = map(date -> date_to_time(start_date, date), date_arr)
 
     ret_attribs = deepcopy(var.attributes)
