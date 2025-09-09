@@ -140,7 +140,9 @@ This function is helpful in ensuring consistency in dates between simulation and
 observational data. One example of this is when adjusting monthly averaged data. For
 instance, suppose that data on 2010-02-01 in `sim_var` corresponds to the monthly
 average for January. This function shifts the times so that 2010-01-01 will correspond to
-the monthly average for January.
+the monthly average for January. See also [`shift_to_previous_day`](@ref) and
+[`shift_to_previous_week`](@ref) for diagnostics whose time reductions span a
+day or week respectively.
 
 
 ## Integration

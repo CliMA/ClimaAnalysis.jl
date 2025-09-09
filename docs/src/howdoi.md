@@ -394,3 +394,36 @@ the example below of this usage.
 var_reversed = reverse_dim(var, "pressure_level")
 reverse_dim!(var, "pressure_level") # in-place
 ```
+
+## How do I shift the dates in a `OutputVar`?
+
+You can shift dates using [`shift_to_start_of_previous_month`](@ref),
+[`shift_to_previous_week`](@ref), and [`shift_to_previous_day`](@ref).
+
+```@setup shift_by
+import Dates
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar,
+    add_attribs,
+    add_dim,
+    initialize
+time = ClimaAnalysis.Utils.date_to_time.(
+        Dates.DateTime(2010, 1),
+        [Dates.DateTime(2010, i) for i in 1:3])
+var =
+    TemplateVar() |>
+    add_dim("time", time, units = "s") |>
+    add_attribs(short_name = "pr", start_date = "2010-1-1") |>
+    initialize
+```
+
+```@repl shift_by
+ClimaAnalysis.dates(var)
+ClimaAnalysis.shift_to_start_of_previous_month(var) |> ClimaAnalysis.dates
+ClimaAnalysis.shift_to_previous_week(var) |> ClimaAnalysis.dates
+ClimaAnalysis.shift_to_previous_day(var) |> ClimaAnalysis.dates
+```
+
+These functions are helpful with aligning the dates of observational and
+simulational data.

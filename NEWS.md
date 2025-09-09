@@ -52,6 +52,17 @@ ClimaAnalysis.flattened_length(flat_var)
 ClimaAnalysis.flattened_length(flat_var.metadata)
 ```
 
+## Shift to previous day and week
+
+To support different diagnostics whose reductions span a day or week,
+ClimaAnalysis provides the `shift_to_previous_day` and `shift_to_previous_week`
+functions that shift the dates to the previous day or week respectively.
+
+```julia
+shifted_daily = ClimaAnalysis.shift_to_previous_day(var)
+shifted_weekly = ClimaAnalysis.shift_to_previous_week(var)
+```
+
 ## Bug fixes
 - Fixed conversion from dates to relative times for NetCDF files where the
   temporal dimension is typed as `Union{T, Missing}`, where `T` is a subtype of
