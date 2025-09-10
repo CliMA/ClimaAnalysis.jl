@@ -1,7 +1,15 @@
 ClimaAnalysis.jl Release Notes
 ===============================
-Main
+v0.5.20
 -------
+This release introduces the following features and bug fixes
+- [Mask aware flatten](#mask-aware-flatten)
+- [Accessors for FlatVar and Metadata](#accessors-for-flatvar-and-metadata)
+- [Select based on values or indices](#select-based-on-values-or-indices)
+- [Add flattened_length for FlatVar and Metadata](#add-flattened_length-for-flatVar-and-metadata)
+- [Shift to previous day and week](#shift-to-previous-day-and-week)
+- [Flatten with a FlatVar or Metadata](#flatten-with-a-flatvar-or-metadata)
+- [Bug fixes](#bug-fixes)
 
 ## Mask aware flatten
 
@@ -63,7 +71,7 @@ shifted_daily = ClimaAnalysis.shift_to_previous_day(var)
 shifted_weekly = ClimaAnalysis.shift_to_previous_week(var)
 ```
 
-## Flatten with a FlatVar or metadata
+## Flatten with a FlatVar or Metadata
 
 You can now flatten a `OutputVar` using the metadata of a `FlatVar` or another
 `FlatVar`. This is useful if you want a `OutputVar` to be flattened exactly like
