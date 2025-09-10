@@ -1,7 +1,15 @@
 ClimaAnalysis.jl Release Notes
 ===============================
-Main
+v0.5.20
 -------
+This release introduces the following features and bug fixes
+- [Mask aware flatten](#mask-aware-flatten)
+- [Accessors for FlatVar and Metadata](#accessors-for-flatvar-and-metadata)
+- [Select based on values or indices](#select-based-on-values-or-indices)
+- [Add flattened_length for FlatVar and Metadata](#add-flattened_length-for-flatVar-and-metadata)
+- [Shift to previous day and week](#shift-to-previous-day-and-week)
+- [Flatten with a FlatVar or metadata](#flatten-with-a-flatvar-or-metadata)
+- [Bug fixes](#bug-fixes)
 
 ## Mask aware flatten
 
