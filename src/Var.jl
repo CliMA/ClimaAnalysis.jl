@@ -2077,6 +2077,8 @@ function bias(sim::OutputVar, obs::OutputVar; mask = nothing)
 
     # Resample obs on sim to ensure the size of data in sim and obs are the same and the
     # dims are the same
+    any(isnan, obs.data) &&
+        @warn "NaNs detected in observational data, resampling is not NaN aware. If you applied a mask, pass the mask via the mask keyword argument instead"
     obs_resampled = resampled_as(obs, sim)
 
     # Compute bias
@@ -2157,6 +2159,8 @@ function squared_error(sim::OutputVar, obs::OutputVar; mask = nothing)
     _check_sim_obs_units_consistent(sim, obs, 2)
 
     # Resample obs on sim to ensure the size of data in sim and obs are the same and the dims are the same
+    any(isnan, obs.data) &&
+        @warn "NaNs detected in observational data, resampling is not NaN aware. If you applied a mask, pass the mask via the mask keyword argument instead"
     obs_resampled = resampled_as(obs, sim)
 
     # Compute squared error

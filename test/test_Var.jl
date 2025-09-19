@@ -2315,6 +2315,21 @@ end
     @test bias_var.attributes["global_bias"] == 1.0
     @test global_bias == 1.0
     @test bias_var.data == ones(length(lon), length(lat)) * 1.0
+
+    # Test warning is thrown about NaNs
+    nan_data = [[0.0, 0.0] [NaN, 0.0]]
+    nan_var =
+        TemplateVar() |>
+        add_dim("lon", [0.0, 1.0], units = "degrees") |>
+        add_dim("lat", [0.0, 1.0], units = "degrees") |>
+        add_attribs(long_name = "idk", short_name = "short", units = "kg") |>
+        add_data(data = nan_data) |>
+        initialize
+
+    @test_logs (:warn, r"NaNs detected in observational data") ClimaAnalysis.bias(
+        nan_var,
+        nan_var,
+    )
 end
 
 @testset "Compute mse" begin
@@ -2385,6 +2400,21 @@ end
         ClimaAnalysis.squared_error(var_not_unitful, var_not_unitful)
     @test ClimaAnalysis.units(var_unitful) == "(kg^2/m)^2"
     @test ClimaAnalysis.units(var_not_unitful) == "(wacky/weird^2)^2"
+
+    # Test warning is thrown about NaNs
+    nan_data = [[0.0, 0.0] [NaN, 0.0]]
+    nan_var =
+        TemplateVar() |>
+        add_dim("lon", [0.0, 1.0], units = "degrees") |>
+        add_dim("lat", [0.0, 1.0], units = "degrees") |>
+        add_attribs(long_name = "idk", short_name = "short", units = "kg") |>
+        add_data(data = nan_data) |>
+        initialize
+
+    @test_logs (:warn, r"NaNs detected in observational data") ClimaAnalysis.squared_error(
+        nan_var,
+        nan_var,
+    )
 end
 
 @testset "Units and dims check for error functions" begin
