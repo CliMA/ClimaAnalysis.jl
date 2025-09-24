@@ -14,6 +14,7 @@ using Test
 @safetestset "Leaderboard" begin @time include("test_Leaderboard.jl") end
 @safetestset "Template" begin @time include("test_Template.jl") end
 @safetestset "OutputVar" begin @time include("test_Var.jl") end
+@safetestset "Selectors" begin @time include("test_outvar_selectors.jl") end
 @safetestset "FlatVar" begin @time include("test_flat.jl") end
 @safetestset "MakieExt" begin @time include("test_MakieExt.jl") end
 @safetestset "GeoMakieExt" begin @time include("test_GeoMakieExt.jl") end
