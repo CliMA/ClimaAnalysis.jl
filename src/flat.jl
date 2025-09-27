@@ -76,9 +76,9 @@ function flatten(
     # Filter unnecessary dimension names
     dims = conventional_dim_name.(dims)
     var_dims = conventional_dim_name.(collect(keys(var.dims)))
-    dims = Tuple(
-        find_corresponding_dim_name_in_var(dim, var) for
-        dim in dims if dim in var_dims
+    dims = ntuple(
+        i -> find_corresponding_dim_name_in_var(var_dims[i], var),
+        ndims(var.data),
     )
 
     # Check that all dimensions are present
