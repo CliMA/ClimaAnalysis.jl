@@ -4,7 +4,7 @@ export flatten, unflatten, flatten_dim_order, flattened_length
     Representing the metadata of an `OutputVar` and contain all the necessary
     information to reconstruct an `OutputVar`.
 """
-struct Metadata{T <: AbstractArray, B, C, FT}
+struct Metadata{T <: AbstractArray, B, C, FT, N}
     "Attributes associated to this variable, such as short/long name"
     attributes::Dict{String, B}
 
@@ -15,7 +15,7 @@ struct Metadata{T <: AbstractArray, B, C, FT}
     dim_attributes::OrderedDict{String, C}
 
     "Order of dimensions when flattening the data of the OutputVar"
-    ordered_dims::Tuple{Vararg{String}}
+    ordered_dims::NTuple{N, String}
 
     "Bit mask of the dropped values when flattening"
     drop_mask::BitVector
@@ -76,9 +76,9 @@ function flatten(
     # Filter unnecessary dimension names
     dims = conventional_dim_name.(dims)
     var_dims = conventional_dim_name.(collect(keys(var.dims)))
-    dims = Tuple(
-        find_corresponding_dim_name_in_var(dim, var) for
-        dim in dims if dim in var_dims
+    dims = ntuple(
+        i -> find_corresponding_dim_name_in_var(var_dims[i], var),
+        ndims(var.data),
     )
 
     # Check that all dimensions are present
