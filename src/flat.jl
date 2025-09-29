@@ -105,7 +105,7 @@ function flatten(
         deepcopy(var.attributes),
         deepcopy(var.dims),
         deepcopy(var.dim_attributes),
-        dims,
+        dims::NTuple{ndims(var.data), String},
         copy(drop_mask),
         dropped_values,
     )
