@@ -102,6 +102,11 @@ import ClimaAnalysis.Template:
         Dict("time" => time),
         [1],
     )
+
+    ClimaAnalysis.set_short_name!(var_good, "test_name")
+    @test ClimaAnalysis.short_name(var_good) == "test_name"
+    ClimaAnalysis.set_short_name!(var_good, "another_name")
+    @test ClimaAnalysis.short_name(var_good) == "another_name"
 end
 
 @testset "Shift longitudes" begin
