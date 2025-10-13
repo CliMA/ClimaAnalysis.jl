@@ -66,6 +66,7 @@ export OutputVar,
     global_rmse,
     set_units,
     set_dim_units!,
+    set_short_name!,
     shift_to_start_of_previous_month,
     shift_to_previous_week,
     shift_to_previous_day,
@@ -651,6 +652,16 @@ function set_dim_units!(
     else
         var.dim_attributes[dim_name] = Dict("units" => units)
     end
+    return nothing
+end
+
+"""
+    set_short_name!(var, short_name)
+
+Set the `short_name` attribute for `var`.
+"""
+function set_short_name!(var::HasDimAndAttribs, short_name)
+    var.attributes["short_name"] = short_name
     return nothing
 end
 

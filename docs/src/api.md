@@ -87,6 +87,7 @@ Var.convert_units
 Var.set_units
 Var.convert_dim_units
 Var.set_dim_units!
+Var.set_short_name!
 Var.integrate_lonlat
 Var.integrate_lat
 Var.integrate_lon
