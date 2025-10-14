@@ -6,7 +6,7 @@ GeoMakie = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 
 [compat]
-CairoMakie = "0.12.5"
+CairoMakie = "0.15"
 Documenter = "1"
 GeoMakie = "0.7.3"
 OrderedCollections = "1.3"
