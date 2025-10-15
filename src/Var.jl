@@ -191,11 +191,9 @@ function _add_extra_lon_point(dims, data)
 
             # Add corresponding lon slice to the end of data along the index
             # corresponding to the longitude dimension
-            first_lon_slice = selectdim(data, idx, 1)
-            data = stack(
-                (eachslice(data, dims = idx)..., first_lon_slice),
-                dims = idx,
-            )
+            slice_indices = ntuple(i -> i == idx ? [1] : Colon(), ndims(data))
+            first_lon_slice = view(data, slice_indices...)
+            data = cat(data, first_lon_slice, dims = idx)
         end
     end
 
