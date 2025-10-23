@@ -36,6 +36,12 @@ macro overload_binary_op(op)
                 end
             end
 
+            # This could add units when x and y do not have units in their attributes.
+            # This is okay, because the units will be the empty string which is considered
+            # missing by ClimaAnalysis.
+            units = find_units_for_binary($op, x, y)
+            ret_attributes["units"] = units
+
             ret_dims = x.dims
             ret_dim_attributes = x.dim_attributes
 
@@ -60,7 +66,7 @@ macro overload_binary_op(op)
                 end
             end
 
-            keep_attributes = ("start_date",)
+            keep_attributes = ("start_date", "units")
 
             for attr in keep_attributes
                 if haskey(x.attributes, attr)
@@ -92,7 +98,7 @@ macro overload_binary_op(op)
                 end
             end
 
-            keep_attributes = ("start_date",)
+            keep_attributes = ("start_date", "units")
 
             for attr in keep_attributes
                 if haskey(y.attributes, attr)
@@ -113,6 +119,40 @@ macro overload_binary_op(op)
             )
         end
     end
+end
+
+"""
+    find_units_for_binary(
+        f::Function,
+        x_var::OutputVar,
+        y_var::OutputVar,
+    )
+
+Given a binary operator `f` and the `OutputVar`s `x` and `y`, find the appropriate units to
+return.
+"""
+function find_units_for_binary(
+    ::Union{typeof(+), typeof(-), typeof(max), typeof(min)},
+    x_var::OutputVar,
+    y_var::OutputVar,
+)
+    x_units = units(x_var)
+    y_units = units(y_var)
+    return x_units == y_units ? x_units : ""
+end
+
+function find_units_for_binary(
+    f::Union{typeof(*), typeof(/)},
+    x_var::OutputVar,
+    y_var::OutputVar,
+)
+    x_units = units(x_var)
+    y_units = units(y_var)
+    # Empty string is considered missing units
+    if x_units == "" || y_units == ""
+        return ""
+    end
+    return "($x_units) $f ($y_units)"
 end
 
 @overload_binary_op (+)

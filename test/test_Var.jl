@@ -368,6 +368,7 @@ end
             "short_name" => "bob + bula",
             "long_name" => "hi + bob",
             "start_date" => "2008", # Only start_date is common and identical
+            "units" => "",
         )
         @test var1plusvar3.dims == var1.dims # Check dims preserved
 
@@ -381,6 +382,7 @@ end
             "short_name" => "bob * bula",
             "long_name" => "hi * bob",
             "start_date" => "2008",
+            "units" => "",
         )
 
         var_times_real = var1 * 2.5
@@ -400,6 +402,7 @@ end
             "short_name" => "bob / bula",
             "long_name" => "hi / bob",
             "start_date" => "2008",
+            "units" => "",
         )
 
         # Subtraction (-)
@@ -411,6 +414,7 @@ end
             "short_name" => "bob - bula",
             "long_name" => "hi - bob",
             "start_date" => "2008",
+            "units" => "",
         )
 
         # Maximum (max)
@@ -422,6 +426,7 @@ end
             "short_name" => "bob max bula",
             "long_name" => "hi max bob",
             "start_date" => "2008",
+            "units" => "",
         )
 
         var1max1000 = max(var1, 1000.0)
@@ -441,6 +446,7 @@ end
             "short_name" => "bob min bula",
             "long_name" => "hi min bob",
             "start_date" => "2008",
+            "units" => "",
         )
 
         var1min1000 = min(var1, 1000.0)
@@ -508,6 +514,36 @@ end
             "start_date" => "2008",
         )
         @test neg_var1.dims == var1.dims
+    end
+end
+
+@testset "Units of binary operations" begin
+    time = [0.0]
+    template = TemplateVar() |> add_dim("time", time, units = "s")
+    units_var1 = template |> add_attribs(units = "kg") |> initialize
+    units_var2 = template |> add_attribs(units = "kg^2") |> initialize
+    no_units_var = template |> add_attribs(units = "") |> initialize
+
+    for f in [+, -, max, min]
+        @test ClimaAnalysis.units(f(units_var1, units_var1)) ==
+              ClimaAnalysis.units(units_var1)
+        @test ClimaAnalysis.units(f(units_var1, units_var2)) == ""
+        @test ClimaAnalysis.units(f(units_var1, no_units_var)) == ""
+
+        @test ClimaAnalysis.units(f(units_var1, 10.0)) ==
+              ClimaAnalysis.units(units_var1)
+        @test ClimaAnalysis.units(f(10.0, units_var1)) ==
+              ClimaAnalysis.units(units_var1)
+    end
+
+    for f in [*, /]
+        @test ClimaAnalysis.units(f(units_var1, units_var1)) == "(kg) $f (kg)"
+        @test ClimaAnalysis.units(f(units_var1, units_var2)) == "(kg) $f (kg^2)"
+        @test ClimaAnalysis.units(f(units_var1, no_units_var)) == ""
+        @test ClimaAnalysis.units(f(units_var1, 10.0)) ==
+              ClimaAnalysis.units(units_var1)
+        @test ClimaAnalysis.units(f(10.0, units_var1)) ==
+              ClimaAnalysis.units(units_var1)
     end
 end
 
