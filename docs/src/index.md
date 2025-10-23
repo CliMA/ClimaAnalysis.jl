@@ -176,9 +176,12 @@ For binary operations (e.g., `+, -, *, /`), `ClimaAnalysis` will check if the
 operation is well defined (i.e., the two variables are defined on the physical
 space). Binary operations do remove some attribute information. If two
 `OutputVar`s share the same start date, then the start date will remain in the
-resulting `OutputVar`s after performing binary operations on them.
+resulting `OutputVar`s after performing binary operations on them. When
+appropriate, the resulting `OutputVar` will retain its units. For example,
+addition and subtraction preserve matching units, and multiplication and
+division combine them.
 
-Unary operations are supported to, for example `log(max(var, 1e-8))` returns a
+Unary operations are supported too, for example `log(max(var, 1e-8))` returns a
 new `OutputVar` with the functions applied to the data.
 
 #### `Visualize`
