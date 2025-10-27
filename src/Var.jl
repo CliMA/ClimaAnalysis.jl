@@ -153,8 +153,9 @@ function _make_interpolant(dims, data)
     dims_tuple, data = _add_extra_lon_point(dims, data)
 
     extp_bound_conds_tuple = tuple(extp_bound_conds...)
+    @info "Using Constant!"
     return Intp.extrapolate(
-        Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
+        Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Constant())),
         extp_bound_conds_tuple,
     )
 end
