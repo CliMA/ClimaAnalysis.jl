@@ -2420,7 +2420,7 @@ function _shift_by(var::OutputVar, date_func)
     ret_attribs = deepcopy(var.attributes)
     ret_attribs["start_date"] = string(start_date)
     ret_dims = deepcopy(var.dims)
-    ret_dims["time"] = time_arr
+    ret_dims[time_name(var)] = time_arr
     return remake(var, attributes = ret_attribs, dims = ret_dims)
 end
 
