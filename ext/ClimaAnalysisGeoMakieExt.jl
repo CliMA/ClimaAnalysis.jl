@@ -43,6 +43,7 @@ function _geomakie_plot_on_globe!(
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
+    colorbar_label = "",
     mask = nothing,
     more_kwargs = Dict(
         :plot => Dict(),
@@ -76,7 +77,7 @@ function _geomakie_plot_on_globe!(
 
     units = ClimaAnalysis.units(var)
     short_name = var.attributes["short_name"]
-    colorbar_label = "$short_name [$units]"
+    # colorbar_label = "$short_name [$units]"
 
     axis_kwargs = get(more_kwargs, :axis, Dict())
     plot_kwargs = get(more_kwargs, :plot, Dict())
@@ -98,13 +99,18 @@ function _geomakie_plot_on_globe!(
     plot_coastline && Makie.lines!(ax, GeoMakie.coastlines(); coast_kwargs...)
 
     if plot_colorbar
-        p_loc_cb = Tuple([p_loc[1], p_loc[2] + 1])
+        p_loc_cb = Tuple([p_loc[1] + 1, p_loc[2]]) # place the colorbar on the bottom
         Makie.Colorbar(
             place[p_loc_cb...],
             plot,
-            label = colorbar_label;
+            label = colorbar_label,
+            vertical = false, # horizontal colorbar
+            flipaxis = false, # label underneath colorbar
+            width = 400, # a little smaller
+            tellwidth = false; # make colorbar width indep of plot width
             cb_kwargs...,
         )
+        Makie.rowgap!(place.layout, 0) # move colorbar closer to plot
     end
 end
 
@@ -171,6 +177,7 @@ function Visualize.heatmap2D_on_globe!(
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
+    colorbar_label = "",
     mask = nothing,
     more_kwargs = Dict(
         :plot => Dict(),
@@ -189,6 +196,7 @@ function Visualize.heatmap2D_on_globe!(
         p_loc,
         plot_coastline,
         plot_colorbar,
+        colorbar_label,
         mask,
         more_kwargs = default_and_more_kwargs,
         plot_fn = Makie.surface!,
@@ -345,8 +353,10 @@ Dictionary of `Symbol`s => values to pass additional options.
 function Visualize.plot_bias_on_globe!(
     place::MakiePlace,
     sim::ClimaAnalysis.OutputVar,
-    obs::ClimaAnalysis.OutputVar;
-    cmap_extrema = nanextrema(ClimaAnalysis.bias(sim, obs).data),
+    obs::ClimaAnalysis.OutputVar,
+    plot_bias,
+    levels;
+    cmap_extrema = plot_bias ? nanextrema(ClimaAnalysis.bias(sim, obs).data) : nanextrema(sim.data),
     p_loc = (1, 1),
     plot_coastline = true,
     plot_colorbar = true,
@@ -361,36 +371,41 @@ function Visualize.plot_bias_on_globe!(
 )
     _, apply_mask = _find_mask_to_apply(mask)
 
-    bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
-    global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
-    rmse = round(
-        ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
-        sigdigits = 3,
-    )
-    units = ClimaAnalysis.units(bias_var)
+    if plot_bias
+        bias_var = ClimaAnalysis.bias(sim, obs, mask = apply_mask)
+        global_bias = round(bias_var.attributes["global_bias"], sigdigits = 3)
+        rmse = round(
+            ClimaAnalysis.global_rmse(sim, obs, mask = apply_mask),
+            sigdigits = 3,
+        )
+        units = ClimaAnalysis.units(bias_var)
 
-    bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
+        bias_var.attributes["long_name"] *= " (RMSE: $rmse $units, Global bias: $global_bias $units)"
+        color_scheme = :vik
+    else
+        color_scheme = :PRGn_9
+    end
     min_level, max_level = cmap_extrema
 
     # Make sure that 0 is at the center
     cmap = Visualize._constrained_cmap(
-        Makie.cgrad(:vik).colors,
+        Makie.cgrad(color_scheme).colors,
         min_level,
         max_level;
         categorical = true,
     )
-    nlevels = 11
+    # nlevels = 10 # make colorbar less crowded
     # Offset so that it covers 0
-    levels = collect(range(min_level, max_level, length = nlevels))
-    offset = levels[argmin(abs.(levels))]
-    levels = levels .- offset
+    # levels = collect(range(min_level, max_level, length = nlevels))
+    # offset = levels[argmin(abs.(levels))]
+    # levels = levels .- offset
     # log(0.1, 0.1 * (max_level - min_level)) computes the number of digits we need to round
     # to (e.g. if the difference is 0.1, the digits we need to round to is 2 and if the
     # difference is 0.01, then the digits we need to round to is 3)
     # Take the maximum with 0 because log(0.1, 0.1 * (max_level - min_level)) is negative
     # when the difference is greater than or equal to 100
     digits_to_round = max(0, ceil(Int, log(0.1, 0.1 * (max_level - min_level))))
-    ticklabels = map(x -> string(round(x; digits = digits_to_round)), levels)
+    ticklabels = map(x -> string(Int(round(x))), levels)#; digits = digits_to_round)), levels)
     ticks = (levels, ticklabels)
 
     default_kwargs = Dict(
@@ -404,15 +419,28 @@ function Visualize.plot_bias_on_globe!(
     )
     default_and_more_kwargs =
         ClimaAnalysis.Utils._recursive_merge(default_kwargs, more_kwargs)
-    return Visualize.contour2D_on_globe!(
-        place,
-        bias_var;
-        p_loc = p_loc,
-        plot_coastline = plot_coastline,
-        plot_colorbar = plot_colorbar,
-        mask = mask,
-        more_kwargs = default_and_more_kwargs,
-    )
+
+    if plot_bias
+        return Visualize.contour2D_on_globe!(
+            place,
+            bias_var;
+            p_loc = p_loc,
+            plot_coastline = plot_coastline,
+            plot_colorbar = plot_colorbar,
+            mask = mask,
+            more_kwargs = default_and_more_kwargs,
+        )
+    else
+        return Visualize.contour2D_on_globe!(
+            place,
+            sim;
+            p_loc = p_loc,
+            plot_coastline = plot_coastline,
+            plot_colorbar = plot_colorbar,
+            mask = mask,
+            more_kwargs = default_and_more_kwargs,
+        )
+    end
 end
 
 """
