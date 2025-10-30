@@ -8,6 +8,19 @@ main
 With this release, all resulting `OutputVar` from binary operations with
 `OutputVar`s and real numbers keep their units when appropriate.
 
+## Transform dates
+
+This release introduces `transform_dates` which allow the user to pass a generic
+function that operates on the dates of a `OutputVar`. This is helpful to
+standardize the convention used for time for different datasets.
+
+```julia
+import Dates
+# var is a OutputVar
+# Transform the times of var by shifting the dates 6 hours back
+transform_dates(var, date -> date - Dates.Hour(6))
+```
+
 v0.5.20
 -------
 This release introduces the following features and bug fixes

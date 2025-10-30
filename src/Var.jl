@@ -70,6 +70,7 @@ export OutputVar,
     shift_to_start_of_previous_month,
     shift_to_previous_week,
     shift_to_previous_day,
+    transform_dates,
     replace,
     replace!,
     reverse_dim,
@@ -2357,7 +2358,10 @@ dimension.
 See also [`shift_to_previous_week`](@ref) and [`shift_to_previous_day`](@ref).
 """
 function shift_to_start_of_previous_month(var::OutputVar)
-    return _shift_by(var, date -> Dates.firstdayofmonth(date) - Dates.Month(1))
+    return transform_dates(
+        var,
+        date -> Dates.firstdayofmonth(date) - Dates.Month(1),
+    )
 end
 
 """
@@ -2374,7 +2378,7 @@ dimension.
 See also [`shift_to_start_of_previous_month`](@ref) and [`shift_to_previous_week`](@ref).
 """
 function shift_to_previous_day(var::OutputVar)
-    return _shift_by(var, date -> date - Dates.Day(1))
+    return transform_dates(var, date -> date - Dates.Day(1))
 end
 
 """
@@ -2391,15 +2395,15 @@ dimension.
 See also [`shift_to_start_of_previous_month`](@ref) and [`shift_to_previous_day`](@ref).
 """
 function shift_to_previous_week(var::OutputVar)
-    return _shift_by(var, date -> date - Dates.Week(1))
+    return transform_dates(var, date -> date - Dates.Week(1))
 end
 
 """
-    _shift_by(var::OutputVar, date_func)
+    transform_dates(var::OutputVar, date_func)
 
 Apply `date_func` element-wise to the dates in `var`.
 """
-function _shift_by(var::OutputVar, date_func)
+function transform_dates(var::OutputVar, date_func)
     # Check if time dimension exists, floats are in the array, and unit of data is
     # second
     has_time(var) || error("Time is not a dimension of var")
