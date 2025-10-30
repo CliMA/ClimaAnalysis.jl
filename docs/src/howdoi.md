@@ -395,10 +395,11 @@ var_reversed = reverse_dim(var, "pressure_level")
 reverse_dim!(var, "pressure_level") # in-place
 ```
 
-## How do I shift the dates in a `OutputVar`?
+## How do I shift or transform the dates in a `OutputVar`?
 
 You can shift dates using [`shift_to_start_of_previous_month`](@ref),
-[`shift_to_previous_week`](@ref), and [`shift_to_previous_day`](@ref).
+[`shift_to_previous_week`](@ref), [`shift_to_previous_day`](@ref), and
+[`transform_dates`](@ref).
 
 ```@setup shift_by
 import Dates
@@ -423,6 +424,7 @@ ClimaAnalysis.dates(var)
 ClimaAnalysis.shift_to_start_of_previous_month(var) |> ClimaAnalysis.dates
 ClimaAnalysis.shift_to_previous_week(var) |> ClimaAnalysis.dates
 ClimaAnalysis.shift_to_previous_day(var) |> ClimaAnalysis.dates
+ClimaAnalysis.transform_dates(var, date -> date - Dates.Hour(6)) |> ClimaAnalysis.dates
 ```
 
 These functions are helpful with aligning the dates of observational and
