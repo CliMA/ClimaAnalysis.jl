@@ -81,6 +81,7 @@ Var.find_corresponding_dim_name_in_var
 Var.dim_units
 Var.range_dim
 Base.permutedims(var::OutputVar, perm)
+Var.push_dim
 Var.reordered_as
 Var.resampled_as
 Var.convert_units

@@ -8,6 +8,19 @@ main
 With this release, all resulting `OutputVar` from binary operations with
 `OutputVar`s and real numbers keep their units when appropriate.
 
+## Add singleton dimension
+
+This release introduces `push_dim` which allows the user to add a singleton
+dimension to end of the dimensions of a `OutputVar`.
+
+See the example below where a time dimension with the value 0.0 is added to
+a `OutputVar`.
+
+```julia
+# var is a OutputVar
+push_dim(var, "time", 0.0, "axis" => "T")
+```
+
 v0.5.20
 -------
 This release introduces the following features and bug fixes
