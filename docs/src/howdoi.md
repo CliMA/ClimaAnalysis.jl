@@ -426,7 +426,7 @@ ClimaAnalysis.shift_to_previous_day(var) |> ClimaAnalysis.dates
 ```
 
 These functions are helpful with aligning the dates of observational and
-simulational data.
+simulation data.
 
 ## How do I add a singleton dimension to a `OutputVar`?
 
