@@ -75,7 +75,8 @@ export OutputVar,
     reverse_dim,
     reverse_dim!,
     remake,
-    permutedims
+    permutedims,
+    push_dim
 
 """
     Representing an output variable
@@ -2647,6 +2648,38 @@ function Base.cat(vars::OutputVar...; dims::String)
         dims = ret_dims,
         data = ret_data,
     )
+end
+
+"""
+    push_dim(var::OutputVar, dim_name, dim_value, dim_attrib_pairs...)
+
+Push a singleton dimension to the end of the dimensions in `var`.
+
+If you want to change the order of the dimensions, then call `permutedims` after
+this function.
+"""
+function push_dim(var::OutputVar, dim_name, dim_value, dim_attrib_pairs...;)
+    dims = deepcopy(var.dims)
+    dim_attribs = deepcopy(var.dim_attributes)
+    data = deepcopy(var.data)
+
+    conventional_dim_names = conventional_dim_name.(keys(dims))
+    if conventional_dim_name(dim_name) in conventional_dim_names
+        error(
+            "Dimension ($dim_name) cannot be added as it already corresponds to an existing dimension ($conventional_dim_names)",
+        )
+    end
+
+    dims[dim_name] = [dim_value]
+    dim_attrib =
+        isempty(dim_attrib_pairs) ? valtype(dim_attribs)() :
+        Dict(dim_attrib_pairs)
+    dim_attribs[dim_name] = dim_attrib
+
+    new_dims = (size(data)..., 1)
+    data = reshape(data, new_dims)
+
+    return remake(var, dims = dims, data = data, dim_attributes = dim_attribs)
 end
 
 """

@@ -426,4 +426,32 @@ ClimaAnalysis.shift_to_previous_day(var) |> ClimaAnalysis.dates
 ```
 
 These functions are helpful with aligning the dates of observational and
-simulational data.
+simulation data.
+
+## How do I add a singleton dimension to a `OutputVar`?
+
+You can add a singleton dimension to a `OutputVar` with [`push_dim`](@ref).
+
+See the example below where a time dimension with the value `0.0` and an
+attribute about the axis is added to a `OutputVar`.
+
+```@setup push_dim
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar,
+    add_attribs,
+    add_dim,
+    initialize
+lat = [-90.0, 0.0, 90.0]
+var =
+    TemplateVar() |>
+    add_dim("lat", lat, units = "degrees") |>
+    add_attribs(short_name = "pr", start_date = "2010-1-1") |>
+    initialize
+```
+
+```@example push_dim
+# var is a OutputVar
+var = ClimaAnalysis.push_dim(var, "time", 0.0, "axis" => "T")
+var.dims
+```

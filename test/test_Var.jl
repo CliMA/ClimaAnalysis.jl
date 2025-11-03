@@ -3544,6 +3544,46 @@ end
     )
 end
 
+@testset "Push dim" begin
+    lon = [-60.0, 45.0]
+    var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+
+    time_var = ClimaAnalysis.push_dim(var, "time", 2.0)
+
+    @test time_var.attributes == var.attributes
+    @test time_var.dims["lon"] == var.dims["lon"]
+    @test time_var.dims["time"] == [2.0]
+    @test length(time_var.dim_attributes) == 2
+    @test time_var.dim_attributes["lon"] == var.dim_attributes["lon"]
+    @test time_var.dim_attributes["time"] == Dict{String, String}()
+    @test isequal(vec(time_var.data), vec(var.data))
+    @test size(time_var.data) == (2, 1)
+
+    lat_var = ClimaAnalysis.push_dim(
+        var,
+        "lat",
+        0.0,
+        "units" => "s",
+        "is_lat" => "yes",
+    )
+    @test lat_var.attributes == var.attributes
+    @test lat_var.dims["lon"] == var.dims["lon"]
+    @test lat_var.dims["lat"] == [0.0]
+    @test length(lat_var.dim_attributes) == 2
+    @test lat_var.dim_attributes["lon"] == var.dim_attributes["lon"]
+    @test lat_var.dim_attributes["lat"] ==
+          Dict("units" => "s", "is_lat" => "yes")
+    @test isequal(vec(lat_var.data), vec(var.data))
+    @test size(lat_var.data) == (2, 1)
+
+    # Error handling
+    @test_throws ErrorException ClimaAnalysis.push_dim(var, "lon", 42.0)
+end
+
 @testset "Show" begin
     lat = collect(range(-89.5, 89.5, 180))
     lon = collect(range(-179.5, 179.5, 360))
