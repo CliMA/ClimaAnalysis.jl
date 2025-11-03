@@ -123,7 +123,7 @@ dimension. If the latitudes span the entire range and are equispaced, then a fla
 condition is added for the latitude dimension. In all other cases, an error is thrown when
 extrapolating outside of `dim_array`.
 """
-function _make_interpolant(dims, data)
+function _make_interpolant(dims, data; intp_method = Intp.Linear())
     # If any element is DateTime, then return nothing for the interpolant because
     # Interpolations.jl do not support DateTimes
     for dim_array in values(dims)
@@ -153,9 +153,8 @@ function _make_interpolant(dims, data)
     dims_tuple, data = _add_extra_lon_point(dims, data)
 
     extp_bound_conds_tuple = tuple(extp_bound_conds...)
-    @info "Using Constant!"
     return Intp.extrapolate(
-        Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Constant())),
+        Intp.interpolate(dims_tuple, data, Intp.Gridded(intp_method)),
         extp_bound_conds_tuple,
     )
 end
@@ -1321,7 +1320,7 @@ julia> var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data); va
 ```
 """
 function (x::OutputVar)(target_coord)
-    itp = _make_interpolant(x.dims, x.data)
+    itp = _make_interpolant(x.dims, x.data, intp_method = Intp.Linear())
     return itp(target_coord...)
 end
 
@@ -1577,7 +1576,11 @@ Resample `data` in `src_var` to `dims` in `dest_var` over all dimensions.
 
 Reordering is automatically done.
 """
-function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
+function _resampled_as_all(
+    src_var::OutputVar,
+    dest_var::OutputVar;
+    intp_method = Intp.Linear(),
+)
     conventional_names_src = collect(conventional_dim_name.(keys(src_var.dims)))
     conventional_names_dest =
         collect(conventional_dim_name.(keys(dest_var.dims)))
@@ -1585,7 +1588,7 @@ function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
         src_var = reordered_as(src_var, dest_var)
     end
 
-    itp = _make_interpolant(src_var.dims, src_var.data)
+    itp = _make_interpolant(src_var.dims, src_var.data; intp_method)
     src_resampled_data =
         [itp(pt...) for pt in Base.product(values(dest_var.dims)...)]
 
@@ -1613,7 +1616,8 @@ Resample `data` in `src_var` to `dim_names` in `dest_var`.
 function _resampled_as_partial(
     src_var::OutputVar,
     dest_var::OutputVar,
-    dim_names,
+    dim_names;
+    intp_method = Intp.Linear(),
 )
     dim_names = conventional_dim_name.(collect(dim_names))
 
@@ -1630,7 +1634,7 @@ function _resampled_as_partial(
         end
     end
 
-    itp = _make_interpolant(src_var.dims, src_var.data)
+    itp = _make_interpolant(src_var.dims, src_var.data; intp_method)
     src_resampled_data =
         [itp(pt...) for pt in Base.product(values(src_var_ret_dims)...)]
 
