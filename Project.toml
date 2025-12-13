@@ -1,7 +1,7 @@
 name = "ClimaAnalysis"
 uuid = "29b5916a-a76c-4e73-9657-3c8fd22e65e6"
-authors = ["Gabriele Bozzola <gbozzola@caltech.edu>", "Kevin Phan <kphan2@caltech.edu>"]
 version = "0.5.20"
+authors = ["Gabriele Bozzola <gbozzola@caltech.edu>", "Kevin Phan <kphan2@caltech.edu>"]
 
 [deps]
 Artifacts = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -31,7 +31,7 @@ Documenter = "1"
 ExplicitImports = "1.6"
 GeoMakie = "0.7.3"
 Interpolations = "0.14, 0.15, 0.16"
-JuliaFormatter = "1"
+JuliaFormatter = "1, 2"
 Makie = "0.21.5, 0.22, 0.23, 0.24"
 NCDatasets = "0.13.1, 0.14"
 NaNStatistics = "=0.6.8, 0.6.8 - 0.6.50, 0.6.53"
