@@ -8,7 +8,7 @@ include("Numerics.jl")
 
 include("Var.jl")
 @reexport using .Var
-include("Sim.jl")
+include("AlternateSim.jl")
 @reexport using .Sim
 include("Catalog.jl")
 @reexport using .Catalog
