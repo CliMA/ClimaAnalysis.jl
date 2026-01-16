@@ -8,7 +8,7 @@ import ClimaAnalysis
     simdir = ClimaAnalysis.SimDir(simulation_path)
 
     @test ClimaAnalysis.available_vars(simdir) ==
-          Set(["va", "ua", "orog", "ta", "ts", "pfull"])
+          Set(["va", "ua", "orog", "ta", "ts", "pfull", "thetaa"])
 
     @test ClimaAnalysis.available_reductions(simdir, short_name = "ta") ==
           Set(["average", "max", "min"])
@@ -28,15 +28,32 @@ import ClimaAnalysis
         reduction = "bob",
     )
 
-    @test simdir.variable_paths["orog"]["inst"][nothing] ==
-          [joinpath(simulation_path, "orog_inst.nc")]
-    @test simdir.variable_paths["ta"]["max"] == Dict{Any, Any}(
-        "3.0h" => [joinpath(simulation_path, "ta_3.0h_max.nc")],
-        "4.0h" => [joinpath(simulation_path, "ta_4.0h_max.nc")],
+    @test ClimaAnalysis.available_coord_types(
+        simdir,
+        short_name = "thetaa",
+        reduction = "average",
+        period = "1d",
+    ) == Set([nothing, "pressure"])
+    @test_throws ErrorException ClimaAnalysis.available_coord_types(
+        simdir,
+        short_name = "thetaa",
+        reduction = "average",
+        period = "2d",
     )
 
-    @test simdir.vars["ta"]["max"] ==
-          Dict{Any, Any}("3.0h" => nothing, "4.0h" => nothing)
+    @test simdir.variable_paths["orog"]["inst"][nothing][nothing] ==
+          [joinpath(simulation_path, "orog_inst.nc")]
+    @test simdir.variable_paths["ta"]["max"] == Dict{Any, Any}(
+        "3.0h" =>
+            Dict(nothing => [joinpath(simulation_path, "ta_3.0h_max.nc")]),
+        "4.0h" =>
+            Dict(nothing => [joinpath(simulation_path, "ta_4.0h_max.nc")]),
+    )
+
+    @test simdir.vars["ta"]["max"] == Dict{Any, Any}(
+        "3.0h" => Dict{Any, Any}(nothing => nothing),
+        "4.0h" => Dict{Any, Any}(nothing => nothing),
+    )
 
     expected_files = Set(
         joinpath(simulation_path, f) for
@@ -57,7 +74,7 @@ end
     @test sprint(show, simdir) ==
           "Output directory: " *
           simulation_path *
-          "\nVariables:\n- va\n    average (2.0h)\n- pfull\n    inst (1.0d)\n- ua\n    average (6.0h)\n- orog\n    inst (nothing)\n- ta\n    average (3.0h)\n    max (4.0h, 3.0h)\n    min (3.0h)\n- ts\n    max (1.0h)"
+          "\nVariables:\n- va\n    average (2.0h)\n- pfull\n    inst (1.0d)\n- ua\n    average (6.0h)\n- orog\n    inst (nothing)\n- thetaa\n    average (1d)\n- ta\n    average (3.0h)\n    max (4.0h, 3.0h)\n    min (3.0h)\n- ts\n    max (1.0h)"
     @test sprint(summary, simdir) == sprint(show, simdir)
 
     # Empty simdir
@@ -138,6 +155,33 @@ end
     # attribute because it was generated before that was a feature. We use that
     # to check the empty tring
     @test ClimaAnalysis.short_name(ts_max) == ""
+
+    # Test coord_type keyword argument
+    @test_throws ErrorException get(
+        simdir,
+        short_name = "thetaa",
+        reduction = "average",
+    )
+    @test_throws ErrorException get(
+        simdir,
+        short_name = "thetaa",
+        reduction = "average",
+        coord_type = "not_pfull",
+    )
+    thetaa_var = get(
+        simdir,
+        short_name = "thetaa",
+        reduction = "average",
+        coord_type = nothing,
+    )
+    thetaa_var_pressure_coords = get(
+        simdir,
+        short_name = "thetaa",
+        reduction = "average",
+        coord_type = "pressure",
+    )
+    @test !ClimaAnalysis.has_pressure(thetaa_var)
+    @test ClimaAnalysis.has_pressure(thetaa_var_pressure_coords)
 end
 
 @testset "SimDir with stitching" begin
@@ -166,17 +210,18 @@ end
         reduction = "bob",
     )
 
-    @test simdir.variable_paths["ts"]["max"]["1.0h"] == [
+    @test simdir.variable_paths["ts"]["max"]["1.0h"][nothing] == [
         joinpath(simulation_path, "output_0001", "ts_1.0h_max.nc"),
         joinpath(simulation_path, "output_0002", "ts_1.0h_max.nc"),
     ]
-    @test simdir.variable_paths["pfull"]["inst"]["2.0d"] == [
+    @test simdir.variable_paths["pfull"]["inst"]["2.0d"][nothing] == [
         joinpath(simulation_path, "output_0001", "pfull_2.0d_inst.nc"),
         joinpath(simulation_path, "output_0002", "pfull_2.0d_inst.nc"),
         joinpath(simulation_path, "output_0003", "pfull_2.0d_inst.nc"),
     ]
 
-    @test simdir.vars["pfull"]["inst"] == Dict{Any, Any}("2.0d" => nothing)
+    @test simdir.vars["pfull"]["inst"] ==
+          Dict{Any, Any}("2.0d" => Dict(nothing => nothing))
 
     expected_files = Set()
     for (root, _, files) in walkdir(simulation_path)

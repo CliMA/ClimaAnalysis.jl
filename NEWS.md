@@ -21,6 +21,27 @@ import Dates
 transform_dates(var, date -> date - Dates.Hour(6))
 ```
 
+## Support for coordinate-transformed diagnostics
+
+With this release, `ClimaAnalysis` now recognizes NetCDF files that include
+coordinate transformations in their filenames.
+
+For example:
+- `ta_1d_average.nc` - temperature on native model coordinates
+- `ta_1d_average_pressure.nc` - temperature interpolated to pressure coordinates
+
+This filename convention allows `SimDir` to distinguish between diagnostics on
+different coordinate systems and retrieve them appropriately.
+
+```julia
+simdir = SimDir("output_active")
+ta_var_native = get(simdir, short_name = "ta", reduction = "average", period = "1d")
+ta_var_pfull = get(simdir, short_name = "ta", reduction = "average", period = "1d", coord_type = "pressure")
+```
+
+This feature requires corresponding support in `ClimaDiagnostics` for outputting
+diagnostics with the appropriate filename conventions.
+
 ## Bug fixes
 - Fix bug with missing time value for long name after applying `slice` on a
   `OutputVar` for non-positive time values
