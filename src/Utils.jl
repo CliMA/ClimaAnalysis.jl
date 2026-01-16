@@ -9,10 +9,11 @@ import OrderedCollections: OrderedDict
 """
     match_nc_filename(filename::String)
 
-Return `short_name`, `period`, `reduction` extracted from the filename, if matching the
-expected convention.
+Return `short_name`, `period`, `reduction`, `coord_type` extracted from the filename, if
+matching the expected convention.
 
-The convention is: `shortname_(period)_reduction.nc`, with `period` being optional.
+The convention is: `shortname_(period)_reduction_(coord_type).nc`, with `period` and
+`coord_type` being optional.
 
 Examples
 =========
@@ -23,17 +24,22 @@ julia> match_nc_filename("bob")
 
 ```jldoctest
 julia> match_nc_filename("ta_1d_average.nc")
-("ta", "1d", "average")
+("ta", "1d", "average", nothing)
+```
+
+```jldoctest
+julia> match_nc_filename("ta_1d_average_pressure.nc")
+("ta", "1d", "average", "pressure")
 ```
 
 ```jldoctest
 julia> match_nc_filename("pfull_6.0m_max.nc")
-("pfull", "6.0m", "max")
+("pfull", "6.0m", "max", nothing)
 ```
 
 ```jldoctest
 julia> match_nc_filename("hu_inst.nc")
-("hu", nothing, "inst")
+("hu", nothing, "inst", nothing)
 ```
 """
 function match_nc_filename(filename::String)
@@ -45,23 +51,25 @@ function match_nc_filename(filename::String)
     # (\w+?): Matches one or more word characters (letters, numbers, or underscore)
     # non-greedily and captures it as the first group (variable name)
 
-    # _: Matches the underscore separating the variable name and the optional time
-    # resolution.
+    # (?:_((?:\d+(?:\.\d+)?[mMdsyh]+(?:_?\d+(?:\.\d+)?[mMdsyh]+)*)))?:
+    # Optionally matches an underscore followed by the period string and captures it as the
+    # second group. Period format: digit(s), optional decimal, time unit letter(s) (m, M, d,
+    # s, y, h), optionally repeated with or without underscores (e.g., "1m_40s", "2d1s")
 
-    # ((?:[0-9]|m|M|d|s|y|_|\.)*?): Matches zero or more occurrences of the allowed
-    # characters (digits, time units, underscore, or dot) non-greedily and captures the
-    # entire time resolution string as the second group
-
-    # _?: Matches an optional underscore (to handle cases where there's no time resolution)
+    # _: Matches the underscore before the statistic
 
     # ([a-zA-Z0-9]+): Matches one or more alphanumeric characters and captures it as the
     # third group (statistic)
+
+    # (?:_([a-zA-Z]+))?: Optionally matches an underscore followed by alphabetic characters
+    # (coords suffix) and captures it as the fourth group (e.g. "pressure")
 
     # \.nc: Matches the literal ".nc" file extension
 
     # $: Matches the end of the string
 
-    re = r"^(\w+?)_((?:[0-9]|m|M|d|s|y|h|_|\.)*?)_?([a-zA-Z0-9]+)\.nc$"
+    re =
+        r"^(\w+?)(?:_((?:\d+(?:\.\d+)?[mMdsyh]+(?:_?\d+(?:\.\d+)?[mMdsyh]+)*)))?_([a-zA-Z0-9]+)(?:_([a-zA-Z]+))?\.nc$"
     m = match(re, filename)
     if !isnothing(m)
         # m.captures returns `SubString`s (or nothing). We want to have actual `String`s (or
