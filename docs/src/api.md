@@ -13,6 +13,7 @@ get(simdir::SimDir, short_names...)
 available_vars(simdir::SimDir)
 Sim.available_reductions
 Sim.available_periods
+Sim.available_coord_types
 Base.show(io::IO, simdir::SimDir)
 ```
 
