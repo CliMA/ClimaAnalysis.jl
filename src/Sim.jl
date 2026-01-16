@@ -37,7 +37,7 @@ function SimDir(simulation_path::String)
         for file in files
             m = Utils.match_nc_filename(file)
             if !isnothing(m)
-                short_name, period, reduction = m
+                short_name, period, reduction, coord_type = m
 
                 full_path = joinpath(root, file)
 

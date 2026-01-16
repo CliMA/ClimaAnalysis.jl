@@ -7,25 +7,37 @@ import Dates
     @test Utils.match_nc_filename("bob") === nothing
 
     @test Utils.match_nc_filename("ta_1d_average.nc") ==
-          Tuple(["ta", "1d", "average"])
+          Tuple(["ta", "1d", "average", nothing])
 
     @test Utils.match_nc_filename("ta_3.0h_average.nc") ==
-          Tuple(["ta", "3.0h", "average"])
+          Tuple(["ta", "3.0h", "average", nothing])
 
     @test Utils.match_nc_filename("toa_net_flux_1m_40s_inst.nc") ==
-          Tuple(["toa_net_flux", "1m_40s", "inst"])
+          Tuple(["toa_net_flux", "1m_40s", "inst", nothing])
 
     @test Utils.match_nc_filename("toa_net_flux_1M_inst.nc") ==
-          Tuple(["toa_net_flux", "1M", "inst"])
+          Tuple(["toa_net_flux", "1M", "inst", nothing])
 
     @test Utils.match_nc_filename("p500_1M_inst.nc") ==
-          Tuple(["p500", "1M", "inst"])
+          Tuple(["p500", "1M", "inst", nothing])
 
     @test Utils.match_nc_filename("pfull_6.0m_max.nc") ==
-          Tuple(["pfull", "6.0m", "max"])
+          Tuple(["pfull", "6.0m", "max", nothing])
 
     @test Utils.match_nc_filename("hu_inst.nc") ==
-          Tuple(["hu", nothing, "inst"])
+          Tuple(["hu", nothing, "inst", nothing])
+
+    @test Utils.match_nc_filename("ta_1d_average_pressure.nc") ==
+          Tuple(["ta", "1d", "average", "pressure"])
+
+    @test Utils.match_nc_filename("ta_1.0d_average_pressure.nc") ==
+          Tuple(["ta", "1.0d", "average", "pressure"])
+
+    @test Utils.match_nc_filename("ta_inst_pressure.nc") ==
+          Tuple(["ta", nothing, "inst", "pressure"])
+
+    @test Utils.match_nc_filename("ta_1M_2d1s_average_pressure.nc") ==
+          Tuple(["ta", "1M_2d1s", "average", "pressure"])
 end
 
 @testset "Squeeze" begin
