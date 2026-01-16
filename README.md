@@ -21,7 +21,7 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 - Visualize heatmaps and 1D profiles with `Makie`
 - Visualize heatmaps on a globe with `GeoMakie`
 - Apply averages and other reductions to the output variables
-- Slice variables along a given value (e.g., take the slice with altitude of 500 meters)
+- Slice variables along a given value (e.g., take the slice with an altitude of 500 meters)
 - Window variables within given ranges (e.g., select times between 10 and 100 days)
 - Perform mathematical operations between output variables
 - Extract dimensions from conventional names (e.g., `times`)
@@ -32,7 +32,7 @@ Check out the [documentation](https://CliMA.github.io/ClimaAnalysis.jl) for more
 
 These guidelines aim to ensure consistent code quality, maintainability, and a
 smooth collaborative workflow for `ClimaAnalysis.jl`. Please, read these
-guidelines even if you are familiar with other CliMA packages as there may be
+guidelines even if you are familiar with other CliMA packages, as there may be
 some differences.
 
 ### Tests and environments
