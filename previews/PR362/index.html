@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · ClimaAnalysis.jl</title><meta name="title" content="Home · ClimaAnalysis.jl"/><meta property="og:title" content="Home · ClimaAnalysis.jl"/><meta property="twitter:title" content="Home · ClimaAnalysis.jl"/><meta name="description" content="Documentation for ClimaAnalysis.jl."/><meta property="og:description" content="Documentation for ClimaAnalysis.jl."/><meta property="twitter:description" content="Documentation for ClimaAnalysis.jl."/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href><img src="assets/logo.svg" alt="ClimaAnalysis.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href>ClimaAnalysis.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#Quick-start"><span>Quick start</span></a></li></ul></li><li><a class="tocitem" href="var/">OutputVars</a></li><li><a class="tocitem" href="visualize/">Visualizing OutputVars</a></li><li><a class="tocitem" href="read_files/">Reading NetCDF files</a></li><li><a class="tocitem" href="rmse_var/">RMSEVariables</a></li><li><a class="tocitem" href="visualize_rmse_var/">Visualizing RMSEVariables</a></li><li><a class="tocitem" href="flat/">FlatVar</a></li><li><a class="tocitem" href="api/">APIs</a></li><li><a class="tocitem" href="howdoi/">How do I?</a></li><li><a class="tocitem" href="developer/">Developer Documentation</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/CliMA/ClimaAnalysis.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/CliMA/ClimaAnalysis.jl/blob/main/docs/src/index.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="ClimaAnalysis"><a class="docs-heading-anchor" href="#ClimaAnalysis">ClimaAnalysis</a><a id="ClimaAnalysis-1"></a><a class="docs-heading-anchor-permalink" href="#ClimaAnalysis" title="Permalink"></a></h1><p><code>ClimaAnalysis</code>, your one-stop-shop for all your CliMA analysis needs.</p><h2 id="Quick-start"><a class="docs-heading-anchor" href="#Quick-start">Quick start</a><a id="Quick-start-1"></a><a class="docs-heading-anchor-permalink" href="#Quick-start" title="Permalink"></a></h2><h3 id="SimDir"><a class="docs-heading-anchor" href="#SimDir"><code>SimDir</code></a><a id="SimDir-1"></a><a class="docs-heading-anchor-permalink" href="#SimDir" title="Permalink"></a></h3><p>Suppose you ran a <code>ClimaAtmos</code> simulation, and the output is saved in the folder <code>simulation_output</code>. The first step in using <code>ClimaAnalysis</code> is to instantiate a <code>SimDir</code>:</p><pre><code class="language-julia hljs">import ClimaAnalysis
+
+simdir = ClimaAnalysis.SimDir(&quot;simulation_output&quot;)</code></pre><p><code>ClimaAnalysis.SimDir</code> scans the <code>simulation_output</code>, finds all the output files, and organizes them. Consider the following directories:</p><pre><code class="nohighlight hljs">global_diagnostics/
+├── output_0001
+│   ├── ta_3.0h_average.nc
+│   ├── ta_3.0h_max.nc
+│   ├── ta_3.0h_min.nc
+│   ├── ta_4.0h_max.nc
+│   ├── ts_1.0h_max.nc
+│   ├── ua_6.0h_average.nc
+│   └── va_2.0h_average.nc
+├── output_0002
+│   ├── ua_6.0h_average.nc
+│   └── va_2.0h_average.nc
+└── output_0003
+    ├── ts_1.0h_max.nc
+    ├── ua_6.0h_average.nc
+    └── va_2.0h_average.nc</code></pre><p>As of version <code>0.1.0</code>, <code>ClimaAnalysis</code> uses file names to identify files and variables. In this, <code>ClimaAnalysis</code> assumes that the default names for outputs are used in <code>ClimaAtmos</code> (i.e., <code>&lt;short_name&gt;_&lt;reduction_time&gt;_&lt;reduction_type&gt;.nc</code>, as in <code>ta_1h_max.nc</code>, or <code>&lt;short_name&gt;_1d_inst.nc</code>).</p><p>Once you have a <code>SimDir</code>, you can inspect the output. For example, to find what variables are available:</p><pre><code class="language-julia-repl hljs">julia&gt; println(summary(simdir))
+Output directory: simulation_output
+Variables:
+- va
+    average (2.0h)
+- ua
+    average (6.0h)
+- orog
+    inst (1.0d)
+- ta
+    average (3.0h)
+    max (4.0h, 3.0h)
+    min (3.0h)
+- ts
+    max (1.0h)</code></pre><p>Now, you can access any given variable</p><pre><code class="language-julia hljs">ts_max = get(simdir; short_name = &quot;ts&quot;, reduction = &quot;max&quot;, period = &quot;3.0h&quot;)</code></pre><p><code>ts_max</code> is a <code>OutputVar</code>, a type that contains the variable as well as some metadata. When there is only one combination <code>short_name/reduction/period</code>, the function <code>get</code> can be used with <code>get(simdir, short_name)</code> (e.g., <code>get(simdir, &quot;orog&quot;)</code> in the previous example). In this case, you can get multiple variables at the same time with</p><pre><code class="language-julia hljs">orog, ua, va = get(simdir, &quot;orog&quot;, &quot;ua&quot;, &quot;va&quot;)</code></pre><p>If there are more files with the same combination of short name, reduction, and period, then the function <code>get</code> automatically stitch the <code>.nc</code> files together along the time dimension.</p><pre><code class="language-julia hljs"># Stitch `ua_6.0h_average.nc` in output_0001, output_0002, and output_0003
+ua_average = get(simdir; short_name = &quot;ua&quot;, reduction = &quot;average&quot;, period = &quot;6.0h&quot;)
+
+# Stitch `ts_1.0h_max.nc` in output_0001 and output_0003
+ts_average = get(simdir; short_name = &quot;ts&quot;, reduction = &quot;max&quot;, period = &quot;1.0h&quot;)</code></pre><p>The order of files in the directory tree traversed top-down determines the order of the files when stitching them. Stitching the datasets is not possible when the start dates are not the same, the names of the time dimension are not the same across the datasets, the time dimension does not exist, or the times are not in sequential order.</p><p>Let us learn about <code>OutputVar</code>s</p><h3 id="OutputVar"><a class="docs-heading-anchor" href="#OutputVar"><code>OutputVar</code></a><a id="OutputVar-1"></a><a class="docs-heading-anchor-permalink" href="#OutputVar" title="Permalink"></a></h3><p><code>OutputVar</code>s contain the raw data (in <code>.data</code>), the attributes read from the file, and the information regarding the dimension over which the variable is defined.</p><pre><code class="language-julia-repl hljs">julia&gt; ts_max.dims
+OrderedCollections.OrderedDict{String, Vector{Float32}} with 4 entries:
+  &quot;time&quot; =&gt; [10800.0, 21600.0, 32400.0, 43200.0]
+  &quot;lon&quot;  =&gt; [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
+  &quot;lat&quot;  =&gt; [-80.0, -77.9747, -75.9494, -73.924, -71.8987, -69.8734, -67.8481, -65.8228, …
+  &quot;z&quot;    =&gt; [0.0, 5000.0, 10000.0, 15000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, …</code></pre><p>Here we have the dimensions and their values. The dimensions are ordered as in the file, so that the first index of <code>.data</code> is <code>time</code>, and so on.</p><p>We can find the attributes of the dimensions in <code>.attributes</code>:</p><pre><code class="language-julia-repl hljs">julia&gt; ts_max.dim_attributes[&quot;lon&quot;]
+  &quot;lon&quot;  =&gt; Dict(&quot;units&quot;=&gt;&quot;degrees_east&quot;)</code></pre><p>Some of the attributes are exposed with function calls. For example</p><pre><code class="language-julia-repl hljs">julia&gt; long_name(ts_max)
+  Surface Temperature, max within 1.0 Hour(s)</code></pre><p>These function use the attributes in the NetCDF files. When not available, empty strings are returned.</p><p>Given an <code>OutputVar</code>, we can perform manipulations. For instance, we can take the average over latitudes:</p><pre><code class="language-julia hljs">ts_max_lat_averaged = ClimaAnalysis.average_lat(ts_max)</code></pre><p>Now,</p><pre><code class="language-julia hljs">ts_max_lat_averaged.dims =
+OrderedCollections.OrderedDict{String, Vector{Float32}} with 3 entries:
+  &quot;time&quot; =&gt; [10800.0, 21600.0, 32400.0, 43200.0]
+  &quot;lon&quot;  =&gt; [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
+  &quot;z&quot;    =&gt; [0.0, 5000.0, 10000.0, 15000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, …</code></pre><p>We can also take a time/altitude slice, for example, the plane with altitude closest to 8000 meters.</p><pre><code class="language-julia hljs">ts_max_lat_averaged_sliced = ClimaAnalysis.slice(ts_max_lat_averaged, 8_000)</code></pre><p>Alternatively, you can also call <code>ClimaAnalysis.slice(ts_max_lat_averaged_sliced, time = 8_000)</code>. Now,</p><pre><code class="language-julia hljs">ts_max_lat_averaged_sliced.dims =
+OrderedCollections.OrderedDict{String, Vector{Float32}} with 2 entries:
+  &quot;time&quot; =&gt; [10800.0, 21600.0, 32400.0, 43200.0]
+  &quot;lon&quot;  =&gt; [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…</code></pre><p>You can get the dimensions from standard names, for example, to find the <code>times</code>, simply run</p><pre><code class="language-julia hljs">times(ts_max_lat_averaged_sliced) =
+4-element Vector{Float32}:
+ 10800.0
+ 21600.0
+ 32400.0
+ 43200.0</code></pre><p><code>OutputVar</code>s can be evaluated on arbitrary points. For instance</p><pre><code class="language-julia-repl hljs">julia&gt; ts_max([12000., 23., 45., 1200.])</code></pre><p>will return the value of the maximum temperature at time 12000, longitude 23, latitude 45, and altitude 1200. This can be used to interpolate <code>OutputVar</code>s onto new grids.</p><h4 id="Mathematical-operations"><a class="docs-heading-anchor" href="#Mathematical-operations">Mathematical operations</a><a id="Mathematical-operations-1"></a><a class="docs-heading-anchor-permalink" href="#Mathematical-operations" title="Permalink"></a></h4><p><code>OutputVar</code>s support the usual mathematical operations. For instance, if <code>ts_max</code> is an <code>OutputVar</code>, <code>2 * ts_max</code> will be an <code>OutputVar</code> with doubled values.</p><p>For binary operations (e.g., <code>+, -, *, /</code>), <code>ClimaAnalysis</code> will check if the operation is well defined (i.e., the two variables are defined on the physical space). Binary operations do remove some attribute information. If two <code>OutputVar</code>s share the same start date, then the start date will remain in the resulting <code>OutputVar</code>s after performing binary operations on them. When appropriate, the resulting <code>OutputVar</code> will retain its units. For example, addition and subtraction preserve matching units, and multiplication and division combine them.</p><p>Unary operations are supported too, for example <code>log(max(var, 1e-8))</code> returns a new <code>OutputVar</code> with the functions applied to the data.</p><h4 id="Visualize"><a class="docs-heading-anchor" href="#Visualize"><code>Visualize</code></a><a id="Visualize-1"></a><a class="docs-heading-anchor-permalink" href="#Visualize" title="Permalink"></a></h4><p>We can directly visualize <code>OutputVar</code>s.</p><p>If <a href="https://docs.makie.org/stable/"><code>Makie</code></a> is available, <code>ClimaAnalysis</code> can be used for plotting. Importing <code>Makie</code> and <code>ClimaAnalysis</code> in the same session automatically loads the necessary <code>ClimaAnalysis</code> plotting modules.</p><p>If we want to make a heatmap for <code>ts_max</code> at time of 100 s at altitude <code>z</code> of 30000 meters:</p><pre><code class="language-julia hljs">import CairoMakie
+import ClimaAnalysis.Visualize as viz
+
+fig = CairoMakie.Figure(size = (400, 600))
+
+viz.plot!(
+  fig,
+  ts_max,
+  time = 100.0,
+  z = 30_000.0
+)
+
+CairoMakie.save(&quot;ts_max.png&quot;, fig)</code></pre><p>If we want to have a line plot, we can simply add another argument (e.g., <code>lat = 30</code>), to slice through that value.</p><p>If you want to customize some of the properties, you can pass the <code>more_kwargs</code> to the <code>plot!</code> function. <code>more_kwargs</code> is a dictionary that can contain additional arguments to the <code>Axis</code> (<code>:axis</code>), <code>plot</code> (<code>:plot</code>), and <code>Colorbar</code> (<code>:cb</code>) functions. <code>more_kwargs</code> is a Dictionary that maps the symbols <code>:axis</code>, <code>:plot</code>, and <code>:cb</code> to their additional arguments. For instance, to choose the alpha value of the plot, the label of the colorbar, and the subtitle, you can do the following:</p><pre><code class="language-julia hljs">viz.plot!(
+    fig,
+    ts_max,
+    time = 100.0,
+    z = 30_000.0,
+    more_kwargs = Dict(
+        :plot =&gt; Dict(:alpha =&gt; 0.5),
+        :cb =&gt; Dict(:label =&gt; &quot;My label&quot;),
+        :axis =&gt; Dict(:subtitle =&gt; &quot;My subtitle&quot;),
+    ),
+)</code></pre><p>Note the <code>Symbol</code> in plot, cb, and axis!. <code>:plot</code>, <code>:cb</code>, and <code>:axis</code> have to be a mapping of <code>Symbol</code>s and values. <code>ClimaAnalysis</code> has a convenience function <code>kwargs</code> to more easily pass down the keyword arguments avoiding this step. With that, the above example becomes</p><pre><code class="language-julia hljs">import ClimaAnalysis.Utils : kwargs as ca_kwargs
+viz.plot!(
+  fig,
+  ts_max,
+  time = 100.0,
+  z = 30_000.0,
+  more_kwargs = Dict(
+      :plot =&gt; ca_kwargs(alpha = 0.5),
+      :cb =&gt; ca_kwargs(label = &quot;My label&quot;),
+      :axis =&gt; ca_kwargs(subtitle = &quot;My subtitle&quot;),
+  ),
+)</code></pre><p>With <code>Utils.kwargs</code>, you can just pass the arguments as you would pass them to the constructor.</p><p>If you need more control over the placement of plots, you can pass <code>Makie.GridLayout</code> objects to the plotting functions. For example,</p><pre><code class="language-julia hljs">using CairoMakie
+
+fig = Figure()
+layout = fig[1, 2] = GridLayout()
+
+viz.plot!(
+  layout,
+  ts_max,
+  time = 100.0,
+  z = 30_000.0,
+  more_kwargs = Dict(
+      :plot =&gt; ca_kwargs(alpha = 0.5),
+      :cb =&gt; ca_kwargs(label = &quot;My label&quot;),
+      :axis =&gt; ca_kwargs(subtitle = &quot;My subtitle&quot;),
+  ),
+)</code></pre><p>When you pass a <code>GridLayout</code>, the optional argument <code>p_loc</code> refers to the placement within the layout. When you pass a <code>Figure</code>, it refers to the placement within the figure.</p><p>If you have <code>GeoMakie</code> and are working on a variable defined on a <code>long-lat</code> grid, you can directly plot on a projected global surface. For that, load <code>GeoMakie</code> and use the <code>heatmap2D_on_globe!</code> function.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="var/">OutputVars »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Tuesday 20 January 2026 18:55">Tuesday 20 January 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
