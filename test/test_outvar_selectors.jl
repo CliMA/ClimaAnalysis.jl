@@ -250,6 +250,25 @@ end
     sliced_var =
         ClimaAnalysis.slice(var_2d_dim, dim2d = 3, by = ClimaAnalysis.Index())
     @test sliced_var.data == fill(3)
+
+    # Test slice with non-positive time values
+    time = [-2.0, -1.0, 0.0, 1.0]
+    var =
+        TemplateVar() |>
+        add_dim("time", time, units = "s") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+
+    var_at_zero_time = ClimaAnalysis.slice(var, t = 0.0)
+    @test var_at_zero_time.attributes["slice_time_units"] == "s"
+    @test var_at_zero_time.attributes["long_name"] == "hi time = 0.0s"
+    @test var_at_zero_time.attributes["slice_time"] == "0.0"
+
+    var_at_neg_time = ClimaAnalysis.slice(var, t = -2.0)
+    @test var_at_neg_time.attributes["slice_time_units"] == "s"
+    @test var_at_neg_time.attributes["long_name"] == "hi time = -2.0s"
+    @test var_at_neg_time.attributes["slice_time"] == "-2.0"
+
 end
 
 @testset "Windowing" begin
