@@ -191,9 +191,20 @@ julia> seconds_to_prettystr(864010)
 
 julia> seconds_to_prettystr(24 * 60 * 60 * 365 + 1)
 "1y 1s"
+
+julia> seconds_to_prettystr(0)
+"0.0s"
+
+julia> seconds_to_prettystr(-864010)
+"-10d 10s"
 ```
 """
 function seconds_to_prettystr(seconds::Real)
+    iszero(seconds) && return "0.0s"
+
+    sign_prefix = signbit(seconds) ? "-" : ""
+    seconds = abs(seconds)
+
     time = String[]
 
     years, rem_seconds = divrem(seconds, 24 * 60 * 60 * 365)
@@ -211,7 +222,7 @@ function seconds_to_prettystr(seconds::Real)
     minutes > 0 && push!(time, "$(minutes)m")
     seconds > 0 && push!(time, "$(seconds)s")
 
-    return join(time, " ")
+    return sign_prefix * join(time, " ")
 end
 
 """
