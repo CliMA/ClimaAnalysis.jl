@@ -21,6 +21,10 @@ import Dates
 transform_dates(var, date -> date - Dates.Hour(6))
 ```
 
+## Bug fixes
+- Fix bug with missing time value for long name after applying `slice` on a
+  `OutputVar` for non-positive time values
+
 v0.5.20
 -------
 This release introduces the following features and bug fixes
