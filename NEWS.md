@@ -3,6 +3,9 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+v0.5.21
+-------
+
 ## Units for binary operations
 
 With this release, all resulting `OutputVar` from binary operations with
