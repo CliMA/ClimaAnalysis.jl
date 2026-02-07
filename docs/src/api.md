@@ -31,6 +31,7 @@ Catalog.available_vars(catalog::NCCatalog)
 ```@docs
 Var.OutputVar
 Var.read_var
+Var.write_to_netcdf
 Var.is_z_1D
 Base.isempty(var::OutputVar)
 Var.short_name

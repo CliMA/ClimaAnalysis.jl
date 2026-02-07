@@ -25,6 +25,7 @@ import ..Utils:
 
 export OutputVar,
     read_var,
+    write_to_netcdf,
     average_lat,
     weighted_average_lat,
     average_lon,
@@ -474,6 +475,89 @@ function read_var(paths::Vector{String}; short_name = nothing)
 
         return OutputVar(attribs, dims, dim_attribs, data)
     end
+end
+
+"""
+    write_to_netcdf(path::AbstractString, var::OutputVar)
+
+Write the `OutputVar` to a NetCDF file at `path`, overwriting any existing
+file. The variable name is taken from `short_name(var)`. If not present, an
+error is thrown. The resulting NetCDF file can be read back using
+[`read_var`](@ref).
+
+Example
+=========
+
+```julia
+var = OutputVar(attribs, dims, dim_attribs, data)
+write_to_netcdf("output.nc", var)
+
+# Read it back
+var_read = read_var("output.nc")
+```
+"""
+function write_to_netcdf(path::AbstractString, var::OutputVar)
+    # check short_name exists
+    var_name = short_name(var)
+    isempty(var_name) &&
+        error("OutputVar must have a short_name to be written to NetCDF")
+
+    # check dimensions match data
+    var_dim_names = collect(keys(var.dims))
+    ndims(var.data) == length(var.dims) || error(
+        "Number of dimensions in data ($(ndims(var.data))) does not match number of dims ($(length(var.dims)))",
+    )
+    for (i, (dim_name, dim_val)) in enumerate(var.dims)
+        if ndims(dim_val) == 1
+            expected_len = length(dim_val)
+            actual_len = size(var.data, i)
+            expected_len == actual_len || error(
+                "Dimension $dim_name has length $expected_len but data has size $actual_len along dimension $i",
+            )
+        else
+            error(
+                "Dimension $dim_name must be 1D to be written to NetCDF (ndims=$(ndims(dim_val)))",
+            )
+        end
+    end
+
+    NCDatasets.NCDataset(path, "c") do nc
+        # Define dimensions and coordinate variables
+        for (i, (dim_name, dim_val)) in enumerate(var.dims)
+            dim_var = NCDatasets.defVar(nc, dim_name, dim_val, (dim_name,))
+            if haskey(var.dim_attributes, dim_name)
+                for (k, v) in var.dim_attributes[dim_name]
+                    dim_var.attrib[k] = _netcdf_safe_attrib(v)
+                end
+            end
+        end
+
+        nc_var =
+            NCDatasets.defVar(nc, var_name, eltype(var.data), var_dim_names)
+
+        nc_var[:] = var.data
+
+        # Write attributes with type safety (overwrite existing keys)
+        for (k, v) in var.attributes
+            nc_var.attrib[k] = _netcdf_safe_attrib(v)
+        end
+    end
+    return nothing
+end
+
+"""
+    _netcdf_safe_attrib(v)
+
+Convert attribute value `v` to a NetCDF-safe type.
+NetCDF attributes must be basic scalar types or strings.
+"""
+function _netcdf_safe_attrib(v)
+    v isa AbstractString && return v
+    v isa Number && return v
+    v isa AbstractArray && eltype(v) <: Union{Number, AbstractString} &&
+        return v
+    # For anything else (Unitful, custom types), convert to string
+    return string(v)
 end
 
 """

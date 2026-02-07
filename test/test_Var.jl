@@ -3613,3 +3613,128 @@ end
     @test sprint(show, var) ==
           "Attributes:\n  long_name => hi\nDimension attributes:\n  lat:\n    units => deg\nData defined over:\n  lat with 0 element"
 end
+
+@testset "Write to NetCDF" begin
+    mktempdir() do tmpdir
+        nc_path = joinpath(tmpdir, "test_file.nc")
+
+        # Test 1: Round-trip write and read with small arrays
+        lon = collect(range(-60.0, 60.0, 8))
+        lat = collect(range(-30.0, 30.0, 6))
+        data = reshape(collect(1:(length(lon) * length(lat))), (length(lon), length(lat)))
+        dims = OrderedDict("lon" => lon, "lat" => lat)
+        attribs = Dict(
+            "short_name" => "test_var",
+            "long_name" => "Test Variable",
+            "units" => "m",
+        )
+        dim_attribs = OrderedDict(
+            "lon" => Dict("units" => "deg"),
+            "lat" => Dict("units" => "deg"),
+        )
+
+        var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
+        ClimaAnalysis.write_to_netcdf(nc_path, var)
+
+        var_read = ClimaAnalysis.read_var(nc_path; short_name = "test_var")
+
+        @test var_read.attributes["short_name"] == attribs["short_name"]
+        @test var_read.attributes["long_name"] == attribs["long_name"]
+        @test var_read.attributes["units"] == attribs["units"]
+        @test var_read.dims["lon"] == lon
+        @test var_read.dims["lat"] == lat
+        @test var_read.data ≈ data
+        @test var_read.dim_attributes["lon"]["units"] == "deg"
+        @test var_read.dim_attributes["lat"]["units"] == "deg"
+
+        # Test 2: Overwrite behavior (writing to same path replaces file)
+        lon2 = collect(range(0.0, 10.0, 5))
+        data2 = collect(range(0.0, step = 1.0, length = length(lon2)))
+        dims2 = OrderedDict("lon" => lon2)
+        attribs2 = Dict("short_name" => "new_var", "units" => "K")
+        dim_attribs2 = OrderedDict("lon" => Dict("units" => "m"))
+        var2 = ClimaAnalysis.OutputVar(attribs2, dims2, dim_attribs2, data2)
+
+        ClimaAnalysis.write_to_netcdf(nc_path, var2)
+
+        var2_read = ClimaAnalysis.read_var(nc_path; short_name = "new_var")
+        @test var2_read.attributes["short_name"] == "new_var"
+        @test var2_read.data ≈ data2
+        @test var2_read.dims["lon"] == lon2
+
+        # Test 3: Error when short_name is missing
+        attribs_bad = Dict("long_name" => "No short name")
+        var_bad = ClimaAnalysis.OutputVar(attribs_bad, dims, dim_attribs, data)
+        @test_throws ErrorException ClimaAnalysis.write_to_netcdf(
+            nc_path,
+            var_bad,
+        )
+
+        # Test 4: Attribute type safety (non-string/number attributes)
+        attribs_mixed = Dict(
+            "short_name" => "mixed_attrs",
+            "units" => "kg",
+            "custom_array" => [1, 2, 3],
+        )
+        var_mixed =
+            ClimaAnalysis.OutputVar(attribs_mixed, dims2, dim_attribs2, data2)
+        ClimaAnalysis.write_to_netcdf(nc_path, var_mixed)
+        var_mixed_read = ClimaAnalysis.read_var(
+            nc_path;
+            short_name = "mixed_attrs",
+        )
+        @test var_mixed_read.attributes["short_name"] == "mixed_attrs"
+        @test var_mixed_read.attributes["custom_array"] == [1, 2, 3]
+
+        # Test 5: Float32 round-trip
+        float_path = joinpath(tmpdir, "float_file.nc")
+        lonf = Float32[0, 1]
+        latf = Float32[10, 20]
+        dataf = reshape(Float32[1, 2, 3, 4], (length(lonf), length(latf)))
+        dimsf = OrderedDict("lon" => lonf, "lat" => latf)
+        attribsf = Dict("short_name" => "f32", "units" => "1")
+        dim_attribsf = OrderedDict("lon" => Dict("units" => "deg"), "lat" => Dict())
+
+        var_f32 = ClimaAnalysis.OutputVar(attribsf, dimsf, dim_attribsf, dataf)
+        ClimaAnalysis.write_to_netcdf(float_path, var_f32)
+        var_f32_read = ClimaAnalysis.read_var(float_path; short_name = "f32")
+
+        @test eltype(var_f32_read.data) == Float32
+        @test var_f32_read.data == dataf
+        @test var_f32_read.dims == dimsf
+
+        # Test 6: NaN round-trip
+        nan_path = joinpath(tmpdir, "nan_file.nc")
+        xs = [0.0, 1.0, 2.0]
+        data_nan = [1.0, NaN, 3.0]
+        dims_nan = OrderedDict("x" => xs)
+        attribs_nan = Dict("short_name" => "nan_var")
+        dim_attribs_nan = OrderedDict("x" => Dict())
+
+        var_nan =
+            ClimaAnalysis.OutputVar(attribs_nan, dims_nan, dim_attribs_nan, data_nan)
+        ClimaAnalysis.write_to_netcdf(nan_path, var_nan)
+        var_nan_read = ClimaAnalysis.read_var(nan_path; short_name = "nan_var")
+
+        @test var_nan_read.data[1] == 1.0
+        @test isnan(var_nan_read.data[2])
+        @test var_nan_read.data[3] == 3.0
+        @test var_nan_read.dims == dims_nan
+
+        # # Test 7: Scalar (0D) round-trip
+        # scalar_path = joinpath(tmpdir, "scalar_file.nc")
+        # data_scalar = reshape([42.0], ())
+        # dims_scalar = OrderedDict{String, Vector{Float64}}()
+        # attribs_scalar = Dict("short_name" => "scalar")
+        # dim_attribs_scalar = OrderedDict{String, Dict{Any, Any}}()
+
+        # var_scalar =
+        #     ClimaAnalysis.OutputVar(attribs_scalar, dims_scalar, dim_attribs_scalar, data_scalar)
+        # ClimaAnalysis.write_to_netcdf(scalar_path, var_scalar)
+        # var_scalar_read = ClimaAnalysis.read_var(scalar_path; short_name = "scalar")
+
+        # @test length(var_scalar_read.dims) == 0
+        # @test ndims(var_scalar_read.data) == 0
+        # @test var_scalar_read.data[] == 42.0
+    end
+end
