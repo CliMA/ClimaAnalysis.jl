@@ -19,6 +19,19 @@ import ClimaAnalysis: OutputVar
 myfile = OutputVar("my_netcdf_file.nc", "myvar")
 ```
 
+## Writing to NetCDF
+
+`OutputVar`s can be written to NetCDF files using [`write_to_netcdf`](@ref).
+
+```julia
+ClimaAnalysis.write_to_netcdf("output.nc", var)
+```
+
+This creates a NetCDF file containing the data, dimensions, and attributes of the
+`OutputVar`. The name of the variable in the NetCDF file is taken from the `short_name`
+attribute of the `OutputVar`. If a file already exists at the target path, it will be
+overwritten.
+
 ## Physical units
 
 `OutputVar`s can contain information about their physical units. For
