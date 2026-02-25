@@ -370,8 +370,13 @@ select(var, by = MatchValue(), latitude = [90.0], long = 180.0)
 See also [`view_select`](@ref).
 """
 function select(var::OutputVar; by = NearestValue(), kwargs...)
-    dims, data = _select(var, by; kwargs...)
-    return remake(var, dims = dims, data = copy(data))
+    dims, data, dim_attribs = _select(var, by; kwargs...)
+    return remake(
+        var,
+        dims = dims,
+        data = copy(data),
+        dim_attributes = dim_attribs,
+    )
 end
 
 """
@@ -399,17 +404,17 @@ view_select(var, by = MatchValue(), latitude = [90.0], long = 180.0)
 See also [`select`](@ref).
 """
 function view_select(var::OutputVar; by = NearestValue(), kwargs...)
-    dims, data = _select(var, by; kwargs...)
+    dims, data, dim_attribs = _select(var, by; kwargs...)
     # The size of data is much bigger than dims and the other parts of a
     # `OutputVar`, so it is okay to copy them rather than reuse them
-    return remake(var, dims = dims, data = data)
+    return remake(var, dims = dims, data = data, dim_attributes = dim_attribs)
 end
 
 """
     _select(var::OutputVar, by::AbstractSelector; kwargs...)
 
-Return the dimensions and data by selecting indices or values according to `by` and the
-keyword arguments.
+Return the dimensions, data, and dimension attributes by selecting indices or values
+according to `by` and the keyword arguments.
 """
 function _select(var::OutputVar, by::AbstractSelector; kwargs...)
     # Wrong dimension names or dimensions that do not exist in var are checked
@@ -445,7 +450,12 @@ function _select(var::OutputVar, by::AbstractSelector; kwargs...)
         ((dim_name, dim), indices) in zip(var.dims, all_indices) if
         !(indices isa Integer)
     )
-    return dims, data
+    dim_attribs = typeof(var.dim_attributes)(
+        dim_name => copy(dim_attrib) for
+        ((dim_name, dim_attrib), indices) in
+        zip(var.dim_attributes, all_indices) if !(indices isa Integer)
+    )
+    return dims, data, dim_attribs
 end
 
 """
