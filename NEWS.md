@@ -7,6 +7,11 @@ main
 
 - The in-place version of `set_units` is now available as `set_units!`.
 
+## Bug fixes
+
+- Fix bug with dimension attributes not being properly updated when using
+  `select` or `select_view`.
+
 v0.5.21
 -------
 

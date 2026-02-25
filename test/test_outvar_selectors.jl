@@ -389,6 +389,9 @@ end
 end
 
 @testset "Selecting" begin
+    filter_dim(dim_attribs, dim_name) =
+        filter(dim_and_vals -> first(dim_and_vals) != dim_name, dim_attribs)
+
     time = 0.0:7.0 |> collect
     lon = 0.0:4.0 |> collect
     lat = 40.0:55.0 |> collect
@@ -411,6 +414,7 @@ end
           OrderedDict("time" => time, "lon" => lon, "lat" => lat[[begin, end]])
     @test isequal(nearest_var1.data, var.data[:, :, [begin, end]])
     @test ndims(nearest_var1.data) == 3
+    @test nearest_var1.dim_attributes == var.dim_attributes
 
     nearest_var2 = ClimaAnalysis.select(
         var,
@@ -420,6 +424,7 @@ end
     @test nearest_var2.dims == OrderedDict("time" => time, "lon" => lon)
     @test isequal(nearest_var2.data, var.data[:, :, end])
     @test ndims(nearest_var2.data) == 2
+    @test nearest_var2.dim_attributes == filter_dim(var.dim_attributes, "lat")
 
     match_var1 = ClimaAnalysis.select(
         var,
@@ -430,6 +435,7 @@ end
           OrderedDict("time" => time, "lon" => lon, "lat" => lat[[end]])
     @test isequal(match_var1.data, var.data[:, :, [end]])
     @test ndims(match_var1.data) == 3
+    @test match_var1.dim_attributes == var.dim_attributes
 
     match_var2 =
         ClimaAnalysis.select(var, by = ClimaAnalysis.MatchValue(), lat = 53:55)
@@ -437,12 +443,14 @@ end
           OrderedDict("time" => time, "lon" => lon, "lat" => lat[[14, 15, 16]])
     @test isequal(match_var2.data, var.data[:, :, [14, 15, 16]])
     @test ndims(match_var2.data) == 3
+    @test match_var2.dim_attributes == var.dim_attributes
 
     # With indices
     index_var1 = ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = 1)
     @test isequal(index_var1.data, var.data[:, :, 1])
     @test index_var1.dims == OrderedDict("time" => time, "lon" => lon)
     @test ndims(index_var1.data) == 2
+    @test index_var1.dim_attributes == filter_dim(var.dim_attributes, "lat")
 
     index_var2 =
         ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = [1])
@@ -450,6 +458,7 @@ end
           OrderedDict("time" => time, "lon" => lon, "lat" => lat[[1]])
     @test isequal(index_var2.data, var.data[:, :, [1]])
     @test ndims(index_var2.data) == 3
+    @test index_var2.dim_attributes == var.dim_attributes
 
     index_var3 =
         ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = [1, 5])
@@ -457,6 +466,7 @@ end
           OrderedDict("time" => time, "lon" => lon, "lat" => lat[[1, 5]])
     @test isequal(index_var3.data, var.data[:, :, [1, 5]])
     @test ndims(index_var3.data) == 3
+    @test index_var3.dim_attributes == var.dim_attributes
 
     index_var4 =
         ClimaAnalysis.select(var, by = ClimaAnalysis.Index(), lat = 1:3)
@@ -464,6 +474,7 @@ end
           OrderedDict("time" => time, "lon" => lon, "lat" => lat[1:3])
     @test isequal(index_var4.data, var.data[:, :, 1:3])
     @test ndims(index_var4.data) == 3
+    @test index_var4.dim_attributes == var.dim_attributes
 
     # With dates
     dates_var1 = ClimaAnalysis.select(
@@ -474,6 +485,7 @@ end
     @test dates_var1.dims == OrderedDict("lon" => lon, "lat" => lat)
     @test isequal(dates_var1.data, var.data[1, :, :])
     @test ndims(dates_var1.data) == 2
+    @test dates_var1.dim_attributes == filter_dim(var.dim_attributes, "time")
 
     dates_var2 = ClimaAnalysis.select(
         var,
@@ -484,6 +496,7 @@ end
           OrderedDict("time" => time[[1]], "lon" => lon, "lat" => lat)
     @test isequal(dates_var2.data, var.data[[1], :, :])
     @test ndims(dates_var2.data) == 3
+    @test dates_var2.dim_attributes == var.dim_attributes
 
     dates_var3 = ClimaAnalysis.select(
         var,
@@ -494,6 +507,7 @@ end
           OrderedDict("time" => time[[1, 3]], "lon" => lon, "lat" => lat)
     @test isequal(dates_var3.data, var.data[[1, 3], :, :])
     @test ndims(dates_var3.data) == 3
+    @test dates_var3.dim_attributes == var.dim_attributes
 
     dates_var4 = ClimaAnalysis.select(
         var,
@@ -511,6 +525,7 @@ end
           OrderedDict("time" => time[[1, 3, 5, 7]], "lon" => lon, "lat" => lat)
     @test isequal(dates_var4.data, var.data[[1, 3, 5, 7], :, :])
     @test ndims(dates_var4.data) == 3
+    @test dates_var4.dim_attributes == var.dim_attributes
 
     # Duplicate indices / values
     duplicate_var = ClimaAnalysis.select(
@@ -532,6 +547,7 @@ end
           OrderedDict("time" => time[[1, 2]], "lat" => lat[[3, 4, 5]])
     @test isequal(var_select_3d.data, var.data[[1, 2], 2, [3, 4, 5]])
     @test ndims(var_select_3d.data) == 2
+    @test var_select_3d.dim_attributes == filter_dim(var.dim_attributes, "lon")
 
     # 2D dim for a OutputVar
     var_2d_dim =
@@ -551,6 +567,7 @@ end
         var_2d_dim.dims["dim2d"][:, [1]],
     )
     @test ndims(var_2d_dim_selected.data) == 1
+    @test var_2d_dim_selected.dim_attributes == var_2d_dim.dim_attributes
 
     # Scalar and vector indexing with one dimension OutputVar
     var_1d =
@@ -564,12 +581,14 @@ end
     @test var_vector_index.dims == OrderedDict("time" => time[[1]])
     @test isequal(var_vector_index.data, [1.0])
     @test ndims(var_vector_index.data) == 1
+    @test var_vector_index.dim_attributes == var_1d.dim_attributes
 
     var_scalar_index =
         ClimaAnalysis.select(var_1d, by = ClimaAnalysis.Index(), time = 1)
     @test isempty(var_scalar_index.dims)
     @test isequal(var_scalar_index.data, fill(1.0))
     @test ndims(var_scalar_index.data) == 0
+    @test isempty(var_scalar_index.dim_attributes)
 
     # Test view_select gets a view and select does not get a view
     var_copy = ClimaAnalysis.remake(var)
@@ -587,6 +606,7 @@ end
     view_var.data[1, 1, 1] = 42.0
     @test var_copy.data[1, 1, 3] == 42.0
     @test !isequal(view_var.data, no_view_var.data)
+    @test view_var.dim_attributes == no_view_var.dim_attributes
 
     # Error handling
     # Invalid indices
