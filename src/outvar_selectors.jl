@@ -350,9 +350,9 @@ as defined by the keyword arguments.
 
 The keyword argument `by` can be `ClimaAnalysis.NearestValue()`,
 `ClimaAnalysis.MatchValue()`, or `ClimaAnalysis.Index()`.
-- `NearestValue()`: The nearest value will be selected for slicing.
-- `MatchValue()`: The approximately matched value will be selected for slicing.
-- `Index()`: The index passed in will be used for slicing.
+- `NearestValue()`: The nearest value will be selected.
+- `MatchValue()`: The approximately matched value will be selected.
+- `Index()`: The index passed in will be used.
 
 Examples
 ===========
@@ -388,9 +388,9 @@ as defined by the keyword arguments. The data of the returned `OutputVar` is a v
 
 The keyword argument `by` can be `ClimaAnalysis.NearestValue()`,
 `ClimaAnalysis.MatchValue()`, or `ClimaAnalysis.Index()`.
-- `NearestValue()`: The nearest value will be selected for slicing.
-- `MatchValue()`: The approximately matched value will be selected for slicing.
-- `Index()`: The index passed in will be used for slicing.
+- `NearestValue()`: The nearest value will be selected.
+- `MatchValue()`: The approximately matched value will be selected.
+- `Index()`: The index passed in will be used.
 
 Examples
 ===========
@@ -459,10 +459,10 @@ function _select(var::OutputVar, by::AbstractSelector; kwargs...)
 end
 
 """
-    function _select_indices(var::OutputVar,
-                             by::AbstractSelector,
-                             dim_name,
-                             indices_or_vals)
+    _select_indices(var::OutputVar,
+                    by::AbstractSelector,
+                    dim_name,
+                    indices_or_vals)
 
 Return the indices for `var.data` corresponding to the given `indices_or_vals` in the
 specified dimension.
