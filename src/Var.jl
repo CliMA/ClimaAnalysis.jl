@@ -65,6 +65,7 @@ export OutputVar,
     global_mse,
     global_rmse,
     set_units,
+    set_units!,
     set_dim_units!,
     set_short_name!,
     shift_to_start_of_previous_month,
@@ -627,10 +628,27 @@ Set `units` for data in `var`.
 !!! warning "Override existing units"
     If units already exist, this will override the units for data in `var`. To convert
     units, see [`Var.convert_units`](@ref)
+
+See also [`Var.set_units!`](@ref).
 """
 function set_units(var::OutputVar, units::AbstractString)
     converted_var = convert_units(var, units, conversion_function = identity)
     return converted_var
+end
+
+"""
+    set_units!(var::OutputVar, units::AbstractString)
+
+Set `units` for data in `var`.
+
+!!! note "Availability"
+    This function is available in versions of ClimaAnalysis after v0.5.21.
+
+See also [`Var.set_units`](@ref).
+"""
+function set_units!(var::OutputVar, units::AbstractString)
+    var.attributes["units"] = units
+    return nothing
 end
 
 """

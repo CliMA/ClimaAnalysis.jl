@@ -3,6 +3,10 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+## Minor additions
+
+- The in-place version of `set_units` is now available as `set_units!`.
+
 v0.5.21
 -------
 

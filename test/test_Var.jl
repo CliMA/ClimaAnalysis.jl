@@ -2584,6 +2584,17 @@ end
     var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
     var_units = ClimaAnalysis.set_units(var, "idk")
     @test ClimaAnalysis.units(var_units) == "idk"
+
+    # Setting units in-place
+    times = [0.0, 1.0, 2.0]
+    var =
+        TemplateVar() |>
+        add_attribs(long_name = "Long name") |>
+        add_dim("time", times, blah = "blah") |>
+        initialize
+
+    ClimaAnalysis.set_units!(var, "cool_units")
+    @test ClimaAnalysis.units(var) == "cool_units"
 end
 
 @testset "Dates to seconds for vars" begin
