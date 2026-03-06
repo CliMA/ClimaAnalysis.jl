@@ -2881,6 +2881,37 @@ end
           date_arr .- Dates.Month(1) .- Dates.Week(1) .- Dates.Day(1)
 end
 
+@testset "Set reference date" begin
+    time_arr1 = collect(Float64(i)^2 for i in 1:100)
+    var =
+        TemplateVar() |>
+        add_dim("time", time_arr1, blah = "blah") |>
+        add_attribs(start_date = "2010-01-01T00:00:00") |>
+        initialize
+
+    curr_dates = ClimaAnalysis.dates(var)
+
+    ref_date1 = Dates.DateTime(2011)
+    ClimaAnalysis.set_reference_date!(var, ref_date1)
+    @test ClimaAnalysis.dates(var) == curr_dates
+    @test var.attributes["start_date"] == string(ref_date1)
+
+    ref_date2 = "1990-01-01T00:10:00"
+    ClimaAnalysis.set_reference_date!(var, ref_date2)
+    @test ClimaAnalysis.dates(var) == curr_dates
+    @test var.attributes["start_date"] == string(ref_date2)
+
+    # No start date
+    time_arr2 = [0.0, 1.0, 2.0]
+    var =
+        TemplateVar() |> add_dim("time", time_arr2, blah = "blah") |> initialize
+    ref_date3 = Dates.DateTime(2010)
+    ClimaAnalysis.set_reference_date!(var, ref_date3)
+    @test ClimaAnalysis.dates(var) ==
+          [Dates.DateTime(2010, 1, 1, 0, 0, t) for t in time_arr2]
+    @test var.attributes["start_date"] == string(ref_date3)
+end
+
 @testset "Land and ocean masks" begin
     # Order of dimensions should not matter
     lat = collect(range(-89.5, 89.5, 180))

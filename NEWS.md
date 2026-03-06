@@ -3,6 +3,22 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+## Setting reference date
+
+With this release, you can set the reference date (or start date) with
+`set_reference_date!`. This function allows you to align the times to refer to
+the same reference date. When you set a new reference date, the dates remain
+unchanged (i.e., calling `ClimaAnalysis.dates` returns the same values), but the
+relative times are changed with respect to the new reference date.
+
+For example, if you have simulation data and observational data, you can set the
+reference date to be the same so that the relative times are the same for both
+`OutputVar`s.
+
+```julia
+ClimaAnalysis.set_reference_date!(obs_var, first(ClimaAnalysis.dates(sim_var)))
+```
+
 ## Minor additions
 
 - The in-place version of `set_units` is now available as `set_units!`.

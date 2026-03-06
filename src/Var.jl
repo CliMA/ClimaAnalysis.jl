@@ -73,6 +73,7 @@ export OutputVar,
     shift_to_previous_day,
     transform_dates,
     transform_dates!,
+    set_reference_date!,
     replace,
     replace!,
     reverse_dim,
@@ -2479,6 +2480,46 @@ function _transform_dates(var::OutputVar, date_func)
     time_arr = map(date -> date_to_time(start_date, date), date_arr)
 
     return time_arr, start_date
+end
+
+"""
+    set_reference_date!(var::OutputVar, reference_date)
+
+Set the reference date (or start date) in the attributes of `var` to
+`reference_date`.
+
+If `var` does not have a `start_date` in the attributes, then the reference date
+is simply set with no other changes. If a `start_date` already exists, the
+`start_date` is updated to `reference_date` and the times are updated to be
+relative to this new reference date.
+
+!!! note "Start date"
+    ClimaAnalysis uses `start_date` in the attributes to determine how to
+    convert between times in seconds (relative time) to dates (absolute time).
+    In the future, `start_date` may be replaced with `reference_date`.
+"""
+function set_reference_date!(var::OutputVar, reference_date)
+    # Parse reference_date if it's a string
+    ref_date =
+        reference_date isa AbstractString ? Dates.DateTime(reference_date) :
+        reference_date
+
+    # If there is no start date, then the data comes from a simulation with no
+    # notion of dates
+    if !("start_date" in keys(var.attributes))
+        var.attributes["start_date"] = string(reference_date)
+        return nothing
+    end
+
+    # Get current dates (these should remain unchanged)
+    current_dates = dates(var)
+
+    # Update the start_date attribute and time dimension
+    var.dims[time_name(var)] .=
+        map(date -> date_to_time(ref_date, date), current_dates)
+    var.attributes["start_date"] = string(ref_date)
+
+    return nothing
 end
 
 """
