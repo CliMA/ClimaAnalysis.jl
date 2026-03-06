@@ -127,6 +127,12 @@ obs_var = ClimaAnalysis.OutputVar(
             )
 ```
 
+!!! warning "Deprecated keyword arguments"
+    The keyword arguments `new_start_date` and `shift_by` are deprecated in versions of
+    ClimaAnalysis after v0.5.21. Users are encouraged to use [`set_reference_date!`](@ref)
+    and [`transform_dates!`](@ref) instead.
+"""
+
 Additionally, the function `shift_to_start_of_previous_month(var::OutputVar)` is provided to
 help with preprocessing. This function shifts the times in the time dimension to the start
 of the previous month. After applying this function, the start date in the attributes

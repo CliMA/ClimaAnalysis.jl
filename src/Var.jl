@@ -295,6 +295,11 @@ attributes of the `OutputVar`. The parameter `shift_by` is a function that takes
 `Dates.DateTime` elements and returns `Dates.DateTime` elements. This function is applied to
 each element of the time array. Shifting the dates and converting to seconds is done in that
 order.
+
+!!! warning "Deprecated keyword arguments"
+    The keyword arguments `new_start_date` and `shift_by` are deprecated in versions of
+    ClimaAnalysis after v0.5.21. Users are encouraged to use [`set_reference_date!`](@ref)
+    and [`transform_dates!`](@ref) instead.
 """
 function OutputVar(
     path::Union{String, Vector{String}},
@@ -302,6 +307,12 @@ function OutputVar(
     new_start_date = nothing,
     shift_by = identity,
 )
+    if !(shift_by == identity && isnothing(new_start_date))
+        # Not using Base.depwarn since we are only deprecating the keyword
+        # arguments
+        @warn "The keyword arguments new_start_date and shift_by are both deprecated in favor of using set_reference_date! and transform_dates!" maxlog =
+            1
+    end
     var = read_var(path, short_name = short_name)
     # Check if it is possible to convert dates to seconds in the time dimension
     if has_time(var)
