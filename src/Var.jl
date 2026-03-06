@@ -72,6 +72,7 @@ export OutputVar,
     shift_to_previous_week,
     shift_to_previous_day,
     transform_dates,
+    transform_dates!,
     replace,
     replace!,
     reverse_dim,
@@ -2420,8 +2421,45 @@ end
     transform_dates(var::OutputVar, date_func)
 
 Apply `date_func` element-wise to the dates in `var`.
+
+See also [`Var.transform_dates!`](@ref).
 """
 function transform_dates(var::OutputVar, date_func)
+    time_arr, start_date = _transform_dates(var, date_func)
+
+    ret_attribs = deepcopy(var.attributes)
+    ret_attribs["start_date"] = string(start_date)
+    ret_dims = deepcopy(var.dims)
+    ret_dims[time_name(var)] = time_arr
+    return remake(var, attributes = ret_attribs, dims = ret_dims)
+end
+
+"""
+    transform_dates!(var::OutputVar, date_func)
+
+Apply `date_func` element-wise to the dates in `var` in-place.
+
+!!! note "Availability"
+    This function is available in versions of ClimaAnalysis after v0.5.21.
+
+See also [`Var.transform_dates`](@ref).
+"""
+function transform_dates!(var::OutputVar, date_func)
+    time_arr, start_date = _transform_dates(var, date_func)
+
+    # Update attributes and dimensions in-place
+    var.attributes["start_date"] = string(start_date)
+    var.dims[time_name(var)] .= time_arr
+    return nothing
+end
+
+"""
+    _transform_dates(var::OutputVar, date_func)
+
+Helper function used by `transform_dates` and `transform_dates!` which return
+the times of `var` in seconds and the start date after applying `date_func`.
+"""
+function _transform_dates(var::OutputVar, date_func)
     # Check if time dimension exists, floats are in the array, and unit of data is
     # second
     has_time(var) || error("Time is not a dimension of var")
@@ -2433,17 +2471,14 @@ function transform_dates(var::OutputVar, date_func)
     @. date_arr = date_func(date_arr)
 
     # Check for duplicate dates
-    allunique(date_arr) || error("Dates are not unique after shifting dates")
+    allunique(date_arr) ||
+        error("Dates are not unique after transforming dates")
 
     # Convert from dates to seconds
     start_date = first(date_arr)
     time_arr = map(date -> date_to_time(start_date, date), date_arr)
 
-    ret_attribs = deepcopy(var.attributes)
-    ret_attribs["start_date"] = string(start_date)
-    ret_dims = deepcopy(var.dims)
-    ret_dims[time_name(var)] = time_arr
-    return remake(var, attributes = ret_attribs, dims = ret_dims)
+    return time_arr, start_date
 end
 
 """

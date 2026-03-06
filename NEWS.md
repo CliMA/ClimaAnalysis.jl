@@ -6,6 +6,8 @@ main
 ## Minor additions
 
 - The in-place version of `set_units` is now available as `set_units!`.
+- The in-place version of `transform_dates` is now available as
+  `transform_dates!`.
 
 ## Bug fixes
 

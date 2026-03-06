@@ -2852,6 +2852,35 @@ end
           first(shifted_dates_by_day)
 end
 
+@testset "Transform dates" begin
+    date_arr = [
+        Dates.DateTime("2010-02-01T00:00:00"),
+        Dates.DateTime("2010-03-01T00:02:00"),
+        Dates.DateTime("2010-04-01T00:03:00"),
+    ]
+    var =
+        TemplateVar() |> add_dim("time", date_arr, blah = "blah") |> initialize
+    var = ClimaAnalysis.Var._dates_to_seconds(var)
+
+    month_var =
+        ClimaAnalysis.transform_dates(var, date -> date - Dates.Month(1))
+    week_var = ClimaAnalysis.transform_dates(var, date -> date - Dates.Week(1))
+    day_var = ClimaAnalysis.transform_dates(var, date -> date - Dates.Day(1))
+
+    @test ClimaAnalysis.dates(month_var) == date_arr .- Dates.Month(1)
+    @test ClimaAnalysis.dates(week_var) == date_arr .- Dates.Week(1)
+    @test ClimaAnalysis.dates(day_var) == date_arr .- Dates.Day(1)
+
+    ClimaAnalysis.transform_dates!(var, date -> date - Dates.Month(1))
+    @test ClimaAnalysis.dates(var) == date_arr .- Dates.Month(1)
+    ClimaAnalysis.transform_dates!(var, date -> date - Dates.Week(1))
+    @test ClimaAnalysis.dates(var) ==
+          date_arr .- Dates.Month(1) .- Dates.Week(1)
+    ClimaAnalysis.transform_dates!(var, date -> date - Dates.Day(1))
+    @test ClimaAnalysis.dates(var) ==
+          date_arr .- Dates.Month(1) .- Dates.Week(1) .- Dates.Day(1)
+end
+
 @testset "Land and ocean masks" begin
     # Order of dimensions should not matter
     lat = collect(range(-89.5, 89.5, 180))
