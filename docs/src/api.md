@@ -107,6 +107,7 @@ Var.shift_to_previous_week
 Var.shift_to_previous_day
 Var.transform_dates
 Var.transform_dates!
+Var.set_reference_date!
 Var.LonLatMask
 Var.apply_landmask
 Var.apply_oceanmask

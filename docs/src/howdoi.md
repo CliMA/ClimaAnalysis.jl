@@ -429,3 +429,36 @@ ClimaAnalysis.transform_dates(var, date -> date - Dates.Hour(6)) |> ClimaAnalysi
 
 These functions are helpful with aligning the dates of observational and
 simulational data.
+
+## How do I set a new reference/start date?
+
+You can shift dates using [`set_reference_date!`](@ref). The dates will be the
+same, but the times will be updated to be relative to the new reference/start
+date.
+
+```@setup set_ref_date
+import Dates
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar,
+    add_attribs,
+    add_dim,
+    initialize
+time = ClimaAnalysis.Utils.date_to_time.(
+        Dates.DateTime(2010, 1),
+        [Dates.DateTime(2010, i) for i in 1:3])
+var =
+    TemplateVar() |>
+    add_dim("time", time, units = "s") |>
+    add_attribs(short_name = "pr", start_date = "2010-1-1") |>
+    initialize
+```
+
+```@repl set_ref_date
+ClimaAnalysis.dates(var)
+ClimaAnalysis.times(var)
+ref_date = "2010-2-1"; # could also be Dates.DateTime(2010, 2)
+ClimaAnalysis.set_reference_date!(var, ref_date)
+ClimaAnalysis.dates(var)
+ClimaAnalysis.times(var)
+```
