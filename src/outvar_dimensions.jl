@@ -3,7 +3,7 @@ const LONGITUDE_NAMES = ["long", "lon", "longitude"]
 const LATITUDE_NAMES = ["lat", "latitude"]
 const TIME_NAMES = ["t", "time", "valid_time"]
 const DATE_NAMES = ["date"]
-const ALTITUDE_NAMES = ["z", "z_reference", "z_physical"]
+const ALTITUDE_NAMES = ["z", "z_reference", "z_physical", "height"]
 const PRESSURE_NAMES = ["pfull", "pressure_level"]
 
 export times,
