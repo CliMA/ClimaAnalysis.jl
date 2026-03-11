@@ -36,6 +36,15 @@ ClimaAnalysis.add_file!(catalog, "precip.nc", "precip" => "pr")
 ClimaAnalysis.add_file!(catalog, "radiation.nc", "rsdt", "rsut", "toa_lw_all_mon" => "rlut")
 ```
 
+!!! note "Support for multi-file concatenation"
+    In versions of ClimaAnalysis after v0.5.21, you can pass a vector of filepaths to
+    `ClimaAnalysis.add_file!`. The NetCDF files are automatically concatenated along the
+    time dimension.
+
+    ```julia
+    ClimaAnalysis.add_file!(catalog, ["era5_2008.nc", "era5_2009.nc"])
+    ```
+
 Finally, to retrieve a variable from the `NCCatalog`, you can call `get`. Additional keyword
 arguments for constructing the [`ClimaAnalysis.OutputVar`](@ref) can be passed as
 `var_kwargs`.
