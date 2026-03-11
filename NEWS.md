@@ -19,6 +19,18 @@ reference date to be the same so that the relative times are the same for both
 ClimaAnalysis.set_reference_date!(obs_var, first(ClimaAnalysis.dates(sim_var)))
 ```
 
+## Support for multi-file concatenation in `NCCatalog`
+
+`NCCatalog.add_file!` now accepts a vector of filepaths. The files are
+automatically concatenated along the time dimension.
+
+```julia
+catalog = NCCatalog()
+add_file!(catalog, ["pr_2020.nc", "pr_2021.nc", "pr_2022.nc"])
+# In the NetCDF files, there is a variable with the name pr
+pr_var = get(catalog, "pr")
+```
+
 ## Minor additions
 
 - The in-place version of `set_units` is now available as `set_units!`.
