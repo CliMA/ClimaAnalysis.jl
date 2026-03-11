@@ -416,57 +416,7 @@ function read_var(paths::Vector{String}; short_name = nothing)
     # file path
     length(paths) == 1 && return read_var(first(paths), short_name = short_name)
 
-    # Helper function to find the name of the time dimension
-    function find_time_name(dim_names)
-        for dim_name in dim_names
-            dim_name in TIME_NAMES && return dim_name
-        end
-        return nothing
-    end
-    ncs = (NCDatasets.NCDataset(path) for path in paths)
-    time_names = map(nc -> find_time_name(NCDatasets.dimnames(nc)), ncs)
-
-    # Check if each NCDataset got a time dimension
-    if nothing in time_names
-        error(
-            "Time dimension does not exist in one of the NetCDF files. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
-        )
-    end
-
-    # Check if the name for the time dimension is the same across alll NetCDF files
-    if length(unique(time_names)) != 1
-        error(
-            " Names of the time dimension are not the same across all NetCDF files. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
-        )
-    end
-
-    time_dim_name = first(time_names)
-
-    # Check if the start dates are the same
-    unordered_dims = (NCDatasets.dimnames(nc) for nc in ncs)
-    short_names = (
-        !isnothing(short_name) ? short_name :
-        pop!(setdiff(keys(nc), unordered_dim)) for
-        (unordered_dim, nc) in zip(unordered_dims, ncs)
-    )
-    start_dates = (
-        get(nc[short_name].attrib, "start_date", "") for
-        (nc, short_name) in zip(ncs, short_names)
-    )
-    if length(unique(start_dates)) != 1
-        error(
-            "Start dates are not the same across all the NetCDF files. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
-        )
-    end
-
-    # Check if it make sense to concat time dimension arrays
-    time_dim_arrays = (Array(nc[time_dim_name]) for nc in ncs)
-    time_dim_concat = vcat(time_dim_arrays...)
-    if !issorted(time_dim_concat)
-        error(
-            "Time dimension is not in increasing order after aggregating datasets. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
-        )
-    end
+    time_dim_name = _get_time_name_from_mfds(paths; short_name)
 
     NCDatasets.NCDataset(paths, aggdim = time_dim_name) do nc
         # First, if short_name is nothing, we have to identify the name of the variable by
@@ -488,6 +438,80 @@ function read_var(paths::Vector{String}; short_name = nothing)
 
         return OutputVar(attribs, dims, dim_attribs, data)
     end
+end
+
+"""
+    _get_time_name_from_mfds(paths)
+
+Get the name of the time dimension in the NetCDF files in `paths`.
+
+If a `short_name` is specified, then the short name will be used to access the
+NetCDF files to check the start date attribute.
+
+This function also validates that the NetCDF files in `paths` can be aggregated along the
+time dimension and return the name of the time dimension.
+
+The following checks are performed:
+- Every file contains a time dimension.
+- The name of the time dimension is the same across all files.
+- The `start_date` attribute is the same across all files (or absent from all files).
+- After concatenating the NetCDF files in the order given by `paths`, the time values are in
+  non-decreasing order.
+"""
+function _get_time_name_from_mfds(paths; short_name = nothing)
+    function find_time_name(dim_names)
+        for dim_name in dim_names
+            dim_name in TIME_NAMES && return dim_name
+        end
+        return nothing
+    end
+
+    time_name = nothing
+    name_to_start_date_attrib = Dict()
+    time_dim_values = []
+    for path in paths
+        NCDatasets.NCDataset(path) do nc
+            curr_time_name = find_time_name(NCDatasets.dimnames(nc))
+            # Check if each NCDataset got a time dimension
+            isnothing(curr_time_name) && error(
+                "Time dimension does not exist in one of the NetCDF files ($path). If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
+            )
+
+            # Check if the name for the time dimension is the same across all NetCDF files
+            if isnothing(time_name)
+                time_name = curr_time_name
+            else
+                time_name == curr_time_name || error(
+                    "Names of the time dimension are not the same across all NetCDF files (see $path). If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
+                )
+            end
+
+            nc_names = isnothing(short_name) ? keys(nc) : (short_name,)
+            # Check if the start dates are the same across all variables
+            # If a short name is requested, then we only check that variable
+            # This is specific to datasets produced by CliMA
+            for nc_name in nc_names
+                start_date = get(nc[nc_name].attrib, "start_date", "")
+                if !(nc_name in keys(name_to_start_date_attrib))
+                    name_to_start_date_attrib[nc_name] = start_date
+                else
+                    name_to_start_date_attrib[nc_name] == start_date || error(
+                        "Start dates are not the same across all the NetCDF files (see $path). If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
+                    )
+                end
+            end
+
+            push!(time_dim_values, Array(nc[curr_time_name]))
+        end
+    end
+
+    time_dim_concat = vcat(time_dim_values...)
+    if !issorted(time_dim_concat)
+        error(
+            "Time dimension is not in non-decreasing order after aggregating datasets. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
+        )
+    end
+    return time_name
 end
 
 """
