@@ -416,6 +416,49 @@ function read_var(paths::Vector{String}; short_name = nothing)
     # file path
     length(paths) == 1 && return read_var(first(paths), short_name = short_name)
 
+    time_dim_name = _get_time_name_from_mfds(paths; short_name)
+
+    NCDatasets.NCDataset(paths, aggdim = time_dim_name) do nc
+        # First, if short_name is nothing, we have to identify the name of the variable by
+        # finding what is not a dimension
+        unordered_dims = NCDatasets.dimnames(nc)
+        isnothing(short_name) &&
+            (short_name = pop!(setdiff(keys(nc), unordered_dims)))
+
+        dims =
+            map(NCDatasets.dimnames(nc[short_name])) do dim_name
+                return dim_name => Array(nc[dim_name])
+            end |> OrderedDict
+        attribs = Dict(k => v for (k, v) in nc[short_name].attrib)
+
+        dim_attribs = OrderedDict(
+            dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
+        )
+        data = Array(nc[short_name])
+
+        return OutputVar(attribs, dims, dim_attribs, data)
+    end
+end
+
+"""
+    _get_time_name_from_mfds(paths; short_name = nothing)
+
+Get the name of the time dimension in the NetCDF files in `path`.
+
+If a `short_name` is specified, then the short name will be used to access the
+NetCDF files to check the start date attribute.
+
+This function also validate that the NetCDF files in `paths` can be aggregated along the
+time dimension and return the name of the time dimension.
+
+The following checks are performed:
+- Every file contains a time dimension.
+- The name of the time dimension is the same across all files.
+- The `start_date` attribute is the same across all files (or absent from all files).
+- After concatenating the NetCDF files in the order given by `paths`, the time values are in
+  non-decreasing order.
+"""
+function _get_time_name_from_mfds(paths; short_name = nothing)
     # Helper function to find the name of the time dimension
     function find_time_name(dim_names)
         for dim_name in dim_names
@@ -464,30 +507,10 @@ function read_var(paths::Vector{String}; short_name = nothing)
     time_dim_concat = vcat(time_dim_arrays...)
     if !issorted(time_dim_concat)
         error(
-            "Time dimension is not in increasing order after aggregating datasets. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
+            "Time dimension is not in non-decreasing order after aggregating datasets. If you are loading NetCDF files from a CliMA simulation, provide the specific folder in SimDir",
         )
     end
-
-    NCDatasets.NCDataset(paths, aggdim = time_dim_name) do nc
-        # First, if short_name is nothing, we have to identify the name of the variable by
-        # finding what is not a dimension
-        unordered_dims = NCDatasets.dimnames(nc)
-        isnothing(short_name) &&
-            (short_name = pop!(setdiff(keys(nc), unordered_dims)))
-
-        dims =
-            map(NCDatasets.dimnames(nc[short_name])) do dim_name
-                return dim_name => Array(nc[dim_name])
-            end |> OrderedDict
-        attribs = Dict(k => v for (k, v) in nc[short_name].attrib)
-
-        dim_attribs = OrderedDict(
-            dim_name => Dict(nc[dim_name].attrib) for dim_name in keys(dims)
-        )
-        data = Array(nc[short_name])
-
-        return OutputVar(attribs, dims, dim_attribs, data)
-    end
+    return time_dim_name
 end
 
 """
