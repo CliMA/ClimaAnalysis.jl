@@ -43,6 +43,7 @@ pr_var = get(catalog, "pr")
   `select` or `select_view`.
 - Keep units for unary minus for `OutputVar`.
 - Add missing type annotations.
+- Fix typos in docs.
 
 v0.5.21
 -------

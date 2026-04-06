@@ -171,7 +171,10 @@ end
 
 Generate a method to overload the unary operator `op` for `OutputVar`.
 
-Handles attributes `short_name`, `long_name`: Prepends the operator name, e.g., "log(Temperature)".
+Handles the attributes `short_name`, `long_name`, `start_date`, and `units` and prepends the
+operator name, e.g., "log(Temperature)".
+
+The attribute `units` is only kept for unary minus.
 """
 macro overload_unary_op(op)
     keep_attrs = op == :(-) ? ("start_date", "units") : ("start_date",)

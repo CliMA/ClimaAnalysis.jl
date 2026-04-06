@@ -30,8 +30,8 @@ export times,
 """
     _dim_name(dim_names, allowed_names)
 
-Return the `dim_name` within `dim_names` that is contained in `allowed_names`.
-Return `nothing` is not available.
+Return the index of the first element in `allowed_names` that is contained in `dim_names`.
+Return `nothing` if no element of `allowed_names` is found in `dim_names`.
 
 Example
 ==========
@@ -291,7 +291,7 @@ julia> keys(var.dims)
 julia> ClimaAnalysis.Var.find_corresponding_dim_name_in_var("t", var)
 "time"
 
-julia> ClimaAnalysis.Var.find_corresponding_dim_name("potatoes", var)
+julia> ClimaAnalysis.Var.find_corresponding_dim_name_in_var("potatoes", var)
 "potatoes"
 ```
 """

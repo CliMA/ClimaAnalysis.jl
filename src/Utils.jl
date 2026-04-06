@@ -459,8 +459,8 @@ end
 """
     find_season_and_year(date::Dates.DateTime)
 
-Return a tuple of the year and season belong to `date`. The variable `year` is
-an integer and `season` is a string.
+Return a tuple of the season and year belong to `date`. The variable `season` is
+a string and `year` is an integer.
 
 The months of the seasons are March to May, June to August, September to
 November, and December to February.

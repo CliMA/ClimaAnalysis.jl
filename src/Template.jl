@@ -347,8 +347,8 @@ end
 
 Add data of `1:n` to `TemplateVar` where `n` is the product of the sizes of the dimensions.
 
-If `collected = false`, then `collect` is not called on the data and if `collected = true`,
-then `collect` is called on the data.
+If `collected = true`, then  `collect` is called on the data and if `collected = false`,
+then`collect` is not called on the data.
 
 Designed to be used with the pipe operator (`|>`).
 """
@@ -362,8 +362,8 @@ end
 
 Add data of `1:n` to `var` where `n` is the product of the sizes of the dimensions.
 
-If `collected = true`, then `collect` is not called on the data and if `collected = false`,
-then `collect` is called on the data.
+If `collected = true`, then  `collect` is called on the data and if `collected = false`,
+then`collect` is not called on the data.
 
 Designed to be used with function composition.
 """
