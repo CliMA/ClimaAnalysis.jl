@@ -315,18 +315,16 @@ function read_rmses(csv_file::String, short_name::String; units = nothing)
 end
 
 """
-    function _index_convert(key2index, key::Colon)
+    _index_convert(key2index, key::Colon)
 
 Convert the symbol colon into an index for indexing.
 """
-function _index_convert(key2index, key::Colon)
+function _index_convert(key2index, ::Colon)
     return collect(values(key2index))
 end
 
 """
-    function _index_convert(key2index,
-                            indices::AbstractVector{I})
-                            where {I <: Integer}
+    _index_convert(key2index, key::AbstractString)
 
 Convert a string into an index for indexing.
 """
@@ -337,9 +335,10 @@ function _index_convert(key2index, key::AbstractString)
 end
 
 """
-    function _index_convert(key2index,
-                            keys::AbstractVector{S})
-                            where {S <: AbstractString}
+    _index_convert(
+        key2index,
+        keys::AbstractVector{S},
+    ) where {S <: AbstractString}
 
 Convert a vector of strings to indices for indexing.
 """
@@ -355,9 +354,7 @@ function _index_convert(
 end
 
 """
-    function _index_convert(key2index,
-                            indices::AbstractVector{I})
-                            where {I <: Integer}
+    _index_convert(key2index, index::Integer)
 
 Convert an integer to an index for indexing.
 """
@@ -368,9 +365,10 @@ function _index_convert(key2index, index::Integer)
 end
 
 """
-    function _index_convert(key2index,
-                            indices::AbstractVector{I})
-                            where {I <: Integer}
+    _index_convert(
+        key2index,
+        indices::AbstractVector{I},
+    ) where {I <: Integer}
 
 Convert a vector of integers to indices for indexing.
 """

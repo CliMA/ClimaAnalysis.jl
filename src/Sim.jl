@@ -107,7 +107,7 @@ Return the short names of the variables found in the given `simdir`.
 available_vars(simdir::SimDir) = keys(simdir.vars) |> Set
 
 """
-    available_reductions(simdir::SimDir, short_name::String)
+    available_reductions(simdir::SimDir; short_name::String)
 
 Return the reductions available for the given variable in the given `simdir`.
 """
@@ -122,7 +122,7 @@ function available_reductions(simdir::SimDir; short_name::String)
 end
 
 """
-    available_periods(simdir::SimDir, short_name::String, reduction::String)
+    available_periods(simdir::SimDir; short_name::String, reduction::String)
 
 Return the periods associated to the given variable and reduction.
 """

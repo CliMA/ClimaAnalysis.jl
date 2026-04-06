@@ -380,7 +380,7 @@ function select(var::OutputVar; by = NearestValue(), kwargs...)
 end
 
 """
-    view_select(var::OutputVar, by = NearestValue(), kwargs...)
+    view_select(var::OutputVar; by = NearestValue(), kwargs...)
 
 Return a new `OutputVar` by selecting indices or values according to `by` across dimensions
 as defined by the keyword arguments. The data of the returned `OutputVar` is a view of
@@ -459,10 +459,12 @@ function _select(var::OutputVar, by::AbstractSelector; kwargs...)
 end
 
 """
-    _select_indices(var::OutputVar,
-                    by::AbstractSelector,
-                    dim_name,
-                    indices_or_vals)
+    _select_indices(
+        var::OutputVar,
+        by::AbstractSelector,
+        dim_name,
+        indices_or_vals,
+    )
 
 Return the indices for `var.data` corresponding to the given `indices_or_vals` in the
 specified dimension.
