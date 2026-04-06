@@ -775,11 +775,13 @@ function Base.copy(var::OutputVar)
 end
 
 """
-    _reduce_over(reduction::F,
-                 dims,
-                 var::OutputVar,
-                 args...;
-                 kwargs...)
+    _reduce_over(
+        reduction::F,
+        dims,
+        var::OutputVar,
+        args...;
+        kwargs...,
+    )
 
 Apply the given reduction over multiple dimensions in `dims`.
 
@@ -843,7 +845,7 @@ Return a new OutputVar where the values on the latitudes are averaged arithmetic
 
 When `weighted` is `true`, weight the average over `cos(lat)`.
 """
-function average_lat(var; ignore_nan = true, weighted = false)
+function average_lat(var::OutputVar; ignore_nan = true, weighted = false)
     if weighted
         var = copy(var)
         lats = latitudes(var)
@@ -883,7 +885,7 @@ end
 Return a new OutputVar where the values on the latitudes are averaged arithmetically
 with weights of `cos(lat)`.
 """
-weighted_average_lat(var; ignore_nan = true) =
+weighted_average_lat(var::OutputVar; ignore_nan = true) =
     average_lat(var; ignore_nan, weighted = true)
 
 """
@@ -892,7 +894,7 @@ weighted_average_lat(var; ignore_nan = true) =
 
 Return a new OutputVar where the values on the longitudes are averaged arithmetically.
 """
-function average_lon(var; ignore_nan = true)
+function average_lon(var::OutputVar; ignore_nan = true)
     reduced_var =
         _reduce_over(ignore_nan ? nanmean : mean, longitude_name(var), var)
     _update_long_name_generic!(
@@ -909,7 +911,7 @@ end
 
 Return a new OutputVar where the values along the `x` dimension are averaged arithmetically.
 """
-function average_x(var; ignore_nan = true)
+function average_x(var::OutputVar; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "x", var)
     _update_long_name_generic!(reduced_var, var, "x", "averaged")
     return reduced_var
@@ -920,7 +922,7 @@ end
 
 Return a new OutputVar where the values along the `y` dimension are averaged arithmetically.
 """
-function average_y(var; ignore_nan = true)
+function average_y(var::OutputVar; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, "y", var)
     _update_long_name_generic!(reduced_var, var, "y", "averaged")
     return reduced_var
@@ -932,7 +934,7 @@ end
 Return a new OutputVar where the values along both horizontal dimensions `x` and `y`
 are averaged arithmetically.
 """
-function average_xy(var; ignore_nan = true)
+function average_xy(var::OutputVar; ignore_nan = true)
     reduced_var = _average_dims(
         var,
         ("x", "y"),
@@ -952,7 +954,7 @@ function average_xy(var; ignore_nan = true)
 end
 
 """
-    weighted_average_lonlat(var; ignore_nan = true)
+    weighted_average_lonlat(var::OutputVar; ignore_nan = true)
 
 Return a new `OutputVar` where the values along the longitude and latitude dimensions
 are averaged arithmetically with weights of `cos(lat)` along the latitude dimension.
@@ -963,12 +965,12 @@ are averaged arithmetically with weights of `cos(lat)` along the latitude dimens
     values across both the longitude and latitude dimensions. In particular, the results
     differ when there are `NaN`s.
 """
-function weighted_average_lonlat(var; ignore_nan = true)
+function weighted_average_lonlat(var::OutputVar; ignore_nan = true)
     return average_lonlat(var; ignore_nan = ignore_nan, weighted = true)
 end
 
 """
-    average_lonlat(var; ignore_nan = true)
+    average_lonlat(var::OutputVar; ignore_nan = true)
 
 Return a new `OutputVar` where the values along the longitude and latitude dimensions
 are averaged arithmetically.
@@ -978,7 +980,7 @@ are averaged arithmetically.
     function computes the global average over all the values across both the longitude and
     latitude dimensions. In particular, the results will differ when there are `NaN`s.
 """
-function average_lonlat(var; ignore_nan = true, weighted = false)
+function average_lonlat(var::OutputVar; ignore_nan = true, weighted = false)
     lat_name = latitude_name(var)
     lon_name = longitude_name(var)
     !weighted &&
@@ -1035,10 +1037,12 @@ function average_lonlat(var; ignore_nan = true, weighted = false)
 end
 
 """
-    _average_dims(var,
-                  dims;
-                  ignore_nan = true,
-                  update_long_name = true)
+    _average_dims(
+        var::OutputVar,
+        dims;
+        ignore_nan = true,
+        update_long_name = true,
+    )
 
 Return a new `OutputVar` where the values along the dimensions in `dims` are averaged
 arithmetically.
@@ -1046,7 +1050,12 @@ arithmetically.
 If `update_long_name` is `true`, then the long name is updated by using
 `_update_long_name_generic!`.
 """
-function _average_dims(var, dims; ignore_nan = true, update_long_name = true)
+function _average_dims(
+    var::OutputVar,
+    dims;
+    ignore_nan = true,
+    update_long_name = true,
+)
     function reduction(data; dims, ignore_nan)
         return ignore_nan ? nanmean(data, dims = dims) : mean(data, dims = dims)
     end
@@ -1063,14 +1072,14 @@ end
 
 Return a new OutputVar where the values are averaged arithmetically in time.
 """
-function average_time(var; ignore_nan = true)
+function average_time(var::OutputVar; ignore_nan = true)
     reduced_var = _reduce_over(ignore_nan ? nanmean : mean, time_name(var), var)
     _update_long_name_generic!(reduced_var, var, time_name(var), "averaged")
     return reduced_var
 end
 
 """
-    variance_time(var; ignore_nan = true)
+    variance_time(var::OutputVar; ignore_nan = true, corrected = true)
 
 Return a new OutputVar where the values are the variances along the time dimension.
 
@@ -1078,7 +1087,7 @@ If `corrected` is `true`, then the variance is computed by dividing the sample m
 1`, whereas if `corrected` is `false`, then the variance is computed by dividing the sample
 mean by `n`, where `n` is the number of elements that the variance is being computed over.
 """
-function variance_time(var; ignore_nan = true, corrected = true)
+function variance_time(var::OutputVar; ignore_nan = true, corrected = true)
     reduced_var = _reduce_over(
         ignore_nan ? nanvar : Statistics.var,
         time_name(var),
@@ -1090,7 +1099,7 @@ function variance_time(var; ignore_nan = true, corrected = true)
 end
 
 """
-    variance_lon(var; ignore_nan = true)
+    variance_lon(var::OutputVar; ignore_nan = true, corrected = true)
 
 Return a new OutputVar where the values are the variances along the longitude dimension.
 
@@ -1098,7 +1107,7 @@ If `corrected` is `true`, then the variance is computed by dividing the sample m
 1`, whereas if `corrected` is `false`, then the variance is computed by dividing the sample
 mean by `n`, where `n` is the number of elements that the variance is being computed over.
 """
-function variance_lon(var; ignore_nan = true, corrected = true)
+function variance_lon(var::OutputVar; ignore_nan = true, corrected = true)
     reduced_var = _reduce_over(
         ignore_nan ? nanvar : Statistics.var,
         longitude_name(var),
@@ -1116,7 +1125,7 @@ function variance_lon(var; ignore_nan = true, corrected = true)
 end
 
 """
-    variance_lat(var; ignore_nan = true, corrected = true)
+    variance_lat(var::OutputVar; ignore_nan = true, corrected = true)
 
 Return a new OutputVar where the values are the variances along the latitude dimension.
 
@@ -1124,7 +1133,7 @@ If `corrected` is `true`, then the variance is computed by dividing the sample m
 1`, whereas if `corrected` is `false`, then the variance is computed by dividing the sample
 mean by `n`, where `n` is the number of elements that the variance is being computed over.
 """
-function variance_lat(var; ignore_nan = true, corrected = true)
+function variance_lat(var::OutputVar; ignore_nan = true, corrected = true)
     reduced_var = _reduce_over(
         ignore_nan ? nanvar : Statistics.var,
         latitude_name(var),
@@ -1229,7 +1238,7 @@ This is useful to center the global projection to the 180 meridian instead of th
     This function is deprecated and users are encouraged to use
     [`shift_longitude`](@ref) instead.
 """
-function center_longitude!(var, lon)
+function center_longitude!(var::OutputVar, lon)
     Base.depwarn(
         "This function is deprecated and may be incorrect. Users are encouraged to use
         `center_longitude(var, lower_lon, upper_lon; shift_by = 0.0)` instead.",
@@ -1259,7 +1268,7 @@ function center_longitude!(var, lon)
 end
 
 """
-    shift_longitude(var, lower_lon, upper_lon; shift_by = 0.0)
+    shift_longitude(var::OutputVar, lower_lon, upper_lon)
 
 Shift the longitudes in `var` to `lower_lon` to `upper_lon` degrees.
 
@@ -1278,7 +1287,7 @@ To shift from -180 to 180 degrees to 0 to 360 degrees, use
 `shift_longitude(var, 0.0, 360.0)` and to shift from 0 to 360 degrees to -180 to 180
 degrees, use `shift_longitude(var, -180.0, 180.0)`.
 """
-function shift_longitude(var, lower_lon, upper_lon)
+function shift_longitude(var::OutputVar, lower_lon, upper_lon)
     width = upper_lon - lower_lon
     width ≈ 2π &&
         @warn "Result may be incorrect if radians are used instead of degrees"
@@ -2004,7 +2013,7 @@ The year can be found by `var.attributes["year"]`, which returns a vector of yea
 strings. The convention used is that the second month of the season determines the year. For
 example, the year of DJF is the same year as Janauary.
 """
-function average_season_across_time(var; ignore_nan = true)
+function average_season_across_time(var::OutputVar; ignore_nan = true)
     season_vars = split_by_season_across_time(var)
     nonempty_season_vars = filter(!isempty, season_vars)
     season_names =
@@ -2317,9 +2326,11 @@ function global_rmse(sim::OutputVar, obs::OutputVar; mask = nothing)
 end
 
 """
-    _dates_to_seconds(var::OutputVar;
-                      new_start_date = nothing,
-                      shift_by = identity)
+    _dates_to_seconds(
+        var::OutputVar;
+        new_start_date = nothing,
+        shift_by = identity,
+    )
 
 Convert dates in time dimension to seconds with respect to the first date in the time
 dimension array or the `new_start_date`.
