@@ -461,59 +461,61 @@ end
 
     @testset "Unary Operations" begin
         # Logarithm (log)
-        log_var1 = log(var1)
-        @test log_var1.data == log.(var1.data)
-        @test ClimaAnalysis.short_name(log_var1) == "log(bob)"
-        @test ClimaAnalysis.long_name(log_var1) == "log(hi)"
-        @test log_var1.attributes == Dict(
+        var4 = ClimaAnalysis.set_units(var1, "m^2")
+        log_var4 = log(var4)
+        @test log_var4.data == log.(var4.data)
+        @test ClimaAnalysis.short_name(log_var4) == "log(bob)"
+        @test ClimaAnalysis.long_name(log_var4) == "log(hi)"
+        @test log_var4.attributes == Dict(
             "short_name" => "log(bob)",
             "long_name" => "log(hi)",
             "start_date" => "2008",
         )
-        @test log_var1.dims == var1.dims
-        @test log_var1.dim_attributes == var1.dim_attributes
+        @test log_var4.dims == var4.dims
+        @test log_var4.dim_attributes == var4.dim_attributes
 
         # Exponential (exp)
-        exp_var1 = exp(var1)
-        @test exp_var1.data ≈ exp.(var1.data) # Use ≈ for potential Float inaccuracies
-        @test ClimaAnalysis.short_name(exp_var1) == "exp(bob)"
-        @test ClimaAnalysis.long_name(exp_var1) == "exp(hi)"
+        exp_var4 = exp(var4)
+        @test exp_var4.data ≈ exp.(var4.data) # Use ≈ for potential Float inaccuracies
+        @test ClimaAnalysis.short_name(exp_var4) == "exp(bob)"
+        @test ClimaAnalysis.long_name(exp_var4) == "exp(hi)"
 
         # Sine (sin)
-        sin_var1 = sin(var1)
-        @test sin_var1.data == sin.(var1.data)
-        @test ClimaAnalysis.short_name(sin_var1) == "sin(bob)"
-        @test ClimaAnalysis.long_name(sin_var1) == "sin(hi)"
+        sin_var4 = sin(var4)
+        @test sin_var4.data == sin.(var4.data)
+        @test ClimaAnalysis.short_name(sin_var4) == "sin(bob)"
+        @test ClimaAnalysis.long_name(sin_var4) == "sin(hi)"
 
         # Cosine (cos)
-        cos_var1 = cos(var1)
-        @test cos_var1.data == cos.(var1.data)
-        @test ClimaAnalysis.short_name(cos_var1) == "cos(bob)"
-        @test ClimaAnalysis.long_name(cos_var1) == "cos(hi)"
+        cos_var4 = cos(var4)
+        @test cos_var4.data == cos.(var4.data)
+        @test ClimaAnalysis.short_name(cos_var4) == "cos(bob)"
+        @test ClimaAnalysis.long_name(cos_var4) == "cos(hi)"
 
         # Tangent (tan)
-        tan_var1 = tan(var1)
-        @test tan_var1.data == tan.(var1.data)
-        @test ClimaAnalysis.short_name(tan_var1) == "tan(bob)"
-        @test ClimaAnalysis.long_name(tan_var1) == "tan(hi)"
+        tan_var4 = tan(var4)
+        @test tan_var4.data == tan.(var4.data)
+        @test ClimaAnalysis.short_name(tan_var4) == "tan(bob)"
+        @test ClimaAnalysis.long_name(tan_var4) == "tan(hi)"
 
         # Square Root (sqrt)
-        sqrt_var1 = sqrt(var1)
-        @test sqrt_var1.data == sqrt.(var1.data)
-        @test ClimaAnalysis.short_name(sqrt_var1) == "sqrt(bob)"
-        @test ClimaAnalysis.long_name(sqrt_var1) == "sqrt(hi)"
+        sqrt_var4 = sqrt(var4)
+        @test sqrt_var4.data == sqrt.(var4.data)
+        @test ClimaAnalysis.short_name(sqrt_var4) == "sqrt(bob)"
+        @test ClimaAnalysis.long_name(sqrt_var4) == "sqrt(hi)"
 
         # Unary Minus (-)
-        neg_var1 = -var1
-        @test neg_var1.data == -(var1.data)
-        @test ClimaAnalysis.short_name(neg_var1) == "-(bob)" # Macro uses string(op)
-        @test ClimaAnalysis.long_name(neg_var1) == "-(hi)"
-        @test neg_var1.attributes == Dict(
+        neg_var4 = -var4
+        @test neg_var4.data == -(var4.data)
+        @test ClimaAnalysis.short_name(neg_var4) == "-(bob)" # Macro uses string(op)
+        @test ClimaAnalysis.long_name(neg_var4) == "-(hi)"
+        @test neg_var4.attributes == Dict(
             "short_name" => "-(bob)",
             "long_name" => "-(hi)",
             "start_date" => "2008",
+            "units" => "m^2",
         )
-        @test neg_var1.dims == var1.dims
+        @test neg_var4.dims == var4.dims
     end
 end
 

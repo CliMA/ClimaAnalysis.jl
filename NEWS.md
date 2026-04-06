@@ -41,6 +41,7 @@ pr_var = get(catalog, "pr")
 
 - Fix bug with dimension attributes not being properly updated when using
   `select` or `select_view`.
+- Keep units for unary minus for `OutputVar`.
 
 v0.5.21
 -------

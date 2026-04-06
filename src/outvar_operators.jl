@@ -3,7 +3,11 @@
 
 Add methods to overload the given binary `op`erator for `OutputVars` and `Real`s.
 
-Attributes that are not `short_name`, `long_name`, are discarded in the process.
+Attributes that are not `short_name`, `long_name`, `start_date`, and `units` are discarded
+in the process.
+
+The `start_date` and `units` are only kept if the start date and units are the same
+respectively.
 """
 macro overload_binary_op(op)
     quote
@@ -170,6 +174,7 @@ Generate a method to overload the unary operator `op` for `OutputVar`.
 Handles attributes `short_name`, `long_name`: Prepends the operator name, e.g., "log(Temperature)".
 """
 macro overload_unary_op(op)
+    keep_attrs = op == :(-) ? ("start_date", "units") : ("start_date",)
     esc(
         quote
             function Base.$op(x::OutputVar)
@@ -186,7 +191,7 @@ macro overload_unary_op(op)
                     end
                 end
 
-                keep_attributes = ("start_date",)
+                keep_attributes = $keep_attrs
                 for attr in keep_attributes
                     if haskey(x.attributes, attr)
                         ret_attributes[attr] = x.attributes[attr]
