@@ -269,7 +269,7 @@ function find_corresponding_dim_name(dim_name::AbstractString, dim_names)
 end
 
 """
-    find_corresponding_dim_name(dim_name::AbstractString, var)
+    find_corresponding_dim_name_in_var(dim_name::AbstractString, var)
 
 Find the corresponding dimension name in `var`'s dimension that matches `dim_name`.
 
