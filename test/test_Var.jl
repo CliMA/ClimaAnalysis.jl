@@ -519,6 +519,24 @@ end
     end
 end
 
+@testset "Dimension names" begin
+    # Empty OutputVar (no dimensions)
+    var_no_dims = TemplateVar() |> initialize
+    @test isempty(ClimaAnalysis.dim_names(var_no_dims))
+
+    # 1D OutputVar
+    var_1d = TemplateVar() |> add_dim("longitude", [0.0]) |> initialize
+    @test collect(ClimaAnalysis.dim_names(var_1d)) == ["longitude"]
+
+    # 2D OutputVar
+    var_2d =
+        TemplateVar() |>
+        add_dim("lon", [0.0]) |>
+        add_dim("lat", [1.0]) |>
+        initialize
+    @test collect(ClimaAnalysis.dim_names(var_2d)) == ["lon", "lat"]
+end
+
 @testset "Units of binary operations" begin
     time = [0.0]
     template = TemplateVar() |> add_dim("time", time, units = "s")

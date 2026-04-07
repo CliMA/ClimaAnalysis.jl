@@ -158,6 +158,10 @@ times(ts_max_lat_averaged_sliced) =
  43200.0
 ```
 
+!!! note "Retrieving dimension names"
+    In versions of ClimaAnalysis after v0.5.21, you can get the names of
+    the dimensions of a `OutputVar` with [`dim_names`](@ref).
+
 `OutputVar`s can be evaluated on arbitrary points. For instance
 ``` julia-repl
 julia> ts_max([12000., 23., 45., 1200.])

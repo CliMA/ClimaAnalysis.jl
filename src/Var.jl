@@ -43,6 +43,7 @@ export OutputVar,
     center_longitude!,
     short_name,
     long_name,
+    dim_names,
     units,
     dim_units,
     range_dim,
@@ -534,6 +535,15 @@ If not available, return an empty string.
 """
 function long_name(var::HasDimAndAttribs)
     get(var.attributes, "long_name", "")
+end
+
+"""
+    dim_names(var::OutputVar)
+
+Return an iterable of the names of the dimensions of `var`.
+"""
+function dim_names(var::HasDimAndAttribs)
+    return keys(var.dims)
 end
 
 """
@@ -1522,7 +1532,7 @@ example, dimensions with names `lon` and `long` are identified as the longitude 
 """
 function Base.permutedims(var::OutputVar, perm)
     # Get the conventional dim names for var and perm
-    conventional_dim_name_var = conventional_dim_name.(keys(var.dims))
+    conventional_dim_name_var = conventional_dim_name.(dim_names(var))
     conventional_dim_name_perm = conventional_dim_name.(collect(perm))
 
     # Check if the dimensions are the same (order does not matter)
@@ -1545,7 +1555,7 @@ function Base.permutedims(var::OutputVar, perm)
     # ret_dim_attribs
     ret_dim_attribs = empty(var.dim_attributes)
     var_dim_attribs = var.dim_attributes |> deepcopy
-    var_dim_names = collect(keys(var.dims))
+    var_dim_names = collect(dim_names(var))
     for idx in reorder_indices
         dim_name = var_dim_names[idx]
         haskey(var_dim_attribs, dim_name) &&
@@ -2649,7 +2659,7 @@ See also in-place [`reverse_dim!`](@ref).
 function reverse_dim(var::OutputVar, dim_name)
     # Check if dim_name exists
     !haskey(var.dims, dim_name) &&
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+        error("Var does not have dimension $dim_name, found $(dim_names(var))")
     # Check if array is 1D
     ndims(var.dims[dim_name]) != 1 &&
         error("Can only reverse 1D array for dimensions")
@@ -2669,7 +2679,7 @@ interpolant can be made.
 function reverse_dim!(var::OutputVar, dim_name)
     # Check if dim_name exists
     !haskey(var.dims, dim_name) &&
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+        error("Var does not have dimension $dim_name, found $(dim_names(var))")
     # Check if array is 1D
     ndims(var.dims[dim_name]) != 1 &&
         error("Can only reverse 1D array for dimensions")

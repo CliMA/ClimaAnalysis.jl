@@ -75,7 +75,7 @@ function flatten(
 
     # Filter unnecessary dimension names
     dims = conventional_dim_name.(dims)
-    var_dims = conventional_dim_name.(collect(keys(var.dims)))
+    var_dims = conventional_dim_name.(collect(dim_names(var)))
     dims = Tuple(
         find_corresponding_dim_name_in_var(dim, var) for
         dim in dims if dim in var_dims
@@ -83,11 +83,11 @@ function flatten(
 
     # Check that all dimensions are present
     length(dims) == length(var.dims) || error(
-        "All the dimensions in var ($(keys(var.dims))) are not present in dims ($dims)",
+        "All the dimensions in var ($(dim_names(var))) are not present in dims ($dims)",
     )
 
     # To flatten data, we need to permute, vectorize, and mask the data
-    perm = Tuple(indexin(dims, collect(keys(var.dims))))
+    perm = Tuple(indexin(dims, collect(dim_names(var))))
     permute_data = PermutedDimsArray(var.data, perm)
     vec_data = vec(permute_data)
 
@@ -145,9 +145,9 @@ Ordering of the dimensions does not matter.
 """
 function flatten(var::OutputVar, metadata::Metadata)
     # Check dimensions are the same in metadata and var
-    Set(conventional_dim_name.(keys(var.dims))) ==
+    Set(conventional_dim_name.(dim_names(var))) ==
     Set(conventional_dim_name.(keys(metadata.dims))) || error(
-        "Dimensions in var ($(keys(var.dims))) is not the same as the dimensions in the metadata ($(keys(metadata.dims)))",
+        "Dimensions in var ($(dim_names(var))) is not the same as the dimensions in the metadata ($(keys(metadata.dims)))",
     )
 
     # Instead of trying to determine whether dates or times should be used, we try dates
@@ -162,7 +162,7 @@ function flatten(var::OutputVar, metadata::Metadata)
     end
 
     # Check the dimension arrays are the same
-    for var_dim_name in keys(var.dims)
+    for var_dim_name in dim_names(var)
         md_dim_name = find_corresponding_dim_name_in_var(var_dim_name, metadata)
         if conventional_dim_name(var_dim_name) != "time"
             all(isapprox(var.dims[var_dim_name], metadata.dims[md_dim_name])) ||
@@ -177,7 +177,7 @@ function flatten(var::OutputVar, metadata::Metadata)
     end
 
     # Check the units of the dimensions are the same
-    for var_dim_name in keys(var.dims)
+    for var_dim_name in dim_names(var)
         md_dim_name = find_corresponding_dim_name_in_var(var_dim_name, metadata)
         var_dim_units = dim_units(var, var_dim_name)
         md_dim_units = dim_units(metadata, md_dim_name)

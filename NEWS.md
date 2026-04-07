@@ -36,6 +36,8 @@ pr_var = get(catalog, "pr")
 - The in-place version of `set_units` is now available as `set_units!`.
 - The in-place version of `transform_dates` is now available as
   `transform_dates!`.
+- The names of the dimensions of a `OutputVar` can be retrieved with
+  `dim_names`.
 
 ## Bug fixes
 
