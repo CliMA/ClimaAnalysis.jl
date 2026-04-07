@@ -51,7 +51,7 @@ end
 Return whether `var` has a `time` dimension.
 """
 has_time(var::HasDimAndAttribs) =
-    !isnothing(_dim_name(keys(var.dims), TIME_NAMES))
+    !isnothing(_dim_name(dim_names(var), TIME_NAMES))
 
 """
     has_date(var::OutputVar)
@@ -59,7 +59,7 @@ has_time(var::HasDimAndAttribs) =
 Return whether `var` has a `date` dimension.
 """
 has_date(var::HasDimAndAttribs) =
-    !isnothing(_dim_name(keys(var.dims), DATE_NAMES))
+    !isnothing(_dim_name(dim_names(var), DATE_NAMES))
 
 """
     has_longitude(var::OutputVar)
@@ -67,7 +67,7 @@ has_date(var::HasDimAndAttribs) =
 Return whether `var` has a `longitude` dimension.
 """
 has_longitude(var::HasDimAndAttribs) =
-    !isnothing(_dim_name(keys(var.dims), LONGITUDE_NAMES))
+    !isnothing(_dim_name(dim_names(var), LONGITUDE_NAMES))
 
 """
     has_latitude(var::OutputVar)
@@ -75,7 +75,7 @@ has_longitude(var::HasDimAndAttribs) =
 Return whether `var` has a `latitude` dimension.
 """
 has_latitude(var::HasDimAndAttribs) =
-    !isnothing(_dim_name(keys(var.dims), LATITUDE_NAMES))
+    !isnothing(_dim_name(dim_names(var), LATITUDE_NAMES))
 
 """
     has_altitude(var::OutputVar)
@@ -83,7 +83,7 @@ has_latitude(var::HasDimAndAttribs) =
 Return whether `var` has a `altitude` dimension.
 """
 has_altitude(var::HasDimAndAttribs) =
-    !isnothing(_dim_name(keys(var.dims), ALTITUDE_NAMES))
+    !isnothing(_dim_name(dim_names(var), ALTITUDE_NAMES))
 
 """
     has_pressure(var::OutputVar)
@@ -91,7 +91,7 @@ has_altitude(var::HasDimAndAttribs) =
 Return whether `var` has a `pressure` dimension.
 """
 has_pressure(var::HasDimAndAttribs) =
-    !isnothing(_dim_name(keys(var.dims), PRESSURE_NAMES))
+    !isnothing(_dim_name(dim_names(var), PRESSURE_NAMES))
 
 """
     find_dim_name(dim_names::Iterable, allowed_names::Iterable)
@@ -118,7 +118,7 @@ end
 
 Return the name of the `time` dimension in `var`.
 """
-time_name(var::HasDimAndAttribs) = find_dim_name(keys(var.dims), TIME_NAMES)
+time_name(var::HasDimAndAttribs) = find_dim_name(dim_names(var), TIME_NAMES)
 
 """
     times(var::OutputVar)
@@ -132,7 +132,7 @@ times(var::HasDimAndAttribs) = var.dims[time_name(var)]
 
 Return the name of the `date` dimension in `var`.
 """
-date_name(var::HasDimAndAttribs) = find_dim_name(keys(var.dims), DATE_NAMES)
+date_name(var::HasDimAndAttribs) = find_dim_name(dim_names(var), DATE_NAMES)
 
 """
     dates(var::OutputVar)
@@ -166,7 +166,7 @@ end
 Return the name of the `longitude` dimension in `var`.
 """
 longitude_name(var::HasDimAndAttribs) =
-    find_dim_name(keys(var.dims), LONGITUDE_NAMES)
+    find_dim_name(dim_names(var), LONGITUDE_NAMES)
 
 """
     longitudes(var::OutputVar)
@@ -181,7 +181,7 @@ longitudes(var::HasDimAndAttribs) = var.dims[longitude_name(var)]
 Return the name of the `latitude` dimension in `var`.
 """
 latitude_name(var::HasDimAndAttribs) =
-    find_dim_name(keys(var.dims), LATITUDE_NAMES)
+    find_dim_name(dim_names(var), LATITUDE_NAMES)
 
 """
     latitudes(var::OutputVar)
@@ -196,7 +196,7 @@ latitudes(var::HasDimAndAttribs) = var.dims[latitude_name(var)]
 Return the name of the `altitude` dimension in `var`.
 """
 altitude_name(var::HasDimAndAttribs) =
-    find_dim_name(keys(var.dims), ALTITUDE_NAMES)
+    find_dim_name(dim_names(var), ALTITUDE_NAMES)
 
 """
     altitudes(var::OutputVar)
@@ -211,7 +211,7 @@ altitudes(var::HasDimAndAttribs) = var.dims[altitude_name(var)]
 Return the name of the `pressure` dimension in `var`.
 """
 pressure_name(var::HasDimAndAttribs) =
-    find_dim_name(keys(var.dims), PRESSURE_NAMES)
+    find_dim_name(dim_names(var), PRESSURE_NAMES)
 
 """
     pressures(var::OutputVar)
@@ -285,7 +285,7 @@ Example
 ==========
 
 ```julia-repl
-julia> keys(var.dims)
+julia> ClimaAnalysis.dim_names(var)
 ("lon", "lat", "time", "potatoes")
 
 julia> ClimaAnalysis.Var.find_corresponding_dim_name_in_var("t", var)
@@ -297,11 +297,11 @@ julia> ClimaAnalysis.Var.find_corresponding_dim_name_in_var("potatoes", var)
 """
 function find_corresponding_dim_name_in_var(dim_name::AbstractString, var)
     dim_name_in_var = try
-        find_corresponding_dim_name(dim_name, keys(var.dims))
+        find_corresponding_dim_name(dim_name, dim_names(var))
     catch
         dim_name
     end
     haskey(var.dims, dim_name_in_var) ||
-        error("Var does not have dimension $dim_name, found $(keys(var.dims))")
+        error("Var does not have dimension $dim_name, found $(dim_names(var))")
     return dim_name_in_var
 end

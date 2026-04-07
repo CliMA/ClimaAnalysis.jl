@@ -1,3 +1,5 @@
+import ClimaAnalysis
+
 export slice,
     window,
     select,
@@ -17,7 +19,7 @@ An object that determines which indices are selected.
 
 The function has to have the signature
 `get_index(var, dim_name, idx_or_val, ::AbstractSelector)` and return a single index. You
-can assume that `dim_name` is in `keys(var.dims)`.
+can assume that `dim_name` is in `ClimaAnalysis.dim_names(var)`.
 
 The function `get_index` is used by [`slice`](@ref) and [`window`](@ref). For instance, if
 you use `ClimaAnalysis.slice(var, time = 2)`, then `dim_name` is `time`, and `idx_or_val` is
@@ -431,7 +433,7 @@ function _select(var::OutputVar, by::AbstractSelector; kwargs...)
     )
 
     # Reorder dimensions
-    var_dim_names = collect(keys(var.dims))
+    var_dim_names = collect(ClimaAnalysis.dim_names(var))
     all_indices = ntuple(length(var.dims)) do i
         var_dim_name = var_dim_names[i]
         dim_idx = findfirst(==(var_dim_name), dim_names)

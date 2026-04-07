@@ -36,6 +36,7 @@ Var.is_z_1D
 Base.isempty(var::OutputVar)
 Var.short_name
 Var.long_name
+Var.dim_names
 Var.units
 Var.has_units
 Var.remake
