@@ -1614,6 +1614,10 @@ longitude dimension because `conventional_dim_name` maps `lon`, `long`, and `lon
 !!! compat "`dim_names` keyword argument"
     The keyword argument `dim_names` is introduced in ClimaAnalysis v0.5.14.
 
+!!! note "Reference date"
+    If `src_var` and `dest_var` do not have the same reference or start date,
+    then the reference date of `src_var` is set to the reference date of
+    `dest_var` before resampling.
 """
 function resampled_as(
     src_var::OutputVar,
@@ -1655,6 +1659,9 @@ function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
     conventional_names_src = collect(conventional_dim_name.(keys(src_var.dims)))
     conventional_names_dest =
         collect(conventional_dim_name.(keys(dest_var.dims)))
+
+    src_var = _ensure_consistent_reference_date(src_var, dest_var)
+
     if conventional_names_src != conventional_names_dest
         src_var = reordered_as(src_var, dest_var)
     end
@@ -1690,6 +1697,9 @@ function _resampled_as_partial(
     dim_names,
 )
     dim_names = conventional_dim_name.(collect(dim_names))
+
+    "time" in dim_names &&
+        (src_var = _ensure_consistent_reference_date(src_var, dest_var))
 
     # Build grid to resample over
     src_var_ret_dims = empty(src_var.dims)
@@ -1762,6 +1772,57 @@ function resampled_as(src_var::OutputVar; kwargs...)
     return length(dest_dims) == length(src_var.dims) ?
            _resampled_as_all(src_var, dest_var) :
            _resampled_as_partial(src_var, dest_var, keys(dest_dims))
+end
+
+"""
+    _ensure_consistent_reference_date(
+        src_var::OutputVar,
+        dest_var::OutputVar,
+    )
+
+Ensure that `src_var` and `dest_var` either both have the same reference date ("start_date"
+attribute), or neither has one. If only one has a reference date, throw an error.
+
+If both have a reference date, return a copy of `src_var` with its reference date set to
+match `dest_var`, but with same underlying data and dimension attributes as `src_var`.
+Otherwise, return `src_var` unchanged.
+
+This is used internally for resampling `OutputVar`s and is not intended to use anywhere
+else.
+"""
+function _ensure_consistent_reference_date(
+    src_var::OutputVar,
+    dest_var::OutputVar,
+)
+    if has_time(src_var) && has_time(dest_var)
+        # This assumes that start_date is always valid
+        src_ref_date = get(src_var.attributes, "start_date", nothing)
+        dest_ref_date = get(dest_var.attributes, "start_date", nothing)
+
+        if isnothing(src_ref_date) && !isnothing(dest_ref_date)
+            error(
+                "Source OutputVar does not have a start date, but destination OutputVar does ($dest_ref_date). Use set_reference_date! to set a date for the source OutputVar",
+            )
+        elseif !isnothing(src_ref_date) && isnothing(dest_ref_date)
+            error(
+                "Destination OutputVar does not have a start date, but source OutputVar does ($src_ref_date). Use set_reference_date! to set a date for the destination OutputVar",
+            )
+        elseif !isnothing(src_ref_date) && !isnothing(dest_ref_date)
+            src_var_attribs = deepcopy(src_var.attributes)
+            src_var_dims = deepcopy(src_var.dims)
+            # To prevent more allocations, we reuse the data in src_var, but
+            # replace the attributes and dimensions which will be updated by
+            # set_reference_date!
+            src_var = remake(
+                src_var;
+                attributes = src_var_attribs,
+                dims = src_var_dims,
+            )
+            set_reference_date!(src_var, dest_ref_date)
+            return src_var
+        end
+    end
+    return src_var
 end
 
 """
