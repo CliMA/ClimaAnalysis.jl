@@ -1840,6 +1840,53 @@ end
     )
 end
 
+@testset "Resampling with reference dates and no reference dates" begin
+    ref_date_var =
+        TemplateVar() |>
+        add_dim("time", [0.0, 1.0, 2.0, 3.0], units = "s") |>
+        add_attribs(long_name = "hi", start_date = "2010-01-01") |>
+        one_to_n_data() |>
+        initialize
+
+    ref_date_var2 = deepcopy(ref_date_var)
+    ClimaAnalysis.set_reference_date!(ref_date_var2, "2010-01-02")
+
+    no_ref_date_var =
+        TemplateVar() |>
+        add_dim("time", [0.0, 1.0, 2.0, 3.0], units = "s") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+
+    # We check for combinations of OutputVars with and without a reference date
+
+    # src: reference date, dest: no reference date
+    @test_throws r"set a date for the destination OutputVar" ClimaAnalysis.resampled_as(
+        ref_date_var,
+        no_ref_date_var,
+    )
+
+    # src: no reference date, dest: reference date
+    @test_throws r"to set a date for the source OutputVar" ClimaAnalysis.resampled_as(
+        no_ref_date_var,
+        ref_date_var,
+    )
+
+    # src: no reference date, dest: no reference date
+    resampled_var = ClimaAnalysis.resampled_as(no_ref_date_var, no_ref_date_var)
+    @test ClimaAnalysis.times(resampled_var) == [0.0, 1.0, 2.0, 3.0]
+
+    # src: reference date, dest: reference date
+    resampled_var = ClimaAnalysis.resampled_as(ref_date_var, ref_date_var2)
+    @test ClimaAnalysis.dates(resampled_var) ==
+          ClimaAnalysis.dates(ref_date_var2)
+    @test ref_date_var.data == [1.0, 2.0, 3.0, 4.0]
+    @test Dates.DateTime(resampled_var.attributes["start_date"]) ==
+          Dates.DateTime(ref_date_var2.attributes["start_date"])
+    # Check for no mutation of the source OutputVar
+    @test Dates.DateTime(ref_date_var.attributes["start_date"]) ==
+          Dates.DateTime("2010-01-01")
+end
+
 @testset "Units" begin
     long = -180.0:180.0 |> collect
     data = copy(long)

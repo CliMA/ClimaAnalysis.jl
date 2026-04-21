@@ -46,6 +46,9 @@ pr_var = get(catalog, "pr")
 - Keep units for unary minus for `OutputVar`.
 - Add missing type annotations.
 - Fix typos in docs.
+- When resampling, if the source and destination `OutputVar`s have mismatched
+  reference or start dates, the source's reference date is set to match the
+  destination's reference date.
 
 v0.5.21
 -------
