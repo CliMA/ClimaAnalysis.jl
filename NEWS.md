@@ -3,7 +3,10 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
-## Setting reference date
+v0.5.22
+-------
+
+## Set reference date
 
 With this release, you can set the reference date (or start date) with
 `set_reference_date!`. This function allows you to align the times to refer to
