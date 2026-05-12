@@ -5,6 +5,7 @@ main
 
 ## Bug fixes
 
+- Enforce uniqueness when splitting dates by seasons across time.
 - Exclude NaNStatistics v0.6.57 in compat, because of correctness issues and
   possibility of a segfault. See this
   [issue](https://github.com/brenhinkeller/NaNStatistics.jl/issues/66) in

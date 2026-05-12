@@ -369,6 +369,8 @@ function split_by_season_across_time(dates::AbstractArray{<:Dates.DateTime})
     # Dates are not necessarily sorted
     dates = sort(dates)
 
+    allunique(dates) || error("Dates are not unique")
+
     # Empty case
     isempty(dates) && return Vector{Vector{eltype(dates)}}[]
 
