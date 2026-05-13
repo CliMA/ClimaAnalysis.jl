@@ -16,6 +16,7 @@ using Test
 @safetestset "OutputVar" begin @time include("test_Var.jl") end
 @safetestset "Selectors" begin @time include("test_outvar_selectors.jl") end
 @safetestset "FlatVar" begin @time include("test_flat.jl") end
+@safetestset "SplitApplyCombine" begin @time include("test_split_apply_combine.jl") end
 @safetestset "MakieExt" begin @time include("test_MakieExt.jl") end
 @safetestset "GeoMakieExt" begin @time include("test_GeoMakieExt.jl") end
 #! format: on

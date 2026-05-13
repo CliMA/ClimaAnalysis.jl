@@ -138,6 +138,18 @@ ClimaAnalysis.get_index(var, dim_name, val, ::MatchValue)
 ClimaAnalysis.get_index(var, dim_name, val, ::Index)
 ```
 
+## Split apply combine
+
+```@docs
+ClimaAnalysis.AbstractSplitOperation
+ClimaAnalysis.AbstractApplyOperation
+ClimaAnalysis.SplitApplyVar
+ClimaAnalysis.GroupAll
+ClimaAnalysis.SplitSeason
+ClimaAnalysis.Reduce
+ClimaAnalysis.combine
+```
+
 ## FlatVar
 
 !!! note "Accessor functions for versions of ClimaAnalysis after v0.5.18"
