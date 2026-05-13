@@ -3,6 +3,26 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+## Split-apply-combine
+
+This release features an initial implemention of the split-combine-apply
+pattern. For example, to do a time average, you can now do
+
+```julia
+import ClimaAnalysis
+import Statistics: mean
+
+reduced_var =
+    var |>
+    ClimaAnalysis.GroupAll("time") |>
+    ClimaAnalysis.Reduce(mean) |>
+    ClimaAnalysis.combine
+```
+
+The resulting `OutputVar` has a time dimension containing the first time value
+of `var`. For more information, see the section "Split-Apply-Combine" in the
+documentation.
+
 ## Bug fixes
 
 - Enforce uniqueness when splitting dates by seasons across time.

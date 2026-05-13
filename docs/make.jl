@@ -35,6 +35,7 @@ makedocs(;
         "RMSEVariables" => "rmse_var.md",
         "Visualizing RMSEVariables" => "visualize_rmse_var.md",
         "FlatVar" => "flat.md",
+        "Split-Apply-Combine" => "split_apply_combine.md",
         "APIs" => "api.md",
         "How do I?" => "howdoi.md",
         "Developer Documentation" => "developer.md",

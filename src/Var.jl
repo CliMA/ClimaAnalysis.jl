@@ -2949,5 +2949,6 @@ include("outvar_operators.jl")
 include("outvar_dimensions.jl")
 include("outvar_selectors.jl")
 include("masks.jl")
+include("split_apply_combine.jl")
 
 end
