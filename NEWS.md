@@ -3,6 +3,13 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+## Bug fixes
+
+- Exclude NaNStatistics v0.6.57 in compat, because of correctness issues and
+  possibility of a segfault. See this
+  [issue](https://github.com/brenhinkeller/NaNStatistics.jl/issues/66) in
+  NaNStatistics.jl.
+
 v0.5.22
 -------
 
