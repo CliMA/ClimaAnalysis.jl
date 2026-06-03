@@ -107,6 +107,9 @@ import ClimaAnalysis.Template:
     @test ClimaAnalysis.short_name(var_good) == "test_name"
     ClimaAnalysis.set_short_name!(var_good, "another_name")
     @test ClimaAnalysis.short_name(var_good) == "another_name"
+
+    @test ndims(longvar) == 1
+    @test ndims(var_good) == 2
 end
 
 @testset "Shift longitudes" begin
