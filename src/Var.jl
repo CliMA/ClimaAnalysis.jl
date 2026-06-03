@@ -47,6 +47,7 @@ export OutputVar,
     units,
     dim_units,
     range_dim,
+    ndims,
     reordered_as,
     resampled_as,
     has_units,
@@ -1179,6 +1180,15 @@ function range_dim(var::OutputVar, dim_name)
     first_elt = first(var.dims[dim_name])
     last_elt = last(var.dims[dim_name])
     return first_elt, last_elt
+end
+
+"""
+    Base.ndims(var::OutputVar)
+
+Return the number of dimensions of `var`.
+"""
+function Base.ndims(var::HasDimAndAttribs)
+    return length(var.dims)
 end
 
 """

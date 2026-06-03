@@ -33,6 +33,7 @@ Catalog.available_vars(catalog::NCCatalog)
 Var.OutputVar
 Var.read_var
 Var.is_z_1D
+Base.ndims(var::OutputVar)
 Base.isempty(var::OutputVar)
 Var.short_name
 Var.long_name

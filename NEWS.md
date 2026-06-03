@@ -23,6 +23,10 @@ The resulting `OutputVar` has a time dimension containing the first time value
 of `var`. For more information, see the section "Split-Apply-Combine" in the
 documentation.
 
+## Minor additions
+
+- The number of dimensions of a `OutputVar` can be accessed with `ndims`.
+
 ## Bug fixes
 
 - Enforce uniqueness when splitting dates by seasons across time.
