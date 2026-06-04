@@ -125,3 +125,62 @@ CairoMakie.save("myfigure.pdf", fig)
 The output produces something like:
 
 ![bias_with_custom_mask_plot](./assets/plot_bias_with_custom_mask.png)
+
+### Makie integration
+
+```@setup makie_integration
+import ClimaAnalysis.Template:
+    TemplateVar,
+    make_template_var,
+    add_attribs,
+    add_dim,
+    add_data,
+    one_to_n_data,
+    initialize
+
+lat = -90.0:1.0:90.0
+lon = -180:1.0:180.0
+data2d = [cos(x / 90) * sin(y / 180) for x in lat, y in lon]
+var2d =
+    TemplateVar() |>
+    add_dim("lat", lat, units = "degrees") |>
+    add_dim("lon", lon, units = "degrees") |>
+    add_attribs(; long_name = "Air temperature", short_name = "ta", units = "K") |>
+    add_data(; data = data2d) |>
+    initialize
+```
+
+In versions of ClimaAnalysis after v0.5.22, Makie functions can be used natively
+with `OutputVar`s. In the example below, we use the `CairoMakie` backend and the
+`CairoMakie.plot` function to plot `var`. The type of the plot is automatically
+determined by the number of dimensions of the `OutputVar`. This supports
+`OutputVar` representing one dimensional or two dimensional data.
+
+```@example makie_integration
+import ClimaAnalysis
+import CairoMakie
+
+CairoMakie.plot(var2d; colormap = :vik10)
+```
+
+You can also use other plotting functions in `Makie` such as `heatmap` and
+`lines`. In this example, we use `heatmap` to plot a `OutputVar` with the
+longitude and latitude dimensions and `lines` to plot a weighted
+latitude-averaged `OutputVar`. You can expect most plotting functions from
+`Makie` to work out of the box.
+
+```@example makie_integration
+fig = CairoMakie.Figure(; size = (1000, 400))
+# If no axis is provided, then a default axis is added
+CairoMakie.heatmap(fig[1,1], var2d)
+
+# You can make your own axis for more customization
+lat_weighted_var = ClimaAnalysis.weighted_average_lat(var2d)
+long_name = ClimaAnalysis.long_name(lat_weighted_var)
+lon_units = ClimaAnalysis.dim_units(lat_weighted_var, "longitude")
+short_name = ClimaAnalysis.short_name(lat_weighted_var)
+var_units = ClimaAnalysis.units(lat_weighted_var)
+ax = CairoMakie.Axis(fig[1, 2], title = long_name, xlabel = "Longitude ($lon_units)", ylabel = "$short_name ($var_units)")
+CairoMakie.lines!(ax, lat_weighted_var; color = :blue)
+fig
+```

@@ -6,6 +6,15 @@ import GeoMakie
 
 using OrderedCollections
 
+import ClimaAnalysis.Template:
+    TemplateVar,
+    make_template_var,
+    add_attribs,
+    add_dim,
+    add_data,
+    one_to_n_data,
+    initialize
+
 @testset "MakieExt" begin
     tmp_dir = mktempdir(cleanup = false)
     @info "Tempdir", tmp_dir
@@ -277,4 +286,35 @@ using OrderedCollections
     )
     output_name = joinpath(tmp_dir, "plot_bias_with_custom_mask.png")
     Makie.save(output_name, fig14)
+end
+
+@testset "Plot with Makie functions with GeoAxis" begin
+    tmp_dir = mktempdir(cleanup = false)
+    @info "Plots with GeoMakie", tmp_dir
+
+    lat = -90.0:1.0:90.0
+    lon = -180:1.0:180.0
+    data2d = [cos(x / 90) * sin(y / 180) for x in lat, y in lon]
+    var2d =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_attribs(;
+            long_name = "Hello",
+            short_name = "hi",
+            units = "W / m^2",
+        ) |>
+        add_data(; data = data2d) |>
+        initialize
+
+    fig = Makie.Figure()
+    ax1 = GeoMakie.GeoAxis(fig[1, 1], title = "Lat-lon order")
+    Makie.surface!(ax1, var2d; shading = Makie.NoShading)
+    ax2 = GeoMakie.GeoAxis(fig[1, 2], title = "Lon-lat order")
+    Makie.surface!(
+        ax2,
+        permutedims(var2d, ("lon", "lat"));
+        shading = Makie.NoShading,
+    )
+    Makie.save(joinpath(tmp_dir, "surface_plot.png"), fig)
 end
