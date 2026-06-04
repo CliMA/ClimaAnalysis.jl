@@ -23,6 +23,23 @@ The resulting `OutputVar` has a time dimension containing the first time value
 of `var`. For more information, see the section "Split-Apply-Combine" in the
 documentation.
 
+## Makie integration
+
+With this release, `Makie` functions such as `plot` and `surface` can now be
+used with `OutputVar`s.
+
+```julia
+import CairoMakie
+import ClimaAnalysis
+
+# This automatically work with one dimensional and two dimensional OutputVars
+CairoMakie.plot(var)
+
+fig = Makie.Figure()
+Makie.surface(fig[1, 1], var)
+Makie.save("surface_plot.png", fig)
+```
+
 ## Minor additions
 
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.

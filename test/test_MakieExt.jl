@@ -5,6 +5,15 @@ import CairoMakie
 
 using OrderedCollections
 
+import ClimaAnalysis.Template:
+    TemplateVar,
+    make_template_var,
+    add_attribs,
+    add_dim,
+    add_data,
+    one_to_n_data,
+    initialize
+
 @testset "MakieExt" begin
 
     tmp_dir = mktempdir(cleanup = false)
@@ -398,4 +407,78 @@ using OrderedCollections
         model_names = ["CliMA"],
         best_category_name = "ANN",
     )
+end
+
+@testset "Plot with Makie functions" begin
+    tmp_dir = mktempdir(cleanup = false)
+    @info "Plots with Makie", tmp_dir
+
+    # Define OutputVars for plotting
+    lat = -90.0:1.0:90.0
+    lon = -180:1.0:180.0
+    time = [0.0, 1.0, 5.0, 6.0]
+    var1d =
+        TemplateVar() |>
+        add_dim("time", time, units = "s") |>
+        add_attribs(;
+            long_name = "Hello",
+            short_name = "hi",
+            units = "W / m^2",
+        ) |>
+        one_to_n_data() |>
+        initialize
+    data2d = [cos(x / 90) * sin(y / 180) for x in lat, y in lon]
+    var2d =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_attribs(;
+            long_name = "Hello",
+            short_name = "hi",
+            units = "W / m^2",
+        ) |>
+        add_data(; data = data2d) |>
+        initialize
+
+    # Test plot
+    fig = Makie.Figure()
+    Makie.plot(fig[1, 1], var1d)
+    Makie.plot(fig[1, 2], var2d)
+    Makie.save(joinpath(tmp_dir, "12d_plot.png"), fig)
+
+    # Surface plots with lon-lat order and lat-lon order
+    fig = Makie.Figure()
+    Makie.heatmap(fig[1, 1], var2d)
+    Makie.heatmap(fig[1, 2], permutedims(var2d, ("lon", "lat")))
+    Makie.save(joinpath(tmp_dir, "heatmaps_plot.png"), fig)
+
+    # Test specific plotting functions
+    to_plot_vec = [
+        (var2d, Makie.contour),
+        (var2d, Makie.heatmap),
+        (var1d, Makie.lines),
+        (var1d, Makie.linesegments), # this doesn't work?
+        (var1d, Makie.scatter),
+        (var1d, Makie.scatterlines),
+        (var1d, Makie.stairs),
+        (var2d, Makie.surface),
+    ]
+
+    for (var, plot_fn) in to_plot_vec
+        fig = Makie.Figure()
+        plot_fn(fig[1, 1], var)
+        Makie.save(joinpath(tmp_dir, "$(plot_fn)_plot.png"), fig)
+    end
+
+    # Error handling
+    var0d =
+        TemplateVar() |>
+        add_attribs(;
+            long_name = "Hello",
+            short_name = "hi",
+            units = "W / m^2",
+        ) |>
+        one_to_n_data() |>
+        initialize
+    @test_throws ErrorException Makie.plot(var0d)
 end

@@ -906,4 +906,130 @@ function Visualize.plot_leaderboard!(
     )
 end
 
+"""
+    Makie.convert_arguments(
+        P::Makie.PointBased,
+        var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 1}},
+    ) where {T1, T2}
+
+Take a `OutputVar` representing one dimensional data and return the values of
+the dimension and the data.
+"""
+function Makie.convert_arguments(
+    P::Makie.PointBased,
+    var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 1}},
+) where {T1, T2}
+    Makie.convert_arguments(P, last(first(var.dims)), var.data)
+end
+
+"""
+    Makie.convert_arguments(
+        P::Makie.GridBased,
+        var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 2}},
+    ) where {T1, T2}
+
+Take a `OutputVar` representing two dimensional data and return the values of
+the dimensions and the data.
+
+If `var` has a longitude and latitude dimensions, then the dimensions of `var`
+are permuted to match the order of longitude and latitude.
+"""
+function Makie.convert_arguments(
+    P::Makie.GridBased,
+    var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 2}},
+) where {T1, T2}
+    # GeoMakie expects lon and lat when plotting
+    if ClimaAnalysis.has_longitude(var) && ClimaAnalysis.has_latitude(var)
+        dimnames =
+            ClimaAnalysis.conventional_dim_name.(ClimaAnalysis.dim_names(var))
+        dimnames == ("longitude", "latitude") ||
+            (var = permutedims(var, ("lon", "lat")))
+    end
+    dim_vecs = last.(collect(var.dims))
+    Makie.convert_arguments(P, dim_vecs[1], dim_vecs[2], var.data)
+end
+
+"""
+    Makie.plottype(var::ClimaAnalysis.OutputVar)
+
+Specify the type of plot for `var` depending on the number of dimensions.
+
+This allows for `Makie.plot` and `Makie.plot!` to be used with a `OutputVar`.
+"""
+function Makie.plottype(var::ClimaAnalysis.OutputVar)
+    N = ndims(var.data)
+    if N == 1
+        Makie.Lines
+    elseif N == 2
+        Makie.Heatmap
+    else
+        error(
+            "Plotting a OutputVar with $N dimensions is not supported with Makie.plot or Makie.plot!",
+        )
+    end
+end
+
+# Makie.preferred_axis_attributes was introduced in Makie v0.24.11
+@static if pkgversion(Makie) >= v"0.24.11"
+    # This is not done for a `GeoMakie.Axis` because the default axis for
+    # plotting is a `Makie.Axis`
+    """
+        Makie.preferred_axis_attributes(
+            ::Type{Makie.Axis},
+            var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 1}},
+        ) where {T1, T2}
+
+    Return a `NamedTuple` of the preferred axis attributes for a `OutputVar` representing
+    one-dimensional data.
+    """
+    function Makie.preferred_axis_attributes(
+        ::Type{Makie.Axis},
+        var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 1}},
+    ) where {T1, T2}
+        title = ClimaAnalysis.long_name(var)
+        xlabel = first(ClimaAnalysis.dim_names(var))
+        ylabel = ClimaAnalysis.short_name(var)
+
+        dim_units = ClimaAnalysis.dim_units(var, xlabel)
+        var_units = ClimaAnalysis.units(var)
+
+        isempty(dim_units) || (xlabel *= " ($dim_units)")
+        isempty(var_units) || (ylabel *= " ($var_units)")
+
+        return (; title, ylabel, xlabel)
+    end
+
+    """
+        Makie.preferred_axis_attributes(
+            ::Type{Makie.Axis},
+            var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 2}},
+        ) where {T1, T2}
+
+    Return a `NamedTuple` of the preferred axis attributes for a `OutputVar` representing
+    two-dimensional data.
+    """
+    function Makie.preferred_axis_attributes(
+        ::Type{Makie.Axis},
+        var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 2}},
+    ) where {T1, T2}
+        if ClimaAnalysis.has_longitude(var) && ClimaAnalysis.has_latitude(var)
+            var = permutedims(var, ("lon", "lat"))
+        end
+        title = ClimaAnalysis.long_name(var)
+        dimnames = collect(ClimaAnalysis.dim_names(var))
+        xlabel = first(dimnames)
+        ylabel = last(dimnames)
+
+        var_units = ClimaAnalysis.units(var)
+        first_dim_units = ClimaAnalysis.dim_units(var, xlabel)
+        second_dim_units = ClimaAnalysis.dim_units(var, ylabel)
+
+        isempty(var_units) || (title *= " ($var_units)")
+        isempty(first_dim_units) || (xlabel *= " ($first_dim_units)")
+        isempty(second_dim_units) || (ylabel *= " ($second_dim_units)")
+
+        return (; title, xlabel, ylabel)
+    end
+end
+
 end
