@@ -41,6 +41,7 @@ Var.dim_names
 Var.units
 Var.has_units
 Var.remake
+Base.dropdims
 Var.slice
 Var.average_lat
 Var.weighted_average_lat
