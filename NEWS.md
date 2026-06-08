@@ -43,6 +43,7 @@ Makie.save("surface_plot.png", fig)
 ## Minor additions
 
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.
+- You can drop dimensions of size 1 with `dropdims`.
 
 ## Bug fixes
 

@@ -48,6 +48,7 @@ export OutputVar,
     dim_units,
     range_dim,
     ndims,
+    dropdims,
     reordered_as,
     resampled_as,
     has_units,
@@ -1189,6 +1190,48 @@ Return the number of dimensions of `var`.
 """
 function Base.ndims(var::HasDimAndAttribs)
     return length(var.dims)
+end
+
+"""
+    dropdims(var::OutputVar; dims)
+
+Return a `OutputVar` with the same data as `var`, but with the dimensions
+specified by `dims`, an iterable of dimension names, removed. The size of each
+dimension in `dims` must be equal to `1`.
+
+The result shares the same underlying data as `var` which means modifying values of
+`var.data` also results in the same changes to the data of the resulting `OutputVar`.
+"""
+function Base.dropdims(var::OutputVar; dims)
+    dim_names = collect(
+        find_corresponding_dim_name_in_var(dim_name, var) for dim_name in dims
+    )
+
+    # Check dimension names are unique
+    allunique(dim_names) || error("Dimensions ($dim_names) must be unique")
+
+    # Check dimensions are of length one
+    not_size1_dims = filter(
+        dim_name -> size(var.data, var.dim2index[dim_name]) > 1,
+        dim_names,
+    )
+    isempty(not_size1_dims) ||
+        error("Length of dropped dims ($not_size1_dims) must all be size 1")
+
+    dim_indices = Tuple(var.dim2index[dim_name] for dim_name in dim_names)
+    ret_data = dropdims(var.data; dims = dim_indices)
+
+    dim_names = Set(dim_names)
+    ret_dims = deepcopy(filter(kv -> first(kv) ∉ dim_names, var.dims))
+
+    ret_dim_attribs =
+        deepcopy(filter(kv -> first(kv) ∉ dim_names, var.dim_attributes))
+    return remake(
+        var,
+        dims = ret_dims,
+        dim_attributes = ret_dim_attribs,
+        data = ret_data,
+    )
 end
 
 """

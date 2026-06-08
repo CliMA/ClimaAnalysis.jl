@@ -1593,6 +1593,66 @@ end
     @test_throws ErrorException ClimaAnalysis.reordered_as(src_var, dest_var)
 end
 
+@testset "Drop dims" begin
+    # Reordering the dimensions of a var to match itself
+    lon = [0.0]
+    lat = [1.0]
+    time = [1.0, 2.0, 3.0]
+    var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("time", time, units = "s") |>
+        add_attribs(long_name = "hi") |>
+        one_to_n_data(; collected = true) |>
+        initialize
+    drop_lon_var = dropdims(var; dims = ("longitude",))
+    @test size(drop_lon_var.data) == (1, 3)
+    @test drop_lon_var.data == reshape(var.data, (1, 3))
+    @test drop_lon_var.attributes == var.attributes
+    @test drop_lon_var.dims ==
+          filter(kv -> first(kv) in ("lat", "time"), var.dims)
+    @test drop_lon_var.dim_attributes ==
+          filter(kv -> first(kv) in ("lat", "time"), var.dim_attributes)
+    var.data[1] = 42
+    @test drop_lon_var.data[1] == 42
+
+    drop_both_var = dropdims(var; dims = ("lon", "lat"))
+    @test size(drop_both_var.data) == (3,)
+    @test drop_both_var.data == reshape(var.data, (3,))
+    @test drop_lon_var.attributes == var.attributes
+    @test drop_both_var.dims == filter(kv -> first(kv) in ("time",), var.dims)
+    @test drop_both_var.dim_attributes ==
+          filter(kv -> first(kv) in ("time",), var.dim_attributes)
+    var.data[1] = 100
+    @test drop_both_var.data[1] == 100
+
+    # Error handling
+    long = 20.0:30.0 |> collect
+    lat = 30.0:40.0 |> collect
+    var =
+        TemplateVar() |>
+        add_dim("long", long, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    # Error handling is performed by the call to `dropdims` with
+    # `AbstractArray`s, so the exact error thrown is not guaranteed here
+    @test_throws "Length of dropped dims ([\"long\"]) must all be size 1" dropdims(
+        var,
+        dims = ("long",),
+    )
+    @test_throws "Length of dropped dims ([\"long\"]) must all be size 1" dropdims(
+        var,
+        dims = ("lon",),
+    )
+    @test_throws ErrorException dropdims(var, dims = ("time",))
+    @test_throws "Dimensions ([\"long\", \"long\"]) must be unique" dropdims(
+        var,
+        dims = ("long", "long"),
+    )
+end
+
 @testset "Resampling over all dimensions" begin
     src_long = 0.0:180.0 |> collect
     src_lat = 0.0:90.0 |> collect
