@@ -522,6 +522,86 @@ end
     end
 end
 
+@testset "Equality and hashing" begin
+    lon = 0.0:10.0 |> collect
+    lat = 0.0:5.0 |> collect
+
+    var1 =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(short_name = "T", long_name = "Temperature", units = "K") |>
+        ones_data() |>
+        initialize
+    var2 = deepcopy(var1)
+
+    # Identical vars are equal
+    @test var1 == var2
+    @test isequal(var1, var2)
+
+    # OutputVar equals itself
+    @test var1 == var1
+    @test isequal(var1, var1)
+
+    # Check hashes are the same
+    @test hash(var1) == hash(var2)
+    @test hash(var1, UInt(42)) == hash(var2, UInt(42))
+
+    # OutputVars can be used keys for a Set
+    s = Set([var1, var2])
+    @test length(s) == 1
+
+    # Differ by data
+    var_diff_data = 2.0 * var1
+    @test var1 != var_diff_data
+    @test !isequal(var1, var_diff_data)
+    @test hash(var1) != hash(var_diff_data)
+
+    # Differ by attributes
+    var_diff_attrs = deepcopy(var1)
+    var_diff_attrs.attributes["units"] = "F"
+    @test var1 != var_diff_attrs
+    @test !isequal(var1, var_diff_attrs)
+    @test hash(var1) != hash(var_diff_attrs)
+
+    # Differ by dims
+    lon2 = 0.0:20.0 |> collect
+    var_diff_dims =
+        TemplateVar() |>
+        add_dim("lon", lon2, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(short_name = "T", long_name = "Temperature", units = "K") |>
+        initialize
+    @test var1 != var_diff_dims
+    @test !isequal(var1, var_diff_dims)
+    @test hash(var1) != hash(var_diff_dims)
+
+    # Differ by dim_attributes
+    var_diff_dim_attrs =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "deg") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_attribs(short_name = "T", long_name = "Temperature", units = "K") |>
+        initialize
+    @test var1 != var_diff_dim_attrs
+    @test !isequal(var1, var_diff_dim_attrs)
+    @test hash(var1) != hash(var_diff_dim_attrs)
+
+    # Differ by a permutation of dimensions
+    permuted_var = permutedims(var1, ("lat", "lon"))
+    @test var1 != permuted_var
+    @test !isequal(var1, permuted_var)
+    @test hash(var1) != hash(permuted_var)
+
+    # Check differences between == and isequal with NaNs in data
+    var_nan1 = deepcopy(var1)
+    var_nan1.data .= NaN
+    var_nan2 = deepcopy(var_nan1)
+    @test !(var_nan1 == var_nan2)
+    @test isequal(var_nan1, var_nan2)
+    @test hash(var_nan1) == hash(var_nan2)
+end
+
 @testset "Dimension names" begin
     # Empty OutputVar (no dimensions)
     var_no_dims = TemplateVar() |> initialize
