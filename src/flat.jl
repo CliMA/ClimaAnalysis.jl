@@ -333,3 +333,90 @@ function Base.getproperty(var::FlatVar, s::Symbol)
         return Base.getfield(var, s)
     end
 end
+
+"""
+    Base.:(==)(metadata1::Metadata, metadata2::Metadata)
+
+Return whether `metadata1` and `metadata2` are equal, using `==` on each field.
+
+This is similar to `isequal`, except `==` treats floating-point `NaN` values as not equal to
+each other, `-0.0` as equal to `0.0`, and `missing` as not equal to `missing`.
+"""
+function Base.:(==)(metadata1::Metadata, metadata2::Metadata)
+    # Use & instead of &&, since we want to propagate missing
+    return (metadata1.attributes == metadata2.attributes) &
+           (metadata1.dims == metadata2.dims) &
+           (metadata1.dim_attributes == metadata2.dim_attributes) &
+           (metadata1.ordered_dims == metadata2.ordered_dims) &
+           (metadata1.drop_mask == metadata2.drop_mask) &
+           (metadata1.dropped_values == metadata2.dropped_values)
+end
+
+"""
+    Base.isequal(metadata1::Metadata, metadata2::Metadata)
+
+Return whether `metadata1` and `metadata2` are equal, using `isequal` on each field.
+
+This is similar to `==`, except `isequal` treats floating-point `NaN` values as equal to
+each other, `-0.0` as unequal to `0.0`, and `missing` as equal to `missing`.
+"""
+function Base.isequal(metadata1::Metadata, metadata2::Metadata)
+    return isequal(metadata1.attributes, metadata2.attributes) &&
+           isequal(metadata1.dims, metadata2.dims) &&
+           isequal(metadata1.dim_attributes, metadata2.dim_attributes) &&
+           isequal(metadata1.ordered_dims, metadata2.ordered_dims) &&
+           isequal(metadata1.drop_mask, metadata2.drop_mask) &&
+           isequal(metadata1.dropped_values, metadata2.dropped_values)
+end
+
+"""
+    Base.hash(metadata::Metadata, h::UInt)
+
+Compute an integer hash code of `metadata` starting with the hash code `h`.
+"""
+function Base.hash(metadata::Metadata, h::UInt)
+    h = hash(metadata.attributes, h)
+    h = hash(metadata.dims, h)
+    h = hash(metadata.dim_attributes, h)
+    h = hash(metadata.ordered_dims, h)
+    h = hash(metadata.drop_mask, h)
+    h = hash(metadata.dropped_values, h)
+    return h
+end
+
+"""
+    Base.:(==)(var1::FlatVar, var2::FlatVar)
+
+Return whether `var1` and `var2` are equal, using `==` on each field.
+
+This is similar to `isequal`, except `==` treats floating-point `NaN` values as not equal to
+each other, `-0.0` as equal to `0.0`, and `missing` as not equal to `missing`.
+"""
+function Base.:(==)(var1::FlatVar, var2::FlatVar)
+    # Use & instead of &&, since we want to propagate missing
+    return (var1.metadata == var2.metadata) & (var1.data == var2.data)
+end
+
+"""
+    Base.isequal(var1::FlatVar, var2::FlatVar)
+
+Return whether `var1` and `var2` are equal, using `isequal` on each field.
+
+This is similar to `==`, except `isequal` treats floating-point `NaN` values as equal to
+each other, `-0.0` as unequal to `0.0`, and `missing` as equal to `missing`.
+"""
+function Base.isequal(var1::FlatVar, var2::FlatVar)
+    return isequal(var1.metadata, var2.metadata) &&
+           isequal(var1.data, var2.data)
+end
+
+"""
+    Base.hash(var::FlatVar, h::UInt)
+
+Compute an integer hash code of `var` starting with the hash code `h`.
+"""
+function Base.hash(var::FlatVar, h::UInt)
+    h = hash(var.metadata, h)
+    h = hash(var.data, h)
+    return h
+end
