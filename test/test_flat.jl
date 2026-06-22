@@ -470,3 +470,157 @@ end
     @test ClimaAnalysis.short_name(metadata) == "hi"
     @test ClimaAnalysis.long_name(metadata) == "hello"
 end
+
+@testset "Equality and hashing" begin
+    lon = 0.0:10.0 |> collect
+    lat = 0.0:5.0 |> collect
+    time = [0.0, 1.0, 2.0]
+
+    var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(short_name = "T", long_name = "Temperature", units = "K") |>
+        ones_data() |>
+        initialize
+
+    flat_var1 = ClimaAnalysis.flatten(var)
+    flat_var2 = deepcopy(flat_var1)
+
+    # Identical FlatVars are equal
+    @test flat_var1 == flat_var2
+    @test isequal(flat_var1, flat_var2)
+
+    # A FlatVar equals itself
+    @test flat_var1 == flat_var1
+    @test isequal(flat_var1, flat_var1)
+
+    # Check hash are the same
+    @test hash(flat_var1) == hash(flat_var2)
+    @test hash(flat_var1, UInt(42)) == hash(flat_var2, UInt(42))
+
+    # FlatVars can be used as keys for a Set
+    s = Set([flat_var1, flat_var2])
+    @test length(s) == 1
+
+    # Differ by data
+    flat_var_diff_data = deepcopy(flat_var1)
+    flat_var_diff_data.data .= 2.0
+    @test flat_var1 != flat_var_diff_data
+    @test !isequal(flat_var1, flat_var_diff_data)
+    @test hash(flat_var1) != hash(flat_var_diff_data)
+
+    # Differ by attributes
+    flat_var_diff_attrs = deepcopy(flat_var1)
+    flat_var_diff_attrs.metadata.attributes["units"] = "F"
+    @test flat_var1 != flat_var_diff_attrs
+    @test !isequal(flat_var1, flat_var_diff_attrs)
+    @test hash(flat_var1) != hash(flat_var_diff_attrs)
+
+    # Differ by dims
+    lon2 = 0.0:20.0 |> collect
+    var_diff_dims =
+        TemplateVar() |>
+        add_dim("lon", lon2, units = "degrees") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(short_name = "T", long_name = "Temperature", units = "K") |>
+        ones_data() |>
+        initialize
+    flat_var_diff_dims = ClimaAnalysis.flatten(var_diff_dims)
+    @test flat_var1 != flat_var_diff_dims
+    @test !isequal(flat_var1, flat_var_diff_dims)
+    @test hash(flat_var1) != hash(flat_var_diff_dims)
+
+    # Differ by dim_attributes
+    var_diff_dim_attrs =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "deg") |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(short_name = "T", long_name = "Temperature", units = "K") |>
+        ones_data() |>
+        initialize
+    flat_var_diff_dim_attrs = ClimaAnalysis.flatten(var_diff_dim_attrs)
+    @test flat_var1 != flat_var_diff_dim_attrs
+    @test !isequal(flat_var1, flat_var_diff_dim_attrs)
+    @test hash(flat_var1) != hash(flat_var_diff_dim_attrs)
+
+    # Differ by permutation of dimensions
+    flat_var_diff_order =
+        ClimaAnalysis.flatten(var, dims = ("latitude", "longitude", "t"))
+    @test flat_var1 != flat_var_diff_order
+    @test !isequal(flat_var1, flat_var_diff_order)
+    @test hash(flat_var1) != hash(flat_var_diff_order)
+
+    # Check differences between == and isequal with NaNs in data
+    nan_data = fill(NaN, length(lon), length(lat), length(time))
+    nan_var = ClimaAnalysis.remake(var, data = nan_data)
+    flat_nan1 = ClimaAnalysis.flatten(nan_var, ignore_nan = false)
+    flat_nan2 = deepcopy(flat_nan1)
+    @test flat_nan1 != flat_nan2
+    @test isequal(flat_nan1, flat_nan2)
+    @test hash(flat_nan1) == hash(flat_nan2)
+
+    # Ignore NaNs
+    flat_nan_dropped1 = ClimaAnalysis.flatten(nan_var, ignore_nan = true)
+    flat_nan_dropped2 = deepcopy(flat_nan_dropped1)
+    @test !(flat_nan_dropped1 == flat_nan_dropped2)
+    @test isequal(flat_nan_dropped1, flat_nan_dropped2)
+    @test hash(flat_nan_dropped1) == hash(flat_nan_dropped2)
+
+    # Tests for metadata
+    md1 = flat_var1.metadata
+    md2 = deepcopy(md1)
+
+    # Identical metadatas are equal
+    @test md1 == md2
+    @test isequal(md1, md2)
+
+    # A metadata equals itself
+    @test md1 == md1
+    @test isequal(md1, md1)
+
+    # Check hashes are the same
+    @test hash(md1) == hash(md2)
+    @test hash(md1, UInt(42)) == hash(md2, UInt(42))
+
+    # Metadatas can be used as keys for a Set
+    s = Set([md1, md2])
+    @test length(s) == 1
+
+    # Differ by attributes
+    md_diff_attrs = deepcopy(md1)
+    md_diff_attrs.attributes["units"] = "F"
+    @test md1 != md_diff_attrs
+    @test !isequal(md1, md_diff_attrs)
+    @test hash(md1) != hash(md_diff_attrs)
+
+    # Differ by dims
+    @test md1 != flat_var_diff_dims.metadata
+    @test !isequal(md1, flat_var_diff_dims.metadata)
+    @test hash(md1) != hash(flat_var_diff_dims.metadata)
+
+    # Differ by dim_attributes
+    @test md1 != flat_var_diff_dim_attrs.metadata
+    @test !isequal(md1, flat_var_diff_dim_attrs.metadata)
+    @test hash(md1) != hash(flat_var_diff_dim_attrs.metadata)
+
+    # Differ by permutation of dimensions
+    @test md1 != flat_var_diff_order.metadata
+    @test !isequal(md1, flat_var_diff_order.metadata)
+    @test hash(md1) != hash(flat_var_diff_order.metadata)
+
+    # Differ by NaNs dropped
+    @test md1 != flat_nan_dropped1.metadata
+    @test !isequal(md1, flat_nan_dropped1.metadata)
+    @test hash(md1) != hash(flat_nan_dropped1.metadata)
+
+    # Check differences between == and isequal with NaNs in data when flattening
+    md_nan1 = flat_nan_dropped1.metadata
+    md_nan2 = deepcopy(md_nan1)
+    @test !(md_nan1 == md_nan2)
+    @test isequal(md_nan1, md_nan2)
+    @test hash(md_nan1) == hash(md_nan2)
+end
