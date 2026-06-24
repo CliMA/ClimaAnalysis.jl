@@ -51,5 +51,5 @@ arguments for constructing the [`ClimaAnalysis.OutputVar`](@ref) can be passed a
 
 ```julia
 pr_var = get(catalog, "pr")
-rlut_var = get(catalog, "rsut", var_kwargs = (shift_by = Dates.firstdayofmonth,))
+rlut_var = get(catalog, "rlut", var_kwargs = (shift_by = Dates.firstdayofmonth,))
 ```

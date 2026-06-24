@@ -224,7 +224,7 @@ function window(
         _get_window_indices(var, dim_name_in_var, left, right, by)
 
     (nearest_index_right >= nearest_index_left) ||
-        error("Right window value has to be larger than left one")
+        error("Right window value has to be larger than or equal to left one")
 
     # Take only what's between nearest_index_left and nearest_index_right
     reduced_data = selectdim(

@@ -75,7 +75,7 @@ new_var = ClimaAnalysis.convert_dim_units(
     )
 ```
 
-Similarly, to set the units of a dimension, you can use the `dim_set_units!` function.
+Similarly, to set the units of a dimension, you can use the `set_dim_units!` function.
 ```julia
 new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
 ```
@@ -272,7 +272,7 @@ var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data)
 
 ```@repl split_by_season_across_time
 var.attributes["start_date"]
-ClimaAnalysis.times(var) # dates from the first of January, March, June, August, and December
+ClimaAnalysis.times(var) # dates from the first of January, March, June, September, and December
 split_var = ClimaAnalysis.split_by_season_across_time(var);
 length(split_var) # months span over 5 seasons
 ClimaAnalysis.times(split_var[1]) # correspond to 1/1 (middle of DJF)
@@ -380,7 +380,7 @@ julia> ClimaAnalysis.global_rmse_pfull(sim_var, obs_var, sim_pressure = pressure
 
 ## Masking
 Bias and squared error can be computed only over the land or ocean through the `mask`
-parameter. As of now, the mask parameter takes in `apply_oceanmask` or `apply_oceanmask`.
+parameter. As of now, the mask parameter takes in `apply_oceanmask` or `apply_landmask`.
 See the example below of this usage.
 
 ```julia

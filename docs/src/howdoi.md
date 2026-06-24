@@ -44,8 +44,8 @@ do
 ```julia
 ClimaAnalysis.slice(var, time = 3, by = ClimaAnalysis.Index())
 ClimaAnalysis.slice(var, time = 105.0, by = ClimaAnalysis.MatchValue())
-ClimaAnalysis.window(var, left = 1, right = 3, by = ClimaAnalysis.Index())
-ClimaAnalysis.window(var, left = 102.0, right = 108.0, by = ClimaAnalysis.MatchValue())
+ClimaAnalysis.window(var, "time", left = 1, right = 3, by = ClimaAnalysis.Index())
+ClimaAnalysis.window(var, "time", left = 102.0, right = 108.0, by = ClimaAnalysis.MatchValue())
 ```
 
 ## How do I select specific indices or ranges from a `OutputVar`?
@@ -71,14 +71,14 @@ lat = 0.0:20.0 |> collect
 var =
     TemplateVar() |>
     add_dim("time", time, units = "s") |>
-    add_dim("lon", time, units = "degrees") |>
-    add_dim("lat", time, units = "degrees") |>
+    add_dim("lon", lon, units = "degrees") |>
+    add_dim("lat", lat, units = "degrees") |>
     add_attribs(short_name = "pr", start_date = "2010-1-1") |>
     initialize
 ```
 
-In the following examples, `var` is a `OutputVar` with a time dimension of length 10, a
-longitude dimension of length 15, and a latitude dimension of length 20. You can select
+In the following examples, `var` is a `OutputVar` with a time dimension of length 11, a
+longitude dimension of length 16, and a latitude dimension of length 21. You can select
 indices using a range.
 
 ```@repl select

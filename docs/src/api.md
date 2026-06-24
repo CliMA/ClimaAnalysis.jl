@@ -122,7 +122,7 @@ Base.replace(var::OutputVar, old_new::Pair...; count::Integer)
 Base.replace(new::Union{Function, Type}, var::OutputVar; count::Integer)
 Base.replace!(var::OutputVar, old_new::Pair...; count::Integer)
 Base.replace!(new::Union{Function, Type}, var::OutputVar; count::Integer)
-Base.cat(vars::OutputVar...; dim::String)
+Base.cat(vars::OutputVar...; dims::String)
 Var.reverse_dim
 Var.reverse_dim!
 Base.show(io::IO, var::OutputVar)

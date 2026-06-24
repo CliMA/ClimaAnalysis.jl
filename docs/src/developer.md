@@ -34,7 +34,7 @@ var =
 
 The convenience functions for adding a dimension are `add_time_dim`, `add_lon_dim`,
 `add_lat_dim`, `add_pfull_dim`, and `add_z_dim` which accept the keyword arguments
-`dim_name`, `dim_array`, and `units`. Any other keyword arguments will be used as attributes
+`name`, `dim`, and `units`. Any other keyword arguments will be used as attributes
 for the dimension. These functions are designed to be used with the pipe operator (`|>`).
 Additionally, there are also functions of the form `add_x_dim!` which are designed to be
 used with function composition. The `x` can be `time`, `lon`, `lat`, `pfull`, or `z`.

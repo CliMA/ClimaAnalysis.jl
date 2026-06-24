@@ -109,8 +109,8 @@ end
         ClimaAnalysis.combine
     @test reduced_var.data == cat(
         mean(multiple_season_var.data[:, 1:2, :], dims = 2), # DJF
-        mean(multiple_season_var.data[:, 3:3, :], dims = 2), # JJA
-        mean(multiple_season_var.data[:, 4:6, :], dims = 2), # MAM
+        mean(multiple_season_var.data[:, 3:3, :], dims = 2), # MAM
+        mean(multiple_season_var.data[:, 4:6, :], dims = 2), # JJA
         mean(multiple_season_var.data[:, 7:7, :], dims = 2), # SON
         dims = 2,
     )

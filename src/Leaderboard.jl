@@ -93,7 +93,7 @@ function RMSEVariable(
 
     # Check number of model to unit pairs match the number of models
     length(units) != length(model_names) && error(
-        "The number of unit for each model ($length(units)) is not equal to the number of models ($length(model_names))",
+        "The number of unit for each model ($(length(units))) is not equal to the number of models ($(length(model_names)))",
     )
     return RMSEVariable(short_name, model2index, category2index, RMSEs, units)
 end
@@ -348,7 +348,7 @@ function _index_convert(
 ) where {S <: AbstractString}
     for key in keys
         !haskey(key2index, key) &&
-            error("Key ($key) is not present in ($(keys(key2index)))")
+            error("Key ($key) is not present in ($(Base.keys(key2index)))")
     end
     return [key2index[key] for key in keys]
 end
@@ -481,7 +481,7 @@ function reorder_categories(rmse_var::RMSEVariable, categories::Vector{String})
 end
 
 """
-    match_category_order(rmse_var1::RMSEVariable, rmse_var2::RMSEVariable)
+    match_category_order(rmse_var_src::RMSEVariable, rmse_var_dest::RMSEVariable)
 
 Make the order of categories of `rmse_var_src` matches the order of the categories of
 `rmse_var_dest`.
@@ -650,9 +650,10 @@ function find_worst_single_model(rmse_var::RMSEVariable; category_name = "ANN")
     _unit_check(rmse_var)
     categ_names = category_names(rmse_var)
     ann_idx = categ_names |> (x -> findfirst(y -> (y == category_name), x))
-    isnothing(ann_idx) && error("Annual does not exist in $categ_names")
+    isnothing(ann_idx) &&
+        error("The category $category_name does not exist in $categ_names")
     rmse_vec = rmse_var[:, ann_idx] |> copy
-    # Replace all NaN with Inf so that we do not get NaN as a result
+    # Replace all NaN with -Inf so that we do not get NaN as a result
     # We do this instead of filtering because if we filter, then we need to keep track of
     # original indices
     replace!(rmse_vec, NaN => -Inf)
@@ -664,7 +665,7 @@ end
 """
     median(rmse_var::RMSEVariable)
 
-Find the median using the root mean squared errors across all categories.
+For each category, find the median of the root mean squared errors across all models.
 
 Any `NaN` is ignored in computing the median.
 """

@@ -1421,7 +1421,7 @@ end
 Interpolate variable `x` onto the given `target_coord` coordinate using
 multilinear interpolation.
 
-Extrapolation is now allowed and will throw a `BoundsError` in most cases.
+Extrapolation is not allowed and will throw a `BoundsError` in most cases.
 
 If any element of the arrays of the dimensions is a Dates.DateTime, then interpolation is
 not possible. Interpolations.jl do not support making interpolations for dates. If the
@@ -2107,7 +2107,7 @@ function split_by_month(var::OutputVar)
 end
 
 """
-    check_time_dim(var::OutputVar)
+    _check_time_dim(var::OutputVar)
 
 Check time dimension exists, unit for the time dimension is second, and a
 start date is present.
@@ -2731,9 +2731,9 @@ function Base.replace!(
 end
 
 """
-    replace!(new::Union{Function, Type}, var::OutputVar; [count::Integer])
+    replace(new::Union{Function, Type}, var::OutputVar; [count::Integer])
 
-Return a new `OutputVar where each value of `var.data` is replaced by `new(x)`. If `count`
+Return a new `OutputVar` where each value of `var.data` is replaced by `new(x)`. If `count`
 is specified, then replace at most `count` values in total.
 """
 function Base.replace(
@@ -2748,8 +2748,8 @@ end
 """
     replace!(new::Union{Function, Type}, var::OutputVar; [count::Integer])
 
-Return each value of `var.data` by `new(x)`. If `count` is specified, then replace at most
-`count` values in total.
+Replace each value of `var.data` in-place by `new(x)`. If `count` is specified, then replace
+at most `count` values in total.
 """
 function Base.replace!(
     new::Union{Function, Type},
@@ -2814,7 +2814,9 @@ This function is helpful if you need to concatenate `OutputVar`s after applying
 This function does not support concatenating `OutputVar`s of different quantities as
 determined by the `short_name`.
 
-Attributes that are not `start_date`, `short_name`, or "units" are discarded in the process.
+Attributes that are not `start_date`, `short_name`, `long_name`, or `units` are discarded in
+the process. The `long_name` of the result is formed by concatenating the `long_name`s of
+`vars`.
 
 Note that concatenation along multiple dimensions is not possible.
 """

@@ -38,14 +38,14 @@ end
     @test var.attributes == Dict("long_name" => "hi")
     @test var.dim_attributes == OrderedDict(
         "time" => Dict("units" => "seconds"),
-        "longitude" => Dict("units" => "deg"),
-        "latitude" => Dict("units" => "deg"),
+        "lon" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
     )
     @test var.data == reshape(1.0:(30.0 * 361.0 * 181.0), (30, 361, 181))
     @test var.dims == OrderedDict(
         "time" => collect(1.0:30.0),
-        "longitude" => collect(range(-180.0, 180.0, 361)),
-        "latitude" => collect(range(-90.0, 90.0, 181)),
+        "lon" => collect(range(-180.0, 180.0, 361)),
+        "lat" => collect(range(-90.0, 90.0, 181)),
     )
 
     var =
@@ -73,16 +73,16 @@ end
     @test var.data == zeros(Float32, 3, 2, 3, 3, 2)
     @test var.dims == OrderedDict(
         "time" => [0.0, 1.0, 2.0],
-        "longitude" => [3.0, 4.0],
-        "latitude" => [5.0, 6.0, 7.0],
+        "lon" => [3.0, 4.0],
+        "lat" => [5.0, 6.0, 7.0],
         "pfull" => [8.0, 9.0, 10.0],
         "z" => [11.0, 12.0],
     )
     @test var.attributes == Dict("short_name" => "test", "long_name" => "Test")
     @test var.dim_attributes == OrderedDict(
         "time" => Dict("units" => "ab", "cool" => "idk1"),
-        "longitude" => Dict("units" => "cd", "rad" => "idk2"),
-        "latitude" => Dict("units" => "ef", "wa" => "idk3"),
+        "lon" => Dict("units" => "cd", "rad" => "idk2"),
+        "lat" => Dict("units" => "ef", "wa" => "idk3"),
         "pfull" => Dict("units" => "gh", "sd" => "idk4"),
         "z" => Dict("units" => "ij", "ef" => "idk5"),
     )
@@ -141,8 +141,8 @@ end
     )
     @test var.dim_attributes == OrderedDict(
         "time" => Dict("units" => "seconds"),
-        "lon" => Dict("units" => "degrees_north"),
-        "lat" => Dict("units" => "degrees_east"),
+        "lon" => Dict("units" => "degrees_east"),
+        "lat" => Dict("units" => "degrees_north"),
         "pfull" => Dict("units" => "Pa"),
         "z" => Dict("units" => "m"),
     )
@@ -164,8 +164,8 @@ end
     @test var.data == reshape(1:prod(dim_sizes), dim_sizes...)
     @test var.dim_attributes == OrderedDict(
         "t" => Dict("units" => "seconds"),
-        "lon" => Dict("units" => "degrees_north"),
-        "lat" => Dict("units" => "degrees_east"),
+        "lon" => Dict("units" => "degrees_east"),
+        "lat" => Dict("units" => "degrees_north"),
     )
     @test var.attributes == Dict("abc" => "def")
 end

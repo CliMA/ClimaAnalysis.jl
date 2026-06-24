@@ -302,7 +302,7 @@ end
                         more_kwargs)
 
 
-Plot the bias (`sim.data - var.data`) on a projected geoid. The gloal bias and root mean
+Plot the bias (`sim.data - obs.data`) on a projected geoid. The global bias and root mean
 squared error (RMSE) are computed and can be found in the title of the plot. This function
 plots the returned `OutputVar` of `ClimaAnalysis.bias(sim, obs)`. See also
 [`ClimaAnalysis.bias`](@ref).

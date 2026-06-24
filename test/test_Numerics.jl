@@ -107,7 +107,7 @@ end
         dims = 1,
     )
 
-    @test_throws "Cannot integrate when latitude is a single point" ClimaAnalysis.Numerics._integrate_lat(
+    @test_throws "Cannot integrate when longitude is a single point" ClimaAnalysis.Numerics._integrate_lon(
         lon_data,
         [0.0],
         dims = 1,

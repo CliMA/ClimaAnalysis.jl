@@ -658,7 +658,7 @@ end
     @test_logs (
         :warn,
         "Detected latitudes are small. If units are radians, results will be wrong",
-    )
+    ) ClimaAnalysis.average_lat(wrong_var; weighted = true)
 
     lat_lon_avg = ClimaAnalysis.average_lon(lat_avg)
     @test lat_lon_avg.dims == OrderedDict(["time" => time])
@@ -1620,7 +1620,7 @@ end
     drop_both_var = dropdims(var; dims = ("lon", "lat"))
     @test size(drop_both_var.data) == (3,)
     @test drop_both_var.data == reshape(var.data, (3,))
-    @test drop_lon_var.attributes == var.attributes
+    @test drop_both_var.attributes == var.attributes
     @test drop_both_var.dims == filter(kv -> first(kv) in ("time",), var.dims)
     @test drop_both_var.dim_attributes ==
           filter(kv -> first(kv) in ("time",), var.dim_attributes)
@@ -2138,7 +2138,7 @@ end
     # Unit for the time dimension is not second
     dim_attribs = OrderedDict(["time" => Dict("units" => "min")])
     minute_var = ClimaAnalysis.remake(time_var, dim_attributes = dim_attribs)
-    @test_throws ErrorException ClimaAnalysis.Var._check_time_dim(no_time_var)
+    @test_throws ErrorException ClimaAnalysis.Var._check_time_dim(minute_var)
 
     # Start date is not present
     attribs = Dict("no start date" => "idk")
@@ -2250,9 +2250,9 @@ end
     @test DJF.dims["time"] == [0.0]
 
     # Check start date
-    MAM.attributes["start_date"] == "2024-1-1"
-    JJA.attributes["start_date"] == "2024-1-1"
-    DJF.attributes["start_date"] == "2024-1-1"
+    @test MAM.attributes["start_date"] == "2024-1-1"
+    @test JJA.attributes["start_date"] == "2024-1-1"
+    @test DJF.attributes["start_date"] == "2024-1-1"
 
     # Check empty OutputVar
     @test isempty(SON)
@@ -3580,7 +3580,7 @@ end
     # Missing longitude dimension
     lat_var = make_template_var("lat") |> initialize
     @test_throws ErrorException ClimaAnalysis.generate_lonlat_mask(
-        mask_var,
+        lat_var,
         42.0,
         42.0,
     )

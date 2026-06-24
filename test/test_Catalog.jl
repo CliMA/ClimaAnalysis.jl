@@ -62,7 +62,7 @@ import Dates
     precip = get(catalog, "precip")
     pr = get(catalog, "pr")
     @test precip.data == pr.data
-    @test precip.dims == precip.dims
+    @test precip.dims == pr.dims
     @test all(
         precip.attributes[key] == pr.attributes[key] for
         key in union(keys(precip.attributes), keys(pr.attributes)) if

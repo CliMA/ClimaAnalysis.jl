@@ -90,7 +90,7 @@ function generate_lonlat_mask(
     )
 
     (zero(threshold) <= threshold <= one(threshold)) ||
-        error("Threshold ($threshold)")
+        error("Threshold ($threshold) is not between 0 and 1")
 
     # Check if lon and lat are the only dimensions
     has_longitude(mask_var) ||
@@ -234,7 +234,7 @@ end
 Apply an ocean mask to `var` by NaNing any data whose coordinates are in the ocean.
 
 !!! note "Threshold keyword argument"
-    The `threshold` keyword argument is available in ClimaAnalysis v0.5.18 and beyond.
+    The `threshold` keyword argument is available in ClimaAnalysis v0.5.19 and beyond.
 """
 function apply_oceanmask(var::OutputVar; threshold = 0.5)
     mask_fn = generate_ocean_mask(NaN, 1.0, threshold = threshold)
@@ -270,7 +270,7 @@ function make_lonlat_mask(
 )
     Base.depwarn(
         "This function is deprecated. Users are encouraged to use `generate_lonlat_mask` instead.",
-        :make_lonlat_mask!,
+        :make_lonlat_mask,
     )
     # Check if lon and lat are the only dimensions
     has_longitude(var) ||

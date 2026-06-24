@@ -154,10 +154,11 @@ import ClimaAnalysis.Template:
 
     @test flat_var_mask.data == flat_var_ignore.data
     @test flat_var_mask.metadata.drop_mask == flat_var_ignore.metadata.drop_mask
-    @test flat_var.metadata.dims == flat_var_ignore.metadata.dims
-    @test flat_var.metadata.dim_attributes ==
+    @test flat_var_mask.metadata.dims == flat_var_ignore.metadata.dims
+    @test flat_var_mask.metadata.dim_attributes ==
           flat_var_ignore.metadata.dim_attributes
-    @test flat_var.metadata.attributes == flat_var_ignore.metadata.attributes
+    @test flat_var_mask.metadata.attributes ==
+          flat_var_ignore.metadata.attributes
 
     reconstructed_var_mask = ClimaAnalysis.unflatten(flat_var_mask)
     reconstructed_var_ignore = ClimaAnalysis.unflatten(flat_var_ignore)
@@ -359,7 +360,7 @@ end
     perms_3d = (
         ("lon", "lat", "time"),
         ("lat", "lon", "time"),
-        ("lat", "lon", "time"),
+        ("lon", "time", "lat"),
         ("lat", "time", "lon"),
         ("time", "lon", "lat"),
         ("time", "lat", "lon"),

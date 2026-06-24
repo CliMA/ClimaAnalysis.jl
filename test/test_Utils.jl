@@ -261,9 +261,9 @@ end
     dict2 = Dict("a" => Dict("a" => 4))
     @test Utils._recursive_merge(dict1, dict2) == Dict("a" => Dict("a" => 4))
 
-    dict1 = Dict("a" => Dict("a" => 3))
-    dict2 = Dict("a" => Dict("a" => 4))
-    @test Utils._recursive_merge(dict1, dict2) == Dict("a" => Dict("a" => 4))
+    dict1 = Dict("a" => Dict("b" => 3))
+    dict2 = Dict("a" => 4)
+    @test Utils._recursive_merge(dict1, dict2) == Dict("a" => 4)
 
     dict1 = Dict(
         "a" => Dict("b" => Dict("c" => 5)),

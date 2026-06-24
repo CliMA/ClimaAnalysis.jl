@@ -100,7 +100,6 @@ nothing # hide
 After loading the data, one may want to inspect, change, or manipulate the data. This is
 possible by the indexing functionality that `RMSEVariable` provides. Indexing into a
 `RMSEVariable` is similar, but not the same as indexing into an array. Indexing by
-integer or string is supported, but linear indexing (e.g. `rmse_var[1]`) is not supported.
 integer or string is supported, but linear indexing (e.g., `rmse_var[1]`) is not supported.
 
 ```@repl rmse_var

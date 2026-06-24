@@ -136,7 +136,7 @@ import ClimaAnalysis.Template:
             "lon",
             0,
             ClimaAnalysis.Index(),
-        ) == 1
+        )
     end
 end
 
@@ -159,17 +159,6 @@ end
     @test z_sliced.dim_attributes ==
           OrderedDict(["time" => Dict("units" => "s")])
     @test z_sliced.data == z_expected_data
-
-    t_sliced = ClimaAnalysis.slice(var, time = 200.0)
-    # 200 is the last index
-    t_expected_data = data[end, :]
-    @test t_sliced.dims == OrderedDict(["z" => z])
-    @test t_sliced.dim_attributes == OrderedDict(["z" => Dict("b" => 2)])
-    @test t_sliced.data == t_expected_data
-
-    @test t_sliced.attributes["long_name"] == "hi time = 1m 50.0s"
-
-    # Test with the general slice
 
     t_sliced = ClimaAnalysis.slice(var, time = 200.0)
     # 200 is the last index
@@ -609,21 +598,21 @@ end
     @test view_var.dim_attributes == no_view_var.dim_attributes
 
     # Error handling
-    # Invalid indices
+    # Invalid indices (out of bounds on an existing dimension)
     @test_throws ErrorException ClimaAnalysis.select(
         var,
         by = ClimaAnalysis.Index(),
-        cool = 42,
+        lat = 42,
     )
     @test_throws ErrorException ClimaAnalysis.select(
         var,
         by = ClimaAnalysis.Index(),
-        cool = 1:42,
+        lat = 1:42,
     )
     @test_throws ErrorException ClimaAnalysis.select(
         var,
         by = ClimaAnalysis.Index(),
-        cool = [1, 42],
+        lat = [1, 42],
     )
 
     # Missing dimensions
