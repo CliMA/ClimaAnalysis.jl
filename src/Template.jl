@@ -179,7 +179,7 @@ macro generate_add_dim(
     return quote
         # Define add_dim
         function $(esc(func_name))(;
-            name = $default_dim_name,
+            name = $dim_name,
             dim = $dim,
             units = $units,
             dim_attribs...,

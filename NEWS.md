@@ -58,6 +58,9 @@ Makie.save("surface_plot.png", fig)
 - Fix binary operations (e.g. `+`, `-`, `*`) sharing the `dims` and
   `dim_attributes` of the first operand with the resulting `OutputVar`. They are
   now deep copied, so mutating one no longer affects the other.
+- Fix bug with inconsistency between `Template.add_lon_dim` and
+  `Template.add_lon_dim!` and the analogous functions for adding the latitude
+  dimensions. They now add `lon` and `lat` as the dimension names.
 
 v0.5.22
 -------
