@@ -61,6 +61,8 @@ Makie.save("surface_plot.png", fig)
 - Fix bug with inconsistency between `Template.add_lon_dim` and
   `Template.add_lon_dim!` and the analogous functions for adding the latitude
   dimensions. They now add `lon` and `lat` as the dimension names.
+- Fix `Template.add_lat_dim` and `Template.add_lon_dim` using swapped default
+  units. They now default to `degrees_north` and `degrees_east`, respectively.
 
 v0.5.22
 -------

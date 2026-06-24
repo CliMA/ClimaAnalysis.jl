@@ -223,14 +223,14 @@ end
     "lat",
     "latitude",
     collect(range(-90.0, 90.0, 181)),
-    "degrees_east",
+    "degrees_north",
     ClimaAnalysis.Var.LATITUDE_NAMES
 )
 @generate_add_dim(
     "lon",
     "longitude",
     collect(range(-180.0, 180.0, 361)),
-    "degrees_north",
+    "degrees_east",
     ClimaAnalysis.Var.LONGITUDE_NAMES
 )
 @generate_add_dim(
