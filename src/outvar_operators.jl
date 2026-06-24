@@ -46,8 +46,8 @@ macro overload_binary_op(op)
             units = find_units_for_binary($op, x, y)
             ret_attributes["units"] = units
 
-            ret_dims = x.dims
-            ret_dim_attributes = x.dim_attributes
+            ret_dims = deepcopy(x.dims)
+            ret_dim_attributes = deepcopy(x.dim_attributes)
 
             ret_data = @. $op(x.data, y.data)
 

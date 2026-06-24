@@ -55,6 +55,9 @@ Makie.save("surface_plot.png", fig)
 - Fix `arecompatible` computing the conventional dimension names of the second
   `OutputVar` from the first one. As a result, two `OutputVar`s with mismatched
   dimension names could be incorrectly reported as compatible.
+- Fix binary operations (e.g. `+`, `-`, `*`) sharing the `dims` and
+  `dim_attributes` of the first operand with the resulting `OutputVar`. They are
+  now deep copied, so mutating one no longer affects the other.
 
 v0.5.22
 -------
