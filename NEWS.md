@@ -52,6 +52,9 @@ Makie.save("surface_plot.png", fig)
   possibility of a segfault. See this
   [issue](https://github.com/brenhinkeller/NaNStatistics.jl/issues/66) in
   NaNStatistics.jl.
+- Fix `arecompatible` computing the conventional dimension names of the second
+  `OutputVar` from the first one. As a result, two `OutputVar`s with mismatched
+  dimension names could be incorrectly reported as compatible.
 
 v0.5.22
 -------
