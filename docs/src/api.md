@@ -165,6 +165,8 @@ Var.flatten
 Var.unflatten
 Var.flatten_dim_order
 Var.flattened_length
+Var.arecompatible(x::ClimaAnalysis.Var.FlatVar, y::ClimaAnalysis.Var.FlatVar)
+Var.arecompatible(x::ClimaAnalysis.Var.Metadata, y::ClimaAnalysis.Var.Metadata)
 ```
 
 ## Leaderboard
