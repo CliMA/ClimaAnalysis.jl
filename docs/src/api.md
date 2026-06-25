@@ -58,7 +58,7 @@ Var.variance_time
 Var.window
 Var.select
 Var.view_select
-Var.arecompatible
+Var.arecompatible(x::OutputVar, y::OutputVar)
 Var.shift_longitude
 Var.center_longitude!
 Var.times
@@ -165,6 +165,8 @@ Var.flatten
 Var.unflatten
 Var.flatten_dim_order
 Var.flattened_length
+Var.arecompatible(x::ClimaAnalysis.Var.FlatVar, y::ClimaAnalysis.Var.FlatVar)
+Var.arecompatible(x::ClimaAnalysis.Var.Metadata, y::ClimaAnalysis.Var.Metadata)
 ```
 
 ## Leaderboard
