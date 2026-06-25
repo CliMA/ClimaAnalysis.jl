@@ -150,17 +150,6 @@ function flatten(var::OutputVar, metadata::Metadata)
         "Dimensions in var ($(dim_names(var))) is not the same as the dimensions in the metadata ($(keys(metadata.dims)))",
     )
 
-    # Instead of trying to determine whether dates or times should be used, we try dates
-    # first and if it does not work, then use the time dimension instead
-    function dates_or_times(var)
-        temporal_dim = try
-            dates(var)
-        catch
-            times(var)
-        end
-        return temporal_dim
-    end
-
     # Check the dimension arrays are the same
     for var_dim_name in dim_names(var)
         md_dim_name = find_corresponding_dim_name_in_var(var_dim_name, metadata)
@@ -170,7 +159,7 @@ function flatten(var::OutputVar, metadata::Metadata)
                     "Dimensions in var ($var_dim_name) and metadata ($md_dim_name) are not the same",
                 )
         else
-            dates_or_times(var) == dates_or_times(metadata) || error(
+            _dates_or_times(var) == _dates_or_times(metadata) || error(
                 "The dates or times between var and metadata are not the same",
             )
         end
@@ -269,6 +258,91 @@ function unflatten(metadata::Metadata, data::AbstractVector)
         deepcopy(metadata.dim_attributes),
         copy(data),
     )
+end
+
+"""
+    arecompatible(x::FlatVar, y::FlatVar; ignore_dims = ())
+
+Return whether two `FlatVar` are defined on the same physical space, with values
+dropped at the same coordinates.
+
+See the documentation for
+[`arecompatible(x::ClimaAnalysis.Var.Metadata, y::ClimaAnalysis.Var.Metadata)`](@ref) for
+more information.
+"""
+function arecompatible(x::FlatVar, y::FlatVar; ignore_dims = ())
+    return arecompatible(x.metadata, y.metadata; ignore_dims = ignore_dims)
+end
+
+"""
+    arecompatible(x::Metadata, y::Metadata; ignore_dims = ())
+
+Return whether two `Metadata` are compatible.
+
+Two `Metadata` are compatible when the `FlatVar`s built from them are defined on the same
+physical space, with values dropped at the same coordinates.
+
+This is accomplished by comparing `dims` and `dim_attributes` (the latter because they might
+contain information about the units), the coordinates at which the values are dropped, and
+the order that the dimensions are flattened.
+
+The keyword argument `ignore_dims` is a dimension name or collection of dimension names
+whose coordinate values and dimension units are not compared between the `Metadata`s.
+"""
+function arecompatible(x::Metadata, y::Metadata; ignore_dims = ())
+    ignore_dims = ignore_dims isa AbstractString ? (ignore_dims,) : ignore_dims
+    ignored_names = Set(conventional_dim_name.(ignore_dims))
+
+    # Check the order of the dimensions when flattening are the same and the
+    # type of dimensions
+    conventional_dim_name.(flatten_dim_order(x)) ==
+    conventional_dim_name.(flatten_dim_order(y)) || return false
+
+    for x_dim_name in dim_names(x)
+        conventional_dim_name(x_dim_name) in ignored_names && continue
+
+        # Check coordinate values of the corresponding dimensions are the same
+        y_dim_name = find_corresponding_dim_name_in_var(x_dim_name, y)
+        if conventional_dim_name(x_dim_name) != "time"
+            length(x.dims[x_dim_name]) == length(y.dims[y_dim_name]) ||
+                return false
+            isapprox(x.dims[x_dim_name], y.dims[y_dim_name]) || return false
+        else
+            _dates_or_times(x) == _dates_or_times(y) || return false
+        end
+
+        # Check the units of the corresponding dimensions are the same
+        x_dim_units = dim_units(x, x_dim_name)
+        y_dim_units = dim_units(y, y_dim_name)
+        x_dim_units == y_dim_units || return false
+
+        # Warn if dimension units are empty
+        isempty(x_dim_units) &&
+            @warn "Missing units for dimension $x_dim_name in FlatVar/Metadata with short name $(short_name(x))"
+        isempty(y_dim_units) &&
+            @warn "Missing units for dimension $y_dim_name in FlatVar/Metadata with short name $(short_name(y))"
+    end
+
+    # Check the drop_mask are the same, since we care about which coordinates
+    # are kept and dropped
+    return x.drop_mask == y.drop_mask
+end
+
+"""
+    _dates_or_times(var_or_metadata)
+
+Helper function to return the coordinate values of the time dimension of `var_or_metadata`,
+preferring dates over times.
+
+This function does not check if `var_or_metadata` has a time dimension.
+"""
+function _dates_or_times(var_or_metadata)
+    temporal_dim = try
+        dates(var_or_metadata)
+    catch
+        times(var_or_metadata)
+    end
+    return temporal_dim
 end
 
 """
