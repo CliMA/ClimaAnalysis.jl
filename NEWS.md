@@ -47,6 +47,7 @@ Makie.save("surface_plot.png", fig)
 - `==` and `isequal` are now defined for `OutputVar`, `FlatVar`, and `Metadata`.
 - When resampling with keyword arguments, `resampled_as` now accepts dates for
   the time dimension (e.g. `resampled_as(var, time = [Dates.DateTime(2010)])`).
+- Add `arecompatible` for `FlatVar` and `Metadata`.
 
 ## Bug fixes
 
