@@ -44,6 +44,7 @@ Makie.save("surface_plot.png", fig)
 
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.
 - You can drop dimensions of size 1 with `dropdims`.
+- `==` and `isequal` are now defined for `OutputVar`, `FlatVar`, and `Metadata`.
 
 ## Bug fixes
 

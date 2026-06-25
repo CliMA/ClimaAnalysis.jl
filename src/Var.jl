@@ -2998,6 +2998,50 @@ function Base.identity(var::OutputVar)
     return var
 end
 
+"""
+    Base.:(==)(var1::OutputVar, var2::OutputVar)
+
+Return whether `var1` and `var2` are equal, using `==` on each field.
+"""
+function Base.:(==)(var1::OutputVar, var2::OutputVar)
+    # Use & instead of &&, since we want to propagate missing
+    return (var1.attributes == var2.attributes) &
+           (var1.dims == var2.dims) &
+           (var1.dim_attributes == var2.dim_attributes) &
+           (var1.data == var2.data) &
+           (var1.dim2index == var2.dim2index) &
+           (var1.index2dim == var2.index2dim)
+end
+
+"""
+    Base.isequal(var1::OutputVar, var2::OutputVar)
+
+Return whether `var1` and `var2` are equal, using `isequal` on each field.
+"""
+function Base.isequal(var1::OutputVar, var2::OutputVar)
+    return isequal(var1.attributes, var2.attributes) &&
+           isequal(var1.dims, var2.dims) &&
+           isequal(var1.dim_attributes, var2.dim_attributes) &&
+           isequal(var1.data, var2.data) &&
+           isequal(var1.dim2index, var2.dim2index) &&
+           isequal(var1.index2dim, var2.index2dim)
+end
+
+"""
+    Base.hash(var::OutputVar, h::UInt)
+
+Compute an integer hash code of `var` starting with the hash code `h`.
+"""
+function Base.hash(var::OutputVar, h::UInt)
+    h = hash(var.attributes, h)
+    h = hash(var.dims, h)
+    h = hash(var.dim_attributes, h)
+    h = hash(var.data, h)
+    h = hash(var.dim2index, h)
+    h = hash(var.index2dim, h)
+    return h
+end
+
 include("outvar_operators.jl")
 include("outvar_dimensions.jl")
 include("outvar_selectors.jl")
