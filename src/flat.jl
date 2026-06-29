@@ -274,7 +274,7 @@ end
 """
     flatten_dim_order(var::FlatVar)
 
-Return the order of the dimensions before flattening `data`.
+Return the order of the dimensions when flattening the `data` of `var`.
 """
 function flatten_dim_order(var::FlatVar)
     return flatten_dim_order(var.metadata)
@@ -283,7 +283,8 @@ end
 """
     flatten_dim_order(metadata::Metadata)
 
-Return the order of the dimensions before flattening `data`.
+Return the order of the dimensions when flattening the `data` of `var` as determined from
+the `metadata`.
 """
 function flatten_dim_order(metadata::Metadata)
     return metadata.ordered_dims
