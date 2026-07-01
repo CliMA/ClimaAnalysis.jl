@@ -408,6 +408,140 @@ end
     test_flatten(nan_var, nan_var, perms_3d)
 end
 
+@testset "Are compatible" begin
+    lat = [-90.0, -30.0, 30.0, 90.0]
+    lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
+    time = [0.0, 1.0, 5.0]
+    var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_attribs(long_name = "hi", start_date = "2010-12-1") |>
+        initialize
+
+    var2 = var + 10
+
+    function are_flatten_compatible(
+        x::ClimaAnalysis.OutputVar,
+        y::ClimaAnalysis.OutputVar;
+        ignore_dims = (),
+        perm = ("longitude", "latitude", "time", "pfull"),
+        other_perm = nothing,
+        ignore_nan = true,
+    )
+        isnothing(other_perm) && (other_perm = perm)
+        x = ClimaAnalysis.flatten(x; ignore_nan, dims = perm)
+        y = ClimaAnalysis.flatten(y; ignore_nan, dims = other_perm)
+        flat_var_compatible = ClimaAnalysis.arecompatible(x, y; ignore_dims)
+        metadata_compatible =
+            ClimaAnalysis.arecompatible(x.metadata, y.metadata; ignore_dims)
+        return flat_var_compatible && metadata_compatible
+    end
+
+    # Test with modified data
+    @test are_flatten_compatible(var, var2)
+
+    # Test with permuted dimensions
+    perms_3d = (
+        ("lon", "lat", "time"),
+        ("lat", "lon", "time"),
+        ("lat", "time", "lon"),
+        ("lon", "time", "lat"),
+        ("time", "lon", "lat"),
+        ("time", "lat", "lon"),
+    )
+    for perm in perms_3d
+        @test are_flatten_compatible(var, var2; perm)
+    end
+
+    # Not compatible with dates and floating point times
+    no_dates_var = deepcopy(var)
+    delete!(no_dates_var.attributes, "start_date")
+    @test !are_flatten_compatible(var, no_dates_var)
+
+    # Test with ignore_dims keyword argument
+    @test are_flatten_compatible(var, no_dates_var, ignore_dims = "time")
+    @test are_flatten_compatible(
+        var,
+        no_dates_var,
+        ignore_dims = ["t", "latitude"],
+    )
+
+    # Different dimensions but same number
+    pfull = [0.0, 1.0, 5.0]
+    no_time_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("pfull", time, units = "seconds") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    @test !are_flatten_compatible(var, no_time_var)
+
+    # Extra dimension
+    more_dim_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_dim("time", time, units = "seconds") |>
+        add_dim("pfull", time, units = "seconds") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    @test !are_flatten_compatible(var, more_dim_var)
+
+    # Fewer dimension
+    less_dim_var =
+        TemplateVar() |>
+        add_dim("lat", lat, units = "degrees") |>
+        add_dim("lon", lon, units = "degrees") |>
+        add_attribs(long_name = "hi") |>
+        initialize
+    @test !are_flatten_compatible(var, less_dim_var)
+
+    # Drop mask is different
+    var = ClimaAnalysis.remake(var, data = collect(Float64.(var.data)))
+    nan_var1 = deepcopy(var)
+    nan_var2 = deepcopy(var)
+    nan_var1.data[begin] = NaN
+    nan_var2.data[end] = NaN
+    @test !are_flatten_compatible(nan_var1, nan_var2)
+    @test are_flatten_compatible(nan_var1, nan_var2, ignore_nan = false)
+
+    # Same dimensions but different length
+    windowed_var = ClimaAnalysis.window(var, "time", left = 0.0, right = 1.0)
+    @test !are_flatten_compatible(var, windowed_var)
+
+    # Same dimensions but different dimension values
+    shifted_lon_var = ClimaAnalysis.shift_longitude(var, 0.0, 360.0)
+    @test !are_flatten_compatible(var, shifted_lon_var)
+
+    # Different dimension units
+    rad_var = deepcopy(var)
+    ClimaAnalysis.set_dim_units!(rad_var, "lon", "radians")
+    @test !are_flatten_compatible(var, rad_var)
+
+    # Different flatten order
+    @test !are_flatten_compatible(
+        var,
+        var;
+        ignore_dims = (),
+        perm = ("longitude", "latitude", "time"),
+        other_perm = ("time", "longitude", "latitude"),
+        ignore_nan = true,
+    )
+
+    # Warn on empty units
+    missing_dim_units_var = deepcopy(var)
+    ClimaAnalysis.set_dim_units!(missing_dim_units_var, "longitude", "")
+    @test_logs (:warn, r"Missing units for dimension lon") match_mode = :any ClimaAnalysis.arecompatible(
+        ClimaAnalysis.flatten.([
+            missing_dim_units_var,
+            missing_dim_units_var,
+        ])...,
+    )
+end
+
 @testset "Extracting dimensions, units, and names for FlatVar" begin
     lat = collect(range(-89.5, 89.5, 3))
     lon = collect(range(-179.5, 179.5, 4))
