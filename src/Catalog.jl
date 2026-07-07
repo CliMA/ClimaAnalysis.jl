@@ -195,4 +195,42 @@ function Base.isempty(catalog::NCCatalog)
     return isempty(catalog.varname_to_filepath)
 end
 
+"""
+    merge(catalog::NCCatalog, catalogs::NCCatalog...)
+
+Merge the `NCCatalog`s into a new `NCCatalog`.
+
+If the same identifier or variable name appears in more than one catalog, then the value
+from the last catalog that owns the key is used, following the same behavior as `merge` for
+dictionaries. The input catalogs are not modified.
+
+See also [`merge!(catalog::NCCatalog, catalogs::NCCatalog...)`](@ref).
+"""
+function Base.merge(catalog::NCCatalog, catalogs::NCCatalog...)
+    all_catalogs = (catalog, catalogs...)
+    return NCCatalog(
+        merge((c.identifier_to_path_varname for c in all_catalogs)...),
+        merge((c.varname_to_filepath for c in all_catalogs)...),
+    )
+end
+
+"""
+    merge!(catalog::NCCatalog, catalogs::NCCatalog...)
+
+Merge the `NCCatalog`s into the first `NCCatalog`, modifying it in place, and return it.
+
+If the same identifier or variable name appears in more than one catalog, then the value
+from the last catalog that owns the key is used, following the same behavior as `merge!` for
+dictionaries.
+
+See also [`merge(catalog::NCCatalog, catalogs::NCCatalog...)`](@ref).
+"""
+function Base.merge!(catalog::NCCatalog, catalogs::NCCatalog...)
+    for c in catalogs
+        merge!(catalog.identifier_to_path_varname, c.identifier_to_path_varname)
+        merge!(catalog.varname_to_filepath, c.varname_to_filepath)
+    end
+    return catalog
+end
+
 end

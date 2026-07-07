@@ -25,6 +25,8 @@ Catalog.NCCatalog()
 Catalog.add_file!
 get(catalog::NCCatalog, short_name; var_kwargs = ())
 Catalog.available_vars(catalog::NCCatalog)
+Base.merge(catalog::NCCatalog, catalogs::NCCatalog...)
+Base.merge!(catalog::NCCatalog, catalogs::NCCatalog...)
 ```
 
 ## Var

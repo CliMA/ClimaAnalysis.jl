@@ -40,6 +40,22 @@ Makie.surface(fig[1, 1], var)
 Makie.save("surface_plot.png", fig)
 ```
 
+## Merging catalogs
+
+You can now combine multiple `NCCatalog`s into one with `merge` (or the in-place `merge!`).
+If the same short name or alias appears in more than one catalog, then the entry from the
+rightmost catalog is kept, following the same behavior as `merge` for dictionaries.
+
+```julia
+era5_catalog = NCCatalog()
+add_file!(era5_catalog, "era5.nc", "rsdt")
+
+ceres_catalog = NCCatalog()
+add_file!(ceres_catalog, "ceres.nc", "toa_lw_all_mon" => "rlut")
+
+combined_catalog = merge(era5_catalog, ceres_catalog)
+```
+
 ## Minor additions
 
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.

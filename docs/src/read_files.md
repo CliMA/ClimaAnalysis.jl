@@ -53,3 +53,29 @@ arguments for constructing the [`ClimaAnalysis.OutputVar`](@ref) can be passed a
 pr_var = get(catalog, "pr")
 rlut_var = get(catalog, "rsut", var_kwargs = (shift_by = Dates.firstdayofmonth,))
 ```
+
+If you have organized your NetCDF files into several catalogs, you can combine them into a
+single catalog with `merge`. This is useful when different data sources are loaded into
+separate catalogs that you later want to query through one catalog.
+
+```julia
+era5_catalog = ClimaAnalysis.NCCatalog()
+ClimaAnalysis.add_file!(era5_catalog, "era5.nc", "rsdt")
+
+ceres_catalog = ClimaAnalysis.NCCatalog()
+ClimaAnalysis.add_file!(ceres_catalog, "ceres.nc", "toa_lw_all_mon" => "rlut")
+
+combined_catalog = merge(era5_catalog, ceres_catalog)
+```
+
+The in-place variant `merge!` merges the other catalogs into the first one, modifying it.
+
+!!! note "Duplicate names when merging"
+    If the same short name or alias appears in more than one catalog, then the entry from the
+    rightmost (last) catalog that owns the name is kept, following the same behavior as
+    `merge` for dictionaries.
+
+    ```julia
+    # If both catalogs contain "rsdt", the entry from ceres_catalog is kept
+    combined_catalog = merge(era5_catalog, ceres_catalog)
+    ```

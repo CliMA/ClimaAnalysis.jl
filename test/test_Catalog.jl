@@ -111,3 +111,75 @@ end
         [ncpath2, ncpath1],
     )
 end
+
+@testset "Merge NCCatalog" begin
+    gpp_path = joinpath(@__DIR__, "sample_nc/test_gpp.nc")
+    pr_path = joinpath(@__DIR__, "sample_nc/test_pr.nc")
+    pr_path2 = joinpath(@__DIR__, "sample_nc/test_pr2.nc")
+
+    # Disjoint catalogs: the merged catalog contains the variables of both
+    catalog_gpp = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_gpp, gpp_path, "gpp" => "cool_gpp")
+    catalog_pr = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_pr, pr_path, "precip" => "pr")
+
+    gpp_vars_before = ClimaAnalysis.available_vars(catalog_gpp)
+    pr_vars_before = ClimaAnalysis.available_vars(catalog_pr)
+
+    merged = merge(catalog_gpp, catalog_pr)
+    merged_vars = ClimaAnalysis.available_vars(merged)
+    for var_name in ("cool_gpp", "gpp", "pr", "precip")
+        @test var_name in merged_vars
+    end
+
+    # merge does not modify the input catalogs
+    @test ClimaAnalysis.available_vars(catalog_gpp) == gpp_vars_before
+    @test ClimaAnalysis.available_vars(catalog_pr) == pr_vars_before
+    @test !("pr" in ClimaAnalysis.available_vars(catalog_gpp))
+    @test !("cool_gpp" in ClimaAnalysis.available_vars(catalog_pr))
+
+    # Rightmost wins on a duplicate identifier. test_pr.nc and test_pr2.nc both
+    # contain "precip" but cover different times, so the loaded data differs.
+    catalog_a = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_a, pr_path, "precip" => "pr")
+    catalog_b = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_b, pr_path2, "precip" => "pr")
+
+    merged_ab = merge(catalog_a, catalog_b)
+    @test get(merged_ab, "pr") == get(catalog_b, "pr")
+    @test get(merged_ab, "pr") != get(catalog_a, "pr")
+
+    # Rightmost wins on the varname_to_filepath fallback (no aliases)
+    catalog_a_bare = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_a_bare, pr_path)
+    catalog_b_bare = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_b_bare, pr_path2)
+
+    merged_bare = merge(catalog_a_bare, catalog_b_bare)
+    @test get(merged_bare, "precip") == get(catalog_b_bare, "precip")
+
+    # Merging a single catalog yields an equivalent, independent catalog
+    single = merge(catalog_a)
+    @test ClimaAnalysis.available_vars(single) ==
+          ClimaAnalysis.available_vars(catalog_a)
+
+    # Merging three catalogs: rightmost precedence holds across all of them
+    catalog_c = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_c, pr_path2, "precip" => "pr")
+    merged_abc = merge(catalog_gpp, catalog_a, catalog_c)
+    @test "cool_gpp" in ClimaAnalysis.available_vars(merged_abc)
+    @test get(merged_abc, "pr") == get(catalog_c, "pr")
+
+    # merge! mutates the first catalog in place and returns it
+    catalog_dst = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_dst, pr_path, "precip" => "pr")
+    catalog_src = ClimaAnalysis.NCCatalog()
+    ClimaAnalysis.add_file!(catalog_src, gpp_path, "gpp" => "cool_gpp")
+    ClimaAnalysis.add_file!(catalog_src, pr_path2, "precip" => "pr")
+
+    result = merge!(catalog_dst, catalog_src)
+    @test result === catalog_dst
+    @test "cool_gpp" in ClimaAnalysis.available_vars(catalog_dst)
+    # The duplicate "pr" identifier now resolves to catalog_src's file
+    @test get(catalog_dst, "pr") == get(catalog_src, "pr")
+end
