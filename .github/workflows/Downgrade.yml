@@ -20,7 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ['1.9', '1.10', '1.11']
+        version: ['1.10', '1.11', '1.12']
+        include:
+          # Old Makie (CairoMakie 0.12 / Makie 0.21) reads Core.TypeName.mt,
+          # which Julia 1.12 removed, so don't downgrade the Makie and its
+          # related packages here. This allows for using ClimaAnalysis with
+          # older versions of Makie and its related packages.
+          - version: '1.12'
+            skip_extra: ', CairoMakie, Makie, GeoMakie'
     steps:
       - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@latest
@@ -29,6 +36,6 @@ jobs:
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
-          skip: Artifacts, Dates, Test, Statistics
+          skip: Artifacts, Dates, Test, Statistics${{ matrix.skip_extra }}
       - uses: julia-actions/julia-buildpkg@latest
       - uses: julia-actions/julia-runtest@latest
