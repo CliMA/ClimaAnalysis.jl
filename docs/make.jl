@@ -45,7 +45,7 @@ makedocs(;
 deploydocs(;
     repo = "github.com/CliMA/ClimaAnalysis.jl",
     # Only push if all the relevant environment variables are defined
-    push_preview = push_preview = all(
+    push_preview = all(
         !isempty,
         (get(ENV, "GITHUB_TOKEN", ""), get(ENV, "DOCUMENTER_KEY", "")),
     ),
