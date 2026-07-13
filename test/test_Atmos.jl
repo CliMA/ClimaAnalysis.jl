@@ -143,8 +143,8 @@ import OrderedCollections: OrderedDict
 
     # From the pressure range we can compute the corresponding altitudes
     expected_output = [
-        var3D_func.(lg, lt, -100 .* log(p)) for lg in long, lt in lat,
-        p in overall_range
+        var3D_func.(lg, lt, -100 .* log(p)) for
+        lg in long, lt in lat, p in overall_range
     ]
     @test my3Dvar_in_exp_pressure_coordinates.data ≈ expected_output rtol = 1e-5
 

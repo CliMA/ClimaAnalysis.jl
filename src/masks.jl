@@ -299,9 +299,9 @@ function make_lonlat_mask(
     return apply_lonlat_mask(input_var) = begin
         # Check if lon and lat exist
         has_longitude(input_var) ||
-        error("Longitude does not exist as a dimension in var")
+            error("Longitude does not exist as a dimension in var")
         has_latitude(input_var) ||
-        error("Latitude does not exist as a dimension in var")
+            error("Latitude does not exist as a dimension in var")
 
         # Resample so that the mask match up with the grid of var
         # Round because linear resampling is done and we want the mask to be only ones and zeros
