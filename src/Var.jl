@@ -1594,10 +1594,9 @@ function Base.permutedims(var::OutputVar, perm)
     )
 
     # Find permutation indices to reorder dims
-    reorder_indices =
-        something.(
-            indexin(conventional_dim_name_perm, conventional_dim_name_var)
-        )
+    reorder_indices = something.(
+        indexin(conventional_dim_name_perm, conventional_dim_name_var),
+    )
 
     # Reorder dims, dim_attribs, and data, but not attribs
     ret_dims = deepcopy(var.dims)
@@ -3008,11 +3007,9 @@ each other, `-0.0` as equal to `0.0`, and `missing` as not equal to `missing`.
 """
 function Base.:(==)(var1::OutputVar, var2::OutputVar)
     # Use & instead of &&, since we want to propagate missing
-    return (var1.attributes == var2.attributes) &
-           (var1.dims == var2.dims) &
+    return (var1.attributes == var2.attributes) & (var1.dims == var2.dims) &
            (var1.dim_attributes == var2.dim_attributes) &
-           (var1.data == var2.data) &
-           (var1.dim2index == var2.dim2index) &
+           (var1.data == var2.data) & (var1.dim2index == var2.dim2index) &
            (var1.index2dim == var2.index2dim)
 end
 

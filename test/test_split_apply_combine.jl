@@ -79,19 +79,18 @@ end
     # JJA - 6, 7, 8
     # SON - 9, 10, 11
     ref_date = Dates.DateTime(2010)
-    time =
-        ClimaAnalysis.Utils.date_to_time.(
-            Ref(ref_date),
-            [
-                Dates.DateTime(2010, 1),
-                Dates.DateTime(2010, 2),
-                Dates.DateTime(2010, 4),
-                Dates.DateTime(2010, 6),
-                Dates.DateTime(2010, 7),
-                Dates.DateTime(2010, 8),
-                Dates.DateTime(2011, 10),
-            ],
-        )
+    time = ClimaAnalysis.Utils.date_to_time.(
+        Ref(ref_date),
+        [
+            Dates.DateTime(2010, 1),
+            Dates.DateTime(2010, 2),
+            Dates.DateTime(2010, 4),
+            Dates.DateTime(2010, 6),
+            Dates.DateTime(2010, 7),
+            Dates.DateTime(2010, 8),
+            Dates.DateTime(2011, 10),
+        ],
+    )
     lat = [-90.0, 0.0, 90.0]
     lon = [-180.0, -120.0, -60.0, 0.0, 60.0, 120.0, 180.0]
     multiple_season_var =
