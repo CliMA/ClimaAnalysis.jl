@@ -68,13 +68,11 @@ function RMSEVariable(
     )
 
     # Check if RMSE is negative
-    any(RMSEs .< 0.0) && error("RMSEs cannot be negative")
+    any(<(0.0), RMSEs) && error("RMSEs cannot be negative")
 
     # Check for uniqueness
-    length(unique(model_names)) == length(model_names) ||
-        error("Model names are not unique")
-    length(unique(category_names)) == length(category_names) ||
-        error("Category names are not unique")
+    allunique(model_names) || error("Model names are not unique")
+    allunique(category_names) || error("Category names are not unique")
     model2index = OrderedDict(model_names |> enumerate |> collect .|> reverse)
     category2index =
         OrderedDict(category_names |> enumerate |> collect .|> reverse)
@@ -464,7 +462,7 @@ produced by `ClimaAnalysis.Visualize.plot_boxplot!`.
 function reorder_categories(rmse_var::RMSEVariable, categories::Vector{String})
     # Check if it is possible to reorder the categories
     rmse_var_categories = category_names(rmse_var)
-    same_categories = Set(categories) == Set(rmse_var_categories)
+    same_categories = issetequal(categories, rmse_var_categories)
     same_categories || error(
         "Categories in $(rmse_var_categories) is not the same as $categories",
     )
@@ -497,7 +495,7 @@ function match_category_order(
     rmse_var_dest_categories = category_names(rmse_var_dest)
 
     same_categories =
-        Set(rmse_var_src_categories) == Set(rmse_var_dest_categories)
+        issetequal(rmse_var_src_categories, rmse_var_dest_categories)
     same_categories || error(
         "Categories in $rmse_var_src_categories (src) is not the same as $rmse_var_dest_categories (dest)",
     )
@@ -611,9 +609,10 @@ Return nothing if units are not missing and units are the same across all models
 return an error.
 """
 function _unit_check(rmse_var::RMSEVariable)
-    units = values(rmse_var.units) |> collect
-    unit_equal = all(unit -> unit == first(units), units)
-    (!unit_equal || first(units) == "") &&
+    units = values(rmse_var.units)
+    first_unit = first(units)
+    unit_equal = all(==(first_unit), units)
+    (!unit_equal || first_unit == "") &&
         error("Units are not the same across all models or units are missing")
     return nothing
 end

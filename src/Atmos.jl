@@ -23,9 +23,7 @@ Note: Values outside of the range are linearly extrapolated
 """
 function _resample_column!(dest, var1d, origin_pressure, target_pressure)
     reverse_origin_pressure = reverse(origin_pressure)
-    isunique =
-        length(unique(reverse_origin_pressure)) ==
-        length(reverse_origin_pressure)
+    isunique = allunique(reverse_origin_pressure)
     !(isunique && issorted(reverse_origin_pressure)) &&
         error("P(z) is not bijective, cannot resample column")
     # Interpolations.jl require increasing knots, but pressure is decreasing, so

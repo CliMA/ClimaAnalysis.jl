@@ -86,9 +86,9 @@ function add_file!(catalog::NCCatalog, filepaths::Vector, short_names...)
     length(filepaths) == 1 &&
         return add_file!(catalog, first(filepaths), short_names...)
 
-    all(isfile.(filepaths)) ||
+    all(isfile, filepaths) ||
         throw(ArgumentError("There is at least one non-file in $filepaths"))
-    all(endswith.(filepaths, ".nc")) || throw(
+    all(endswith(".nc"), filepaths) || throw(
         ArgumentError(
             "There is at least one file in $filepaths that is not a NetCDF file, because the file path does not end with .nc",
         ),
