@@ -254,10 +254,10 @@ function unflatten(metadata::Metadata, data::AbstractVector)
     unflattened_data = reshape(flat_data, reshape_dims...)
 
     # Permute dimensions of data
-    dim2index = Dict([
+    dim2index = Dict(
         dim_name => index for
         (index, dim_name) in enumerate(keys(metadata.dims))
-    ])
+    )
     perm = invperm(
         collect(dim2index[dim_name] for dim_name in metadata.ordered_dims),
     )

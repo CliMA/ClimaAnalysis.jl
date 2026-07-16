@@ -243,7 +243,7 @@ end
 function OutputVar(attribs, dims, dim_attribs, data)
     index2dim = keys(dims) |> collect
     dim2index =
-        Dict([dim_name => index for (index, dim_name) in enumerate(keys(dims))])
+        Dict(dim_name => index for (index, dim_name) in enumerate(keys(dims)))
 
     # Check if the size of data matches with the size of dims
     if !(
@@ -812,7 +812,7 @@ import Statistics: mean
 long = 0.:180. |> collect
 lat = 0.:90. |> collect
 data = reshape(1.:91*181., (181, 91))
-dims = Dict(["lat" => lat, "long" => long])
+dims = Dict("lat" => lat, "long" => long)
 var = OutputVar(dims, data)
 _reduce_over(mean, "lat", var)
 ```
