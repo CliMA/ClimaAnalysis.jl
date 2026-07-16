@@ -33,12 +33,12 @@ const LANDSEA_MASK = let
         lon, lat, data
     end
 
-    dims = OrderedDict(["lon" => lon, "lat" => lat])
+    dims = OrderedDict("lon" => lon, "lat" => lat)
     attribs = Dict("long_name" => "Land sea mask")
-    dim_attribs = OrderedDict([
+    dim_attribs = OrderedDict(
         "lat" => Dict("units" => "deg"),
         "lon" => Dict("units" => "deg"),
-    ])
+    )
     var = OutputVar(attribs, dims, dim_attribs, data)
 end
 
