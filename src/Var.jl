@@ -1589,7 +1589,7 @@ function Base.permutedims(var::OutputVar, perm)
     conventional_dim_name_perm = conventional_dim_name.(collect(perm))
 
     # Check if the dimensions are the same (order does not matter)
-    Set(conventional_dim_name_var) == Set(conventional_dim_name_perm) || error(
+    issetequal(conventional_dim_name_var, conventional_dim_name_perm) || error(
         "Dimensions are not the same between var ($conventional_dim_name_var) and perm ($conventional_dim_name_perm)",
     )
 
@@ -1636,7 +1636,7 @@ function reordered_as(src_var::OutputVar, dest_var::OutputVar)
     conventional_dim_name_dest = conventional_dim_name.(keys(dest_var.dims))
 
     # Check if the dimensions are the same (order does not matter)
-    Set(conventional_dim_name_src) == Set(conventional_dim_name_dest) || error(
+    issetequal(conventional_dim_name_src, conventional_dim_name_dest) || error(
         "Dimensions are not the same between src ($conventional_dim_name_src) and dest ($conventional_dim_name_dest)",
     )
 
