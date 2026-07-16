@@ -1615,8 +1615,7 @@ function Base.permutedims(var::OutputVar, perm)
     end
     merge!(ret_dim_attribs, var_dim_attribs)
 
-    ret_data = copy(var.data)
-    ret_data = permutedims(ret_data, reorder_indices)
+    ret_data = permutedims(var.data, reorder_indices)
     return remake(
         var,
         dims = ret_dims,

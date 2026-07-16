@@ -267,7 +267,7 @@ function unflatten(metadata::Metadata, data::AbstractVector)
         deepcopy(metadata.attributes),
         deepcopy(metadata.dims),
         deepcopy(metadata.dim_attributes),
-        copy(data),
+        data,
     )
 end
 
