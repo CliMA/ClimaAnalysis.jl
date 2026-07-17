@@ -244,6 +244,7 @@ the dimensions in `dest_var`.
 ```@setup resampled_as
 import ClimaAnalysis
 import OrderedCollections: OrderedDict
+import Dates
 
 src_lon = [0.0, 1.0, 2.0]
 src_lat = [0.0, 1.0, 2.0, 3.0]
@@ -260,6 +261,11 @@ dest_dims = OrderedDict("long" => dest_long, "lat" => dest_lat)
 dest_dim_attribs = OrderedDict("long" => Dict("units" => "degrees"), "lat" => Dict("units" => "degrees"))
 dest_attribs = Dict("long_name" => "hi")
 dest_var = ClimaAnalysis.OutputVar(dest_attribs, dest_dims, dest_dim_attribs, dest_var_data)
+
+time_dims = OrderedDict("time" => [0.0, 86400.0, 172800.0])
+time_dim_attribs = OrderedDict("time" => Dict("units" => "s"))
+time_attribs = Dict("long_name" => "hi", "start_date" => "2010-01-01")
+time_var = ClimaAnalysis.OutputVar(time_attribs, time_dims, time_dim_attribs, [1.0, 2.0, 3.0])
 ```
 
 ```@repl resampled_as
@@ -310,6 +316,19 @@ resampled_var =
     ClimaAnalysis.resampled_as(src_var, long = [0.0, 1.0], lat = [0.0, 1.0, 2.0]);
 resampled_var.data
 resampled_var.dims
+```
+
+If `start_date` is among the attributes of the `OutputVar`, then dates can be
+passed to the time dimension.
+
+```@repl resampled_as
+ClimaAnalysis.dates(time_var)
+resampled_var = ClimaAnalysis.resampled_as(
+    time_var,
+    time = [Dates.DateTime(2010, 1, 1), Dates.DateTime(2010, 1, 2)],
+);
+resampled_var.data
+ClimaAnalysis.dates(resampled_var)
 ```
 
 ## How do I load multiple NetCDF files along the time dimension?
