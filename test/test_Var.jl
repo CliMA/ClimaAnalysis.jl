@@ -2030,6 +2030,71 @@ end
           Dates.DateTime("2010-01-01")
 end
 
+@testset "Resampling with dates" begin
+    src_time = [0.0, 86400.0, 172800.0, 259200.0]
+    src_var =
+        TemplateVar() |>
+        add_dim("time", src_time, units = "s") |>
+        add_attribs(long_name = "hi", start_date = "2010-01-01") |>
+        one_to_n_data() |>
+        initialize
+
+    dest_dates =
+        [Dates.DateTime(2010, 1, 1, 12), Dates.DateTime(2010, 1, 2, 12)]
+    resampled_var = ClimaAnalysis.resampled_as(src_var, time = dest_dates)
+    @test ClimaAnalysis.times(resampled_var) == [43200.0, 129600.0]
+    @test ClimaAnalysis.dates(resampled_var) == dest_dates
+    @test resampled_var.data == [1.5, 2.5]
+
+    # Specify the time dimension by one of its conventional names
+    resampled_var = ClimaAnalysis.resampled_as(src_var, t = dest_dates)
+    @test ClimaAnalysis.times(resampled_var) == [43200.0, 129600.0]
+    @test resampled_var.data == [1.5, 2.5]
+
+    # Partial resampling on the time dimension with dates
+    src_long = 0.0:2.0 |> collect
+    src_var =
+        TemplateVar() |>
+        add_dim("time", src_time, units = "s") |>
+        add_dim("long", src_long, units = "degrees") |>
+        add_attribs(long_name = "hi", start_date = "2010-01-01") |>
+        one_to_n_data() |>
+        initialize
+    resampled_var = ClimaAnalysis.resampled_as(src_var, time = dest_dates)
+    @test ClimaAnalysis.times(resampled_var) == [43200.0, 129600.0]
+    @test resampled_var.dims["long"] == src_long
+    @test resampled_var.data == [[1.5, 2.5] [5.5, 6.5] [9.5, 10.5]]
+
+    # Resampling with a mix of dates and floats
+    resampled_var = ClimaAnalysis.resampled_as(
+        src_var,
+        time = dest_dates,
+        long = [0.0, 1.0],
+    )
+    @test ClimaAnalysis.times(resampled_var) == [43200.0, 129600.0]
+    @test resampled_var.dims["long"] == [0.0, 1.0]
+    @test resampled_var.data == [[1.5, 2.5] [5.5, 6.5]]
+
+    # Error handling
+    # Dates for a dimension that is not time
+    @test_throws ErrorException ClimaAnalysis.resampled_as(
+        src_var,
+        long = dest_dates,
+    )
+
+    # Dates when start_date is not among the attributes
+    no_start_date_var =
+        TemplateVar() |>
+        add_dim("time", src_time, units = "s") |>
+        add_attribs(long_name = "hi") |>
+        one_to_n_data() |>
+        initialize
+    @test_throws ErrorException ClimaAnalysis.resampled_as(
+        no_start_date_var,
+        time = dest_dates,
+    )
+end
+
 @testset "Units" begin
     long = -180.0:180.0 |> collect
     data = copy(long)

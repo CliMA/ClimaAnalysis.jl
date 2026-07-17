@@ -1787,11 +1787,32 @@ If the dimensions in `dims` and `src_var.dims` match (ignoring order), the resul
 dimensions of the resulting `OutputVar` will remain unchanged. If the dimensions of `dims`
 is a strict subset of the dimensions in `src_var`, then partial resampling is done instead.
 
+When resampling on the time dimension and `start_date` is among the attributes of `src_var`,
+you can directly pass a vector of `Dates.DateTime`.
+
 Note that there is no checking for units of the dimensions.
+
+!!! compat "Support for dates"
+    Passing dates for the time dimension is introduced after ClimaAnalysis
+    v0.5.22.
 """
 function resampled_as(src_var::OutputVar; kwargs...)
+    # If the values are dates, then compute the associated times before resampling
+    function _kwarg_to_dim_pair(dim_name, dim_array)
+        dim_name = String(dim_name)
+        vals_are_dates = eltype(dim_array) <: Dates.AbstractDateTime
+        dim_is_time = conventional_dim_name(dim_name) == "time"
+        (vals_are_dates && !dim_is_time) &&
+            error("Dates are only supported with time dimension")
+        vals_are_dates && (dim_array = date_to_time.(Ref(src_var), dim_array))
+        return dim_name => dim_array
+    end
+
     # Construct tuple
-    dims = (String(dim_name) => dim_array for (dim_name, dim_array) in kwargs)
+    dims = (
+        _kwarg_to_dim_pair(dim_name, dim_array) for
+        (dim_name, dim_array) in kwargs
+    )
 
     # Find corresponding dimension names in src_var
     src_var_dim_names = collect(keys(src_var.dims))

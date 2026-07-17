@@ -45,6 +45,8 @@ Makie.save("surface_plot.png", fig)
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.
 - You can drop dimensions of size 1 with `dropdims`.
 - `==` and `isequal` are now defined for `OutputVar`, `FlatVar`, and `Metadata`.
+- When resampling with keyword arguments, `resampled_as` now accepts dates for
+  the time dimension (e.g. `resampled_as(var, time = [Dates.DateTime(2010)])`).
 
 ## Bug fixes
 
