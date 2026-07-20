@@ -17,8 +17,26 @@ with [`Makie.poly`](https://docs.makie.org/v0.21/reference/plots/poly).
 `ClimaAnalysis` comes with the most important ones [`Visualize.oceanmask`](@ref) and
 [`Visualize.landmask`](@ref), to hide ocean and continents respectively.
 
-For example, suppose `var` it the variable we want to plot with a ocean mask
-```julia
+For example, suppose `var` is the variable we want to plot with an ocean mask
+
+```@setup visualize_mask
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar, add_attribs, add_dim, add_data, initialize
+
+lon = collect(-180.0:1.0:180.0)
+lat = collect(-90.0:1.0:90.0)
+data = [288.0 - 40.0 * sind(la)^2 + 5.0 * cosd(lo) for lo in lon, la in lat]
+var =
+    TemplateVar() |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(long_name = "Air temperature", short_name = "ta", units = "K") |>
+    add_data(data = data) |>
+    initialize
+```
+
+```@example visualize_mask
 import ClimaAnalysis.Visualize: contour2D_on_globe!, oceanmask
 import ClimaAnalysis.Utils: kwargs as ca_kwargs
 import GeoMakie
@@ -32,16 +50,12 @@ contour2D_on_globe!(fig,
                     more_kwargs = Dict(:mask => ca_kwargs(color = :blue)),
                    )
 
-CairoMakie.save("myfigure.pdf", fig)
+fig
 ```
 
 In this example, we plotted `var` on the globe and overplotted a blue ocean.
 `ca_kwargs` (`Utils.kwargs`) is a convenience function to pass keyword arguments
 more easily.
-
-The output might look something like:
-
-![oceanmask](./assets/oceanmask.png)
 
 ### Plotting bias
 
@@ -49,82 +63,100 @@ After [computing the bias](@ref bias) between observational and simulation data,
 want to plot the bias and display information such as the root mean squared error (RMSE) and
 the global bias in the plot. To do this, you use the function [`plot_bias_on_globe!(fig, sim,
 obs)`](@ref Visualize.plot_bias_on_globe!). In the example below, we plot the bias between our
-simulation and some observations stored in `ta_1d_average.nc`.
+simulation data (`sim_var`) and observational data (`obs_var`), where both are
+`OutputVar`s defined over longitude and latitude.
 
-```julia
+```@setup bias_plots
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar, add_attribs, add_dim, add_data, initialize
+
+lon = collect(range(-179.5, 179.5, 360))
+lat = collect(range(-89.5, 89.5, 180))
+sim_data = [280.0 + 20.0 * cosd(la) + 5.0 * sind(lo) for lo in lon, la in lat]
+obs_data = sim_data .+ [3.0 * cosd(2 * la) * sind(3 * lo) for lo in lon, la in lat]
+
+sim_var =
+    TemplateVar() |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(long_name = "Air temperature", short_name = "ta", units = "K") |>
+    add_data(data = sim_data) |>
+    initialize
+
+obs_var =
+    TemplateVar() |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(long_name = "Air temperature", short_name = "ta", units = "K") |>
+    add_data(data = obs_data) |>
+    initialize
+
+mask_var = ClimaAnalysis.Var.LANDSEA_MASK
+```
+
+```@example bias_plots
 import ClimaAnalysis
 import ClimaAnalysis.Visualize: plot_bias_on_globe!
 import GeoMakie
 import CairoMakie
 
-obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
-sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
-
 fig = CairoMakie.Figure()
 plot_bias_on_globe!(fig, sim_var, obs_var)
-CairoMakie.save("myfigure.pdf", fig)
+fig
 ```
-
-The output produces something like:
-
-![biasplot](./assets/bias_plot.png)
 
 We can also plot the bias using an ocean mask. This also means we compute the bias only
 over land.
 
-```julia
+```@example bias_plots
 import ClimaAnalysis
 import ClimaAnalysis.Visualize: plot_bias_on_globe!, oceanmask
+import ClimaAnalysis.Utils: kwargs as ca_kwargs
 import GeoMakie
 import CairoMakie
 
-obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
-sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
-
 fig = CairoMakie.Figure()
 plot_bias_on_globe!(fig,
-                    var,
+                    sim_var,
+                    obs_var,
                     mask = oceanmask(),
                     more_kwargs = Dict(:mask => ca_kwargs(color = :blue)),
                    )
-CairoMakie.save("myfigure.pdf", fig)
+fig
 ```
 
-The output produces something like:
-
-![biasplot_oceanmask](./assets/bias_plot_oceanmask.png)
-
-We can also plot the bias using a custom mask generated from `make_lonlat_mask`.
+We can also plot the bias using a custom mask generated from `generate_lonlat_mask`. In
+the example below, `mask_var` is a `OutputVar` defined over longitude and latitude, whose
+data contains only zeros and ones, where the ones indicate land and the zeros indicate
+the ocean. The mask generated from
+`ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0)` replaces values with `NaN`
+wherever the mask is zero and keeps values the same wherever the mask is one. As a
+result, the bias is plotted only over land.
 
 !!! note "Passing a masking function for `mask`"
-    ClimaAnalysis do not support mask keyword arguments for masking functions. If you want
-    the values of the mask to not show in a plot, then pass `true_val = NaN` as a keyword
-    argument to `make_lonlat_mask`. The color of `NaN` is controlled by the keyword
-    `nan_color` which can be passed for the plotting function (`:plot`).
+    ClimaAnalysis does not support mask keyword arguments for masking functions. If you
+    want the values of the mask to not show in a plot, then pass `NaN` for the `zero_to`
+    or `one_to` positional arguments of `generate_lonlat_mask`. The color of `NaN` is
+    controlled by the keyword `nan_color` which can be passed for the plotting function
+    (`:plot`).
 
     Note that if the backend is CairoMakie, then the keyword `nan_color` does nothing. See
     this [issue](https://github.com/MakieOrg/Makie.jl/issues/4524).
 
-```julia
+```@example bias_plots
 import ClimaAnalysis
-import ClimaAnalysis.Visualize: plot_bias_on_globe!, oceanmask
+import ClimaAnalysis.Visualize: plot_bias_on_globe!
 import GeoMakie
 import CairoMakie
 
-mask_var = ClimaAnalysis.OutputVar("ocean_mask.nc")
 mask_fn = ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0)
 
-obs_var = ClimaAnalysis.OutputVar("ta_1d_average.nc")
-sim_var = ClimaAnalysis.get(ClimaAnalysis.simdir("simulation_output"), "ta")
-
 fig = CairoMakie.Figure()
-plot_bias_on_globe!(fig, var, mask = mask_fn)
-CairoMakie.save("myfigure.pdf", fig)
+# Wrap mask_fn in a function so that it is recognized as a masking function
+plot_bias_on_globe!(fig, sim_var, obs_var, mask = v -> mask_fn(v))
+fig
 ```
-
-The output produces something like:
-
-![bias_with_custom_mask_plot](./assets/plot_bias_with_custom_mask.png)
 
 ### Makie integration
 
@@ -140,7 +172,7 @@ import ClimaAnalysis.Template:
 
 lat = -90.0:1.0:90.0
 lon = -180:1.0:180.0
-data2d = [cos(x / 90) * sin(y / 180) for x in lat, y in lon]
+data2d = [288.0 - 40.0 * sind(x)^2 + 5.0 * cosd(y) for x in lat, y in lon]
 var2d =
     TemplateVar() |>
     add_dim("lat", lat, units = "degrees") |>
@@ -152,7 +184,7 @@ var2d =
 
 In versions of ClimaAnalysis after v0.5.22, Makie functions can be used natively
 with `OutputVar`s. In the example below, we use the `CairoMakie` backend and the
-`CairoMakie.plot` function to plot `var`. The type of the plot is automatically
+`CairoMakie.plot` function to plot `var2d`. The type of the plot is automatically
 determined by the number of dimensions of the `OutputVar`. This supports
 `OutputVar` representing one dimensional or two dimensional data.
 
@@ -160,7 +192,7 @@ determined by the number of dimensions of the `OutputVar`. This supports
 import ClimaAnalysis
 import CairoMakie
 
-CairoMakie.plot(var2d; colormap = :vik10)
+CairoMakie.plot(var2d; colormap = :thermal)
 ```
 
 You can also use other plotting functions in `Makie` such as `heatmap` and

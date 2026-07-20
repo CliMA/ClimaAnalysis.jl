@@ -71,8 +71,8 @@ lat = 0.0:20.0 |> collect
 var =
     TemplateVar() |>
     add_dim("time", time, units = "s") |>
-    add_dim("lon", time, units = "degrees") |>
-    add_dim("lat", time, units = "degrees") |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
     add_attribs(short_name = "pr", start_date = "2010-1-1") |>
     initialize
 ```
@@ -370,9 +370,31 @@ any coordinate corresponding to land is `NaN` in the data. Similarly, the result
 `apply_oceanmask(var)` is a `OutputVar`, where any coordinate corresponding to ocean is
 `NaN` in the data.
 
-```julia masks
-var_no_land = ClimaAnalysis.apply_landmask(var)
-var_no_ocean = ClimaAnalysis.apply_oceanmask(var)
+```@setup masks
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar,
+    add_attribs,
+    add_dim,
+    ones_data,
+    initialize
+
+lon = collect(range(-179.0, 179.0, 36))
+lat = collect(range(-89.0, 89.0, 18))
+var =
+    TemplateVar() |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(short_name = "pr") |>
+    ones_data() |>
+    initialize
+```
+
+```@repl masks
+var_no_land = ClimaAnalysis.apply_landmask(var);
+var_no_ocean = ClimaAnalysis.apply_oceanmask(var);
+count(isnan, var_no_land.data) # number of coordinates on land
+count(isnan, var_no_ocean.data) # number of coordinates in the ocean
 ```
 
 ## How do I replace `NaN` and `missing` values in the data of a `OutputVar` with 0.0?

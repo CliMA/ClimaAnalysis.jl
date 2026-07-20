@@ -16,10 +16,11 @@ For NetCDF files not generated from a `CliMA` simulation, you can use
 
 The first step is to instantiate a [`ClimaAnalysis.NCCatalog()`](@ref).
 
-```julia
+```@example nccatalog
 import ClimaAnalysis
 
 catalog = ClimaAnalysis.NCCatalog()
+isempty(catalog) # the catalog starts empty
 ```
 
 To populate the catalog, you can use [`ClimaAnalysis.add_file!`](@ref).

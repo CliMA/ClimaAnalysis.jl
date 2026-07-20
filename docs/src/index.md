@@ -97,65 +97,76 @@ Let us learn about ` OutputVar`s
 ` OutputVar`s contain the raw data (in `.data`), the attributes read from the
 file, and the information regarding the dimension over which the variable is
 defined.
-``` julia-repl
-julia> ts_max.dims
-OrderedCollections.OrderedDict{String, Vector{Float32}} with 4 entries:
-  "time" => [10800.0, 21600.0, 32400.0, 43200.0]
-  "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
-  "lat"  => [-80.0, -77.9747, -75.9494, -73.924, -71.8987, -69.8734, -67.8481, -65.8228, …
-  "z"    => [0.0, 5000.0, 10000.0, 15000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, …
+```@setup outputvar
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar, add_attribs, add_dim, add_data, initialize
+
+time = [10800.0, 21600.0, 32400.0, 43200.0]
+lon = collect(range(-180.0, 180.0, 180))
+lat = collect(range(-80.0, 80.0, 80))
+z = collect(0.0:1000.0:15000.0)
+data = [
+    288.0 - 40.0 * sind(la)^2 - 6.5 * zz / 1000.0 +
+    3.0 * cosd(la) * cosd(lo - 180.0 + 15.0 * t / 3600.0) for t in time,
+    lo in lon, la in lat, zz in z
+]
+ts_max =
+    TemplateVar() |>
+    add_dim("time", time, units = "s") |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_dim("z", z, units = "m") |>
+    add_attribs(
+        long_name = "Surface Temperature, max within 1.0 Hour(s)",
+        short_name = "ts",
+        units = "K",
+    ) |>
+    add_data(data = data) |>
+    initialize
+```
+```@repl outputvar
+ts_max.dims
 ```
 Here we have the dimensions and their values. The dimensions are ordered as in
 the file, so that the first index of `.data` is `time`, and so on.
 
-We can find the attributes of the dimensions in `.attributes`:
-``` julia-repl
-julia> ts_max.dim_attributes["lon"]
-  "lon"  => Dict("units"=>"degrees_east")
+We can find the attributes of the dimensions in `.dim_attributes`:
+```@repl outputvar
+ts_max.dim_attributes["lon"]
 ```
 
 Some of the attributes are exposed with function calls. For example
-``` julia-repl
-julia> long_name(ts_max)
-  Surface Temperature, max within 1.0 Hour(s)
+```@repl outputvar
+ClimaAnalysis.long_name(ts_max)
 ```
 These function use the attributes in the NetCDF files. When not available, empty strings are returned.
 
 Given an `OutputVar`, we can perform manipulations. For instance, we can take
 the average over latitudes:
-``` julia
+```@example outputvar
 ts_max_lat_averaged = ClimaAnalysis.average_lat(ts_max)
 ```
 Now,
-``` julia
-ts_max_lat_averaged.dims =
-OrderedCollections.OrderedDict{String, Vector{Float32}} with 3 entries:
-  "time" => [10800.0, 21600.0, 32400.0, 43200.0]
-  "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
-  "z"    => [0.0, 5000.0, 10000.0, 15000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, …
+```@repl outputvar
+ts_max_lat_averaged.dims
 ```
-We can also take a time/altitude slice, for example, the plane with altitude closest to 8000 meters.
-``` julia
-ts_max_lat_averaged_sliced = ClimaAnalysis.slice(ts_max_lat_averaged, 8_000)
+We can also take a slice along a dimension, for example, the plane with altitude
+closest to 8000 meters.
+```@example outputvar
+ts_max_lat_averaged_sliced = ClimaAnalysis.slice(ts_max_lat_averaged, z = 8_000)
 ```
-Alternatively, you can also call `ClimaAnalysis.slice(ts_max_lat_averaged_sliced, time = 8_000)`.
+Alternatively, you can slice along a different dimension by passing the
+corresponding keyword, for example `ClimaAnalysis.slice(ts_max_lat_averaged, time = 32_400)`.
 Now,
-``` julia
-ts_max_lat_averaged_sliced.dims =
-OrderedCollections.OrderedDict{String, Vector{Float32}} with 2 entries:
-  "time" => [10800.0, 21600.0, 32400.0, 43200.0]
-  "lon"  => [-180.0, -177.989, -175.978, -173.966, -171.955, -169.944, -167.933, -165.922…
+```@repl outputvar
+ts_max_lat_averaged_sliced.dims
 ```
 
 You can get the dimensions from standard names, for example, to find the
 `times`, simply run
-``` julia
-times(ts_max_lat_averaged_sliced) =
-4-element Vector{Float32}:
- 10800.0
- 21600.0
- 32400.0
- 43200.0
+```@repl outputvar
+ClimaAnalysis.times(ts_max_lat_averaged_sliced)
 ```
 
 !!! note "Retrieving dimension names"
@@ -163,8 +174,8 @@ times(ts_max_lat_averaged_sliced) =
     the dimensions of a `OutputVar` with [`dim_names`](@ref).
 
 `OutputVar`s can be evaluated on arbitrary points. For instance
-``` julia-repl
-julia> ts_max([12000., 23., 45., 1200.])
+```@repl outputvar
+ts_max([12000.0, 23.0, 45.0, 1200.0])
 ```
 will return the value of the maximum temperature at time 12000, longitude 23,
 latitude 45, and altitude 1200. This can be used to interpolate `OutputVar`s
@@ -196,23 +207,26 @@ If [`Makie`](https://docs.makie.org/stable/) is available, `ClimaAnalysis` can
 be used for plotting. Importing `Makie` and `ClimaAnalysis` in the same session
 automatically loads the necessary `ClimaAnalysis` plotting modules.
 
-If we want to make a heatmap for `ts_max` at time of 100 s at altitude `z` of 30000 meters:
+If we want to make a heatmap for `ts_max` at time of 10800 s at altitude `z` of
+10000 meters:
 
-``` julia
+```@example outputvar
 import CairoMakie
 import ClimaAnalysis.Visualize as viz
 
-fig = CairoMakie.Figure(size = (400, 600))
+fig = CairoMakie.Figure(size = (600, 400))
 
 viz.plot!(
   fig,
   ts_max,
-  time = 100.0,
-  z = 30_000.0
+  time = 10800.0,
+  z = 10_000.0
 )
 
 CairoMakie.save("ts_max.png", fig)
+nothing # hide
 ```
+![](ts_max.png)
 
 If we want to have a line plot, we can simply add another argument (e.g., `lat =
 30`), to slice through that value.
@@ -222,62 +236,86 @@ to the `plot!` function. `more_kwargs` is a dictionary that can contain
 additional arguments to the `Axis` (`:axis`), `plot` (`:plot`), and `Colorbar`
 (`:cb`) functions. `more_kwargs` is a Dictionary that maps the symbols `:axis`,
 `:plot`, and `:cb` to their additional arguments. For instance, to choose the
-alpha value of the plot, the label of the colorbar, and the subtitle, you can
+colormap of the plot, the label of the colorbar, and the subtitle, you can
 do the following:
-``` julia
+```@example outputvar
+fig = CairoMakie.Figure(size = (600, 400))
+
 viz.plot!(
     fig,
     ts_max,
-    time = 100.0,
-    z = 30_000.0,
+    time = 10800.0,
+    z = 10_000.0,
     more_kwargs = Dict(
-        :plot => Dict(:alpha => 0.5),
-        :cb => Dict(:label => "My label"),
-        :axis => Dict(:subtitle => "My subtitle"),
+        :plot => Dict(:colormap => :thermal),
+        :cb => Dict(:label => "Temperature (K)"),
+        :axis => Dict(:subtitle => "Maximum surface temperature"),
     ),
 )
+
+CairoMakie.save("ts_max_kwargs.png", fig)
+nothing # hide
 ```
+![](ts_max_kwargs.png)
+
 Note the `Symbol` in plot, cb, and axis!. `:plot`, `:cb`, and `:axis` have to be
 a mapping of `Symbol`s and values. `ClimaAnalysis` has a convenience function
 `kwargs` to more easily pass down the keyword arguments avoiding this step. With
 that, the above example becomes
-``` julia
-import ClimaAnalysis.Utils : kwargs as ca_kwargs
+```@example outputvar
+import ClimaAnalysis.Utils: kwargs as ca_kwargs
+
+fig = CairoMakie.Figure(size = (600, 400))
+
 viz.plot!(
   fig,
   ts_max,
-  time = 100.0,
-  z = 30_000.0,
+  time = 10800.0,
+  z = 10_000.0,
   more_kwargs = Dict(
-      :plot => ca_kwargs(alpha = 0.5),
-      :cb => ca_kwargs(label = "My label"),
-      :axis => ca_kwargs(subtitle = "My subtitle"),
+      :plot => ca_kwargs(colormap = :thermal),
+      :cb => ca_kwargs(label = "Temperature (K)"),
+      :axis => ca_kwargs(subtitle = "Maximum surface temperature"),
   ),
 )
+
+CairoMakie.save("ts_max_ca_kwargs.png", fig)
+nothing # hide
 ```
+![](ts_max_ca_kwargs.png)
+
 With `Utils.kwargs`, you can just pass the arguments as you would pass them to
 the constructor.
 
 If you need more control over the placement of plots, you can pass
-`Makie.GridLayout` objects to the plotting functions. For example,
-``` julia
+`Makie.GridLayout` objects to the plotting functions. For example, we can plot
+the variable at two different altitudes side by side, with the plot at
+`z = 10000` meters using customized keyword arguments:
+```@example outputvar
 using CairoMakie
 
-fig = Figure()
-layout = fig[1, 2] = GridLayout()
+fig = Figure(size = (1000, 400))
+layout_left = fig[1, 1] = GridLayout()
+layout_right = fig[1, 2] = GridLayout()
+
+viz.plot!(layout_left, ts_max, time = 10_800.0, z = 0.0)
 
 viz.plot!(
-  layout,
+  layout_right,
   ts_max,
-  time = 100.0,
-  z = 30_000.0,
+  time = 10_800.0,
+  z = 10_000.0,
   more_kwargs = Dict(
-      :plot => ca_kwargs(alpha = 0.5),
-      :cb => ca_kwargs(label = "My label"),
-      :axis => ca_kwargs(subtitle = "My subtitle"),
+      :plot => ca_kwargs(colormap = :thermal),
+      :cb => ca_kwargs(label = "Temperature (K)"),
+      :axis => ca_kwargs(subtitle = "Maximum surface temperature"),
   ),
 )
+
+CairoMakie.save("ts_max_layout.png", fig)
+nothing # hide
 ```
+![](ts_max_layout.png)
 
 When you pass a `GridLayout`, the optional argument `p_loc` refers to the
 placement within the layout. When you pass a `Figure`, it refers to the
