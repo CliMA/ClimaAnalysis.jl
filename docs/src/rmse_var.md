@@ -122,11 +122,12 @@ provided (e.g., `add_model(rmse_var, "model1", "model2")`) in the functions. For
 multiple units, one can pass in a dictionary mapping model names to units. See the example
 below using this functionality.
 
-```@julia rmse_var
+```@example rmse_var
 rmse_var2 = ClimaAnalysis.add_category(rmse_var, "Jan") # can take in more than one category
 rmse_var = ClimaAnalysis.add_model(rmse_var, "CliMA") # can take in more than one model name
 ClimaAnalysis.add_unit!(rmse_var, "CliMA", "K")
 ClimaAnalysis.add_unit!(rmse_var, Dict("CliMA" => "K")) # for adding multiple units
+nothing # hide
 ```
 
 ## Summary statistics

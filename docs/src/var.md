@@ -30,18 +30,20 @@ When possible, `ClimaAnalysis` uses
 This enables automatic unit conversion for `OutputVar`s.
 
 Consider the following example:
-```julia
+```@setup units
 import ClimaAnalysis
 values = 0:100.0 |> collect
 data = copy(values)
 attribs = Dict("long_name" => "speed", "units" => "m/s")
-dim_attribs = Dict{String, Any}()
+dim_attribs = Dict{String, Dict}()
 var = ClimaAnalysis.OutputVar(attribs, Dict("distance" => values), dim_attribs, data)
+```
 
+```@example units
 var_cms = ClimaAnalysis.convert_units(var, "cm/s")
 ```
-In this example, we set up` var`, an `OutputVar` with units of meters per second.
-Then, we called [`ClimaAnalysis.convert_units`](@ref) to convert the units to
+In this example, `var` is an `OutputVar` with units of meters per second.
+We called [`ClimaAnalysis.convert_units`](@ref) to convert the units to
 centimeters per second.
 
 Sometimes, this automatic unit conversion is not possible (e.g., when you want
@@ -49,8 +51,9 @@ to transform between incompatible units). In this case, you can pass a function
 that specify how to apply this transformation. For example, in the previous
 case, we can assume that we are talking about water and transform units into a
 mass flux:
-```julia
+```@example units
 new_var = ClimaAnalysis.convert_units(var, "kg m/s", conversion_function = (x) -> 1000x)
+ClimaAnalysis.units(new_var)
 ```
 
 !!! note "Unparseable units"
@@ -59,25 +62,50 @@ new_var = ClimaAnalysis.convert_units(var, "kg m/s", conversion_function = (x) -
 
 If units do not exist, or you want to change the name of the units, then one can use the
 `set_units` function.
-```julia
+```@example units
 new_var = ClimaAnalysis.set_units(var, "kg m s^-1")
+ClimaAnalysis.units(new_var)
 ```
 
 For converting the units of a dimension, you can use
 [`ClimaAnalysis.convert_dim_units`](@ref). As of now, automatic conversion is not supported
-which means you need to supply the conversion function. See the example below.
-```julia
+which means you need to supply the conversion function. See the example below, where `var`
+is an `OutputVar` with a longitude and latitude dimension and the units of the latitude
+dimension are degrees.
+
+```@setup dim_units
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar, add_attribs, add_dim, ones_data, initialize
+
+lon = collect(range(-179.5, 179.5, 36))
+lat = collect(range(-89.5, 89.5, 18))
+var =
+    TemplateVar() |>
+    add_dim("lon", lon) |> # no units for the longitude dimension
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(long_name = "f") |>
+    ones_data() |>
+    initialize
+```
+
+```@example dim_units
 new_var = ClimaAnalysis.convert_dim_units(
         var,
         "lat",
         "rads",
         conversion_function = x -> x * π / 180.0,
     )
+new_var.dim_attributes["lat"]
 ```
 
-Similarly, to set the units of a dimension, you can use the `dim_set_units!` function.
-```julia
-new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
+Similarly, to set the units of a dimension, you can use the `set_dim_units!` function. Note
+that this function mutates `var` and returns `nothing`. In the example below, units do not
+exist for the longitude dimension of `var`, so we set them.
+
+```@example dim_units
+ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
+ClimaAnalysis.dim_units(var, "lon")
 ```
 
 !!! warning "Override existing units"
@@ -88,11 +116,27 @@ new_var = ClimaAnalysis.set_dim_units!(var, "lon", "degrees_east")
 ## Interpolations and extrapolations
 
 Interpolating a `OutputVar` onto coordinates can be done by doing the following:
-```julia
+```@setup interpolation
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar, add_attribs, add_dim, one_to_n_data, initialize
+
+lon = collect(range(-180.0, 180.0, 361))
+lat = collect(range(-90.0, 90.0, 181))
+var =
+    TemplateVar() |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(long_name = "f") |>
+    one_to_n_data(collected = true) |>
+    initialize
+```
+```@example interpolation
 var((0.0, 0.0)) # var is a two-dimensional OutputVar
 ```
 
 A multilinear interpolation is used to determine the value at the coordinate (0, 0).
+
 !!! warning "Interpolate on dates"
     If any of the dimensions contains `Dates.DateTime` elements, interpolation is not
     possible. `Interpolations.jl` does not support interpolating on dates.
@@ -116,7 +160,7 @@ found in the NetCDF file. The parameter `new_start_date` can be any string parse
 If additional preprocessing is needed, then one can provide a function that takes in and
 returns a `Date.DateTime` object. This function is applied to each date before converting
 each dates to seconds with reference with the start date.
-```@julia dates_to_seconds
+```julia
 # Shift the dates to first day of month, convert to seconds, and adjust seconds to
 # match the date 1/1/2010
 obs_var = ClimaAnalysis.OutputVar(
@@ -137,7 +181,7 @@ help with preprocessing. This function shifts the times in the time dimension to
 of the previous month. After applying this function, the start date in the attributes
 corresponds to the first element in the time array.
 
-```@julia beginning
+```julia
 sim_var = shift_to_start_of_previous_month(sim_var)
 ```
 
@@ -165,35 +209,28 @@ longitude and latitude.
 See the example of integrating over a sphere where the data is all ones to find the surface
 area of a sphere.
 
-```@julia integrate_lonlat
-julia> lon = collect(range(-179.5, 179.5, 360));
+```@setup integrate_lonlat
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar, add_attribs, add_dim, ones_data, initialize
 
-julia> lat = collect(range(-89.5, 89.5, 180));
+lon = collect(range(-179.5, 179.5, 360))
+lat = collect(range(-89.5, 89.5, 180))
+var =
+    TemplateVar() |>
+    add_dim("lon", lon, units = "degrees_east") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(long_name = "f") |>
+    ones_data() |>
+    initialize
+```
 
-julia> data = ones(length(lon), length(lat));
-
-julia> dims = OrderedDict(["lon" => lon, "lat" => lat]);
-
-julia> dim_attribs = OrderedDict([
-           "lon" => Dict("units" => "degrees_east"),
-           "lat" => Dict("units" => "degrees_north"),
-       ]);
-
-julia> attribs = Dict("long_name" => "f");
-
-julia> var = ClimaAnalysis.OutputVar(attribs, dims, dim_attribs, data);
-
-julia> integrated_var = integrate_lonlat(var);
-
-julia> integrated_var.dims # no dimensions since longitude and latitude are integrated out
-OrderedDict{String, Vector{Float64}}()
-
-julia> integrated_var.data # approximately 4π (the surface area of a sphere)
-0-dimensional Array{Float64, 0}:
-12.566530113084296
-
-julia> long_name(integrated_var) # updated long name to reflect the data being integrated
-"f integrated over lon (-179.5 to 179.5degrees_east) and integrated over lat (-89.5 to 89.5degrees_north)"
+```@repl integrate_lonlat
+var # an OutputVar of all ones defined over longitude and latitude
+integrated_var = ClimaAnalysis.integrate_lonlat(var);
+integrated_var.dims # no dimensions since longitude and latitude are integrated out
+integrated_var.data # approximately 4π (the surface area of a sphere)
+ClimaAnalysis.long_name(integrated_var) # updated long name to reflect the data being integrated
 ```
 
 ## Split by season
@@ -303,7 +340,7 @@ and `obs` and the units for longitude and latitude should be degrees.
 Consider the following example, where we compute the bias and RMSE between our simulation
 and some observations stored in `ta_1d_average.nc`.
 
-```@julia bias_and_mse
+```julia-repl
 julia> obs_var = OutputVar("ta_1d_average.nc"); # load in observational data
 
 julia> sim_var = get(simdir("simulation_output"), "ta"); # load in simulation data
@@ -340,7 +377,7 @@ a 2D variable defined on longitude and latitude. Then, any of the functions ment
 earlier will work. See an example of this below, where the bias and global MSE are computed
 between two `OutputVar`s, where the time dimension is sliced at one day from the start date.
 
-```@julia
+```julia-repl
 # Load in 3D temperature variable defined over longitude, latitude, and time
 julia> obs_var = OutputVar("ta_1d_average.nc"); # load in observational data
 
@@ -362,7 +399,7 @@ For 3D variables defined over longitude, latitude, and pressure, one can find th
 RMSE in pressure space using `ClimaAnalysis.global_rmse_pfull`. See an example of this
 below, where global RMSE is computed between 3D variables in pressure space.
 
-```@julia
+```julia-repl
 # Load in 3D temperature variable defined over longitude, latitude, and pressure
 julia> obs_var = OutputVar("era5_pfull_ta_data.nc"); # load in observational data
 
