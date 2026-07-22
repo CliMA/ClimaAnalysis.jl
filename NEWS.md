@@ -47,9 +47,12 @@ Makie.save("surface_plot.png", fig)
 - `==` and `isequal` are now defined for `OutputVar`, `FlatVar`, and `Metadata`.
 - When resampling with keyword arguments, `resampled_as` now accepts dates for
   the time dimension (e.g. `resampled_as(var, time = [Dates.DateTime(2010)])`).
+- Add `arecompatible` for `FlatVar` and `Metadata`.
 
 ## Bug fixes
 
+- Fix a bug where `arecompatible(x::OutputVar, y::OutputVar)` did not check
+  that the names of the dimensions are the same.
 - Enforce uniqueness when splitting dates by seasons across time.
 - Exclude NaNStatistics v0.6.57 in compat, because of correctness issues and
   possibility of a segfault. See this
