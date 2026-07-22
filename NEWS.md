@@ -50,6 +50,8 @@ Makie.save("surface_plot.png", fig)
 
 ## Bug fixes
 
+- Fix a bug where `arecompatible(x::OutputVar, y::OutputVar)` did not check
+  that the names of the dimensions are the same.
 - Enforce uniqueness when splitting dates by seasons across time.
 - Exclude NaNStatistics v0.6.57 in compat, because of correctness issues and
   possibility of a segfault. See this

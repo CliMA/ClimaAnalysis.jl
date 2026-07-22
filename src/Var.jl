@@ -1469,7 +1469,7 @@ function arecompatible(x::OutputVar, y::OutputVar)
     x_dims = collect(keys(x.dims))
     y_dims = collect(keys(y.dims))
     x_dims_conventional_names = [conventional_dim_name(name) for name in x_dims]
-    y_dims_conventional_names = [conventional_dim_name(name) for name in x_dims]
+    y_dims_conventional_names = [conventional_dim_name(name) for name in y_dims]
     x_dim_arrays = collect(values(x.dims))
     y_dim_arrays = collect(values(y.dims))
     x_units = (dim_units(x, dim_name) for dim_name in x_dims)

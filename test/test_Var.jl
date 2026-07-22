@@ -330,9 +330,26 @@ end
     )
     var3 = ClimaAnalysis.remake(var1, attributes = attribs3, data = data3) # Use same dim_attributes as var1
 
+    # Same dimension values and units as var1, but different dimension names
+    z = 0.0:90.0 |> collect
+    var4 =
+        TemplateVar() |>
+        add_dim("time", time, units = "s") |>
+        add_dim("lon", long, b = 2) |>
+        add_dim("z", z, a = 1) |>
+        add_attribs(
+            short_name = "bob",
+            long_name = "hi",
+            start_date = "2008",
+            cool = "rad",
+        ) |>
+        add_data(data = data1) |>
+        initialize
+
     @testset "Compatibility" begin
         @test !ClimaAnalysis.arecompatible(var1, var2) # Different dim_attributes
         @test ClimaAnalysis.arecompatible(var1, var3) # Same dims and dim_attributes
+        @test !ClimaAnalysis.arecompatible(var1, var4) # Different dim names
     end
 
     @testset "Binary Operations" begin
