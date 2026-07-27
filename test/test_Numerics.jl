@@ -1,5 +1,7 @@
 using Test
 import ClimaAnalysis
+import ClimaAnalysis.Interpolation as Intp
+import OrderedCollections: OrderedDict
 
 @testset "integration weights for lon and lat" begin
     # Integration weights for lon (not equispaced)
@@ -164,4 +166,332 @@ end
         ClimaAnalysis.Numerics._integrate_dim(z_data, z, dims = 1)[1],
         2.5,
     )
+end
+
+@testset "Regridder construction" begin
+    data = reshape(1.0:9.0, (3, 3))
+    grid = ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
+    extp = (Intp.Throw(), Intp.Flat())
+    stag = (Intp.Node(), Intp.Center())
+
+    regridder = Intp.Regridder(data, grid, extp, stag)
+    @test regridder.src_grid == grid
+    @test regridder.src_data == data
+    @test regridder.extrapolation == extp
+    @test regridder.staggering == stag
+    @test regridder.method == Intp.LinearInterpolation()
+    @test regridder.stencil_cache isa
+          NTuple{2, Vector{Tuple{Int, Int, Float64}}}
+
+    # Extrapolation and staggering can be any iterable
+    regridder = Intp.Regridder(
+        data,
+        grid,
+        [Intp.Throw(), Intp.Flat()],
+        [Intp.Node(), Intp.Center()],
+    )
+    @test regridder.extrapolation == extp
+    @test regridder.staggering == stag
+
+    # Weight type is promoted from the eltypes of the coordinates
+    regridder = Intp.Regridder(
+        [1.0 3.0; 2.0 4.0],
+        ([1.0f0, 2.0f0], Float16[3.0, 4.0]),
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test regridder.stencil_cache isa
+          NTuple{2, Vector{Tuple{Int, Int, Float32}}}
+
+    # Number of dimensions of everything must match
+    @test_throws "Number of extrapolation conditions" Intp.Regridder(
+        data,
+        grid,
+        (Intp.Throw(),),
+        stag,
+    )
+    @test_throws "Number of staggering" Intp.Regridder(
+        data,
+        grid,
+        extp,
+        (Intp.Node(),),
+    )
+    @test_throws "Number of dimensions in src_grid" Intp.Regridder(
+        data,
+        (grid[1],),
+        extp,
+        stag,
+    )
+    @test_throws "do not match size(src_data)" Intp.Regridder(
+        data,
+        ([1.0, 2.0], [4.0, 5.0, 6.0]),
+        extp,
+        stag,
+    )
+
+    # Coordinates must be strictly increasing with at least two coordinates
+    @test_throws "less than two coordinates" Intp.Regridder(
+        ones(3, 1),
+        ([1.0, 2.0, 3.0], [4.0]),
+        extp,
+        stag,
+    )
+    @test_throws "not strictly increasing" Intp.Regridder(
+        data,
+        ([1.0, 1.0, 2.0], [4.0, 5.0, 6.0]),
+        extp,
+        stag,
+    )
+    @test_throws "not strictly increasing" Intp.Regridder(
+        data,
+        ([3.0, 2.0, 1.0], [4.0, 5.0, 6.0]),
+        extp,
+        stag,
+    )
+
+    # Period must be positive and not smaller than the span of the coordinates
+    @test_throws "is not positive" Intp.Regridder(
+        data,
+        grid,
+        (Intp.Periodic(-360.0), Intp.Flat()),
+        stag,
+    )
+    @test_throws "larger than the period" Intp.Regridder(
+        data,
+        grid,
+        (Intp.Periodic(1.5), Intp.Flat()),
+        stag,
+    )
+end
+
+@testset "Interpolating a point or a vector of points" begin
+    # 1D
+    coords = ([1.0, 2.0, 3.0],)
+    data = [3.0, 1.0, 0.0]
+
+    throw_node = Intp.Regridder(data, coords, (Intp.Throw(),), (Intp.Node(),))
+    @test Intp.interpolate(throw_node, (1.0,)) == 3.0
+    @test Intp.interpolate(throw_node, (3.0,)) == 0.0
+    @test Intp.interpolate(throw_node, (1.5,)) == 2.0
+    @test Intp.interpolate(throw_node, [(1.0,), (1.5,), (2.5,)]) ==
+          [3.0, 2.0, 0.5]
+    @test_throws DomainError Intp.interpolate(throw_node, (0.0,))
+    @test_throws DomainError Intp.interpolate(throw_node, (4.0,))
+
+    # Values outside of the domain evaluate to the value at the boundary
+    flat_node = Intp.Regridder(data, coords, (Intp.Flat(),), (Intp.Node(),))
+    @test Intp.interpolate(flat_node, (0.0,)) == 3.0
+    @test Intp.interpolate(flat_node, (4.0,)) == 0.0
+    @test Intp.interpolate(flat_node, (1.5,)) == 2.0
+
+    # With Center staggering, the domain extends half a cell beyond the first
+    # and last coordinates and values in the margins are linearly extended
+    throw_center =
+        Intp.Regridder(data, coords, (Intp.Throw(),), (Intp.Center(),))
+    @test Intp.interpolate(throw_center, (0.75,)) == 3.5
+    @test Intp.interpolate(throw_center, (3.25,)) == -0.25
+    @test_throws DomainError Intp.interpolate(throw_center, (0.25,))
+    @test_throws DomainError Intp.interpolate(throw_center, (3.75,))
+
+    # 2D
+    coords = ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
+    data = reshape(1.0:9.0, (3, 3))
+    throw2d = Intp.Regridder(
+        data,
+        coords,
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test Intp.interpolate(throw2d, (1.0, 4.0)) == 1.0
+    @test Intp.interpolate(throw2d, (3.0, 6.0)) == 9.0
+    @test Intp.interpolate(throw2d, (2.0, 5.0)) == 5.0
+    @test Intp.interpolate(throw2d, (1.5, 4.5)) == 3.0
+    @test Intp.interpolate(throw2d, (1.5, 5.5)) == 6.0
+
+    # Extrapolation conditions apply per dimension
+    flat_throw = Intp.Regridder(
+        data,
+        coords,
+        (Intp.Flat(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test_throws DomainError Intp.interpolate(flat_throw, (0.0, 8.0))
+    @test Intp.interpolate(flat_throw, (0.0, 5.5)) == 5.5
+
+    flat_flat = Intp.Regridder(
+        data,
+        coords,
+        (Intp.Flat(), Intp.Flat()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test Intp.interpolate(flat_flat, (0.0, 8.0)) == 7.0
+
+    # 3D
+    coords = ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0])
+    data = reshape(1.0:27.0, (3, 3, 3))
+    throw3d = Intp.Regridder(
+        data,
+        coords,
+        (Intp.Throw(), Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node(), Intp.Node()),
+    )
+    @test Intp.interpolate(throw3d, (1.0, 5.0, 7.0)) == 4.0
+    @test Intp.interpolate(throw3d, (1.5, 5.2, 7.5)) ≈ 9.6
+
+    # Non equispaced coordinates
+    coords = ([1.0, 3.0, 7.0], [4.0, 5.0, 7.0])
+    data = reshape(1.0:9.0, (3, 3))
+    noneq = Intp.Regridder(
+        data,
+        coords,
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test Intp.interpolate(noneq, (2.0, 4.5)) == 3.0
+    @test Intp.interpolate(noneq, (5.0, 6.0)) == 7.0
+end
+
+@testset "Periodic boundary condition" begin
+    # Node staggering with a duplicated endpoint (0 and 360 are the same
+    # physical point)
+    lon = [0.0, 90.0, 180.0, 270.0, 360.0]
+    data = [1.0, 2.0, 3.0, 4.0, 1.0]
+    node = Intp.Regridder(
+        data,
+        (lon,),
+        (Intp.Periodic(360.0),),
+        (Intp.Node(),),
+    )
+    @test Intp.interpolate(node, (45.0,)) == 1.5
+    @test Intp.interpolate(node, (405.0,)) == 1.5
+    @test Intp.interpolate(node, (-45.0,)) == 2.5
+    @test Intp.interpolate(node, (-90.0,)) == 4.0
+    @test Intp.interpolate(node, (720.0,)) == 1.0
+
+    # Center staggering without a duplicated endpoint; points between the
+    # last and first coordinates interpolate across the wrap
+    lon = [45.0, 135.0, 225.0, 315.0]
+    data = [1.0, 2.0, 3.0, 4.0]
+    center = Intp.Regridder(
+        data,
+        (lon,),
+        (Intp.Periodic(360.0),),
+        (Intp.Center(),),
+    )
+    @test Intp.interpolate(center, (45.0,)) == 1.0
+    @test Intp.interpolate(center, (0.0,)) == 2.5
+    @test Intp.interpolate(center, (360.0,)) == 2.5
+    @test Intp.interpolate(center, (337.5,)) == 3.25
+    @test Intp.interpolate(center, (405.0,)) == 1.0
+end
+
+@testset "Regridding" begin
+    src_grid = ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
+    data = reshape(1.0:9.0, (3, 3))
+    regridder = Intp.Regridder(
+        data,
+        src_grid,
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+
+    # Regridding onto the same grid reproduces the data
+    @test Intp.regrid(regridder, src_grid) == data
+
+    # Regridding agrees with interpolating each point
+    dest_grid = ([1.0, 1.5, 2.0, 2.5, 3.0], [4.0, 4.5, 5.0])
+    expected = [
+        Intp.interpolate(regridder, (x, y)) for
+        x in dest_grid[1], y in dest_grid[2]
+    ]
+    @test Intp.regrid(regridder, dest_grid) == expected
+
+    # The same regridder can be reused with a different destination grid
+    another_dest_grid = ([1.5, 2.5], [4.5, 5.5])
+    another_expected = [
+        Intp.interpolate(regridder, (x, y)) for
+        x in another_dest_grid[1], y in another_dest_grid[2]
+    ]
+    @test Intp.regrid(regridder, another_dest_grid) == another_expected
+
+    # In-place regridding
+    dest_data = zeros(5, 3)
+    ret = Intp.regrid!(dest_data, regridder, dest_grid)
+    @test ret === dest_data
+    @test dest_data == expected
+
+    # OrderedDict adapters
+    dest_dict = OrderedDict("lon" => dest_grid[1], "lat" => dest_grid[2])
+    @test Intp.regrid(regridder, dest_dict) == expected
+    fill!(dest_data, 0.0)
+    Intp.regrid!(dest_data, regridder, dest_dict)
+    @test dest_data == expected
+
+    # Size and dimension checking
+    @test_throws DimensionMismatch Intp.regrid!(
+        zeros(2, 2),
+        regridder,
+        dest_grid,
+    )
+    @test_throws ArgumentError Intp.regrid!(
+        zeros(5),
+        regridder,
+        (dest_grid[1],),
+    )
+end
+
+@testset "Regridding with different types" begin
+    # Coordinates and points with different float types
+    data = [1.0 3.0; 2.0 4.0]
+    regridder = Intp.Regridder(
+        data,
+        ([1.0f0, 2.0f0], Float16[3.0, 4.0]),
+        (Intp.Flat(), Intp.Flat()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test Intp.interpolate(regridder, (1.5f0, 3.5)) == 2.5
+    @test Intp.interpolate(regridder, (1.5, 4.5f0)) == 3.5
+
+    # The output eltype comes from the eltype of the source data
+    data32 = Float32[3.0, 1.0, 0.0]
+    regridder32 = Intp.Regridder(
+        data32,
+        ([1.0, 2.0, 3.0],),
+        (Intp.Throw(),),
+        (Intp.Node(),),
+    )
+    @test Intp.interpolate(regridder32, (1.5,)) === 2.0f0
+    @test eltype(Intp.regrid(regridder32, ([1.0, 1.5, 2.0],))) == Float32
+
+    # Integer data produces floats
+    regridder_int = Intp.Regridder(
+        reshape(1:9, (3, 3)),
+        ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]),
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test Intp.interpolate(regridder_int, (2.0, 5.0)) === 5.0
+    out = Intp.regrid(regridder_int, ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]))
+    @test eltype(out) == Float64
+    @test out == reshape(1:9, (3, 3))
+
+    # Union{Missing, T} eltypes (with no missing values) work and the results
+    # do not contain Missing in their types
+    lon_m = convert(Vector{Union{Missing, Float64}}, [1.0, 2.0, 3.0])
+    data_m = convert(
+        Matrix{Union{Missing, Float64}},
+        collect(reshape(1.0:9.0, (3, 3))),
+    )
+    regridder_m = Intp.Regridder(
+        data_m,
+        (lon_m, [4.0, 5.0, 6.0]),
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    @test regridder_m.stencil_cache isa
+          NTuple{2, Vector{Tuple{Int, Int, Float64}}}
+    @test Intp.interpolate(regridder_m, (1.5, 4.5)) === 3.0
+    out = Intp.regrid(regridder_m, (lon_m, [4.0, 4.5, 5.0]))
+    @test eltype(out) == Float64
+    @test out == [1.0 2.5 4.0; 2.0 3.5 5.0; 3.0 4.5 6.0]
 end
