@@ -4,12 +4,12 @@ import Dates
 import NCDatasets
 import OrderedCollections: OrderedDict
 
-import Interpolations as Intp
 import Statistics
 import Statistics: mean
 import NaNStatistics: nanmean, nanvar
 
 import ..Numerics
+import ..Numerics: Interpolation
 import ..Utils:
     nearest_index,
     seconds_to_prettystr,
@@ -118,104 +118,65 @@ include("flat.jl")
 const HasDimAndAttribs = Union{OutputVar, FlatVar, Metadata}
 
 """
-    _make_interpolant(dims, data)
+    _make_regridder(dims, data)
 
-Make a linear interpolant from `dims`, a dictionary mapping dimension name to array and
-`data`, an array containing data. Used in constructing a `OutputVar`.
+Make a `Interpolation.Regridder` from `dims`, a dictionary mapping dimension name to array
+and `data`, an array containing data.
 
-If any element of the arrays in `dims` is a Dates.DateTime, then no interpolant is returned.
-Interpolations.jl does not support interpolating on dates. If the longitudes span the entire
-range and are equispaced, then a periodic boundary condition is added for the longitude
-dimension. If the latitudes span the entire range and are equispaced, then a flat boundary
-condition is added for the latitude dimension. In all other cases, an error is thrown when
-extrapolating outside of `dim_array`.
+If any element of the arrays in `dims` is a Dates.DateTime, then no regridder is returned,
+because regridding on dates is not supported. If the longitudes span the entire range and
+are equispaced, then a periodic boundary condition is added for the longitude dimension. If
+the latitudes span the entire range and are equispaced, then a flat boundary condition is
+added for the latitude dimension. In all other cases, an error is thrown when extrapolating
+outside of `dim_array`.
 """
-function _make_interpolant(dims, data)
-    # If any element is DateTime, then return nothing for the interpolant because
-    # Interpolations.jl do not support DateTimes
+function _make_regridder(dims, data)
+    # If any element is DateTime, then return nothing for the regridder because
+    # regridding on dates is not supported
     for dim_array in values(dims)
         eltype(dim_array) <: Dates.DateTime && return nothing
     end
 
-    # We can only create interpolants when we have 1D dimensions
+    # We can only create regridders when we have 1D dimensions with more than
+    # one coordinate
     if isempty(dims) || any(d -> ndims(d) != 1 || length(d) == 1, values(dims))
         return nothing
     end
 
-    # Dimensions are all 1D, check that the knots are in increasing order (as required by
-    # Interpolations.jl)
+    # Check that the coordinates are in increasing order
     for (dim_name, dim_array) in dims
-        if !issorted(dim_array)
-            @warn "Dimension $dim_name is not in increasing order. An interpolant will not be created. See Var.reverse_dim and Var.reverse_dim! if the dimension is in decreasing order"
+        if !issorted(dim_array, lt = <=)
+            @warn "Dimension $dim_name is not in increasing order. A regridder will not be created. See Var.reverse_dim and Var.reverse_dim! if the dimension is in decreasing order"
             return nothing
         end
     end
 
-    # Find boundary conditions for extrapolation
-    extp_bound_conds = (
-        _find_extp_bound_cond(dim_name, dim_array) for
+    # Find extrapolation condition and staggering for each dimension
+    extp_and_stag = [
+        _find_extp_and_staggering(dim_name, dim_array) for
         (dim_name, dim_array) in dims
-    )
+    ]
 
-    dims_tuple, data = _add_extra_lon_point(dims, data)
-
-    extp_bound_conds_tuple = tuple(extp_bound_conds...)
-    return Intp.extrapolate(
-        Intp.interpolate(dims_tuple, data, Intp.Gridded(Intp.Linear())),
-        extp_bound_conds_tuple,
+    return Interpolation.Regridder(
+        data,
+        Tuple(values(dims)),
+        Tuple(first.(extp_and_stag)),
+        Tuple(last.(extp_and_stag)),
     )
 end
 
 """
-    _add_extra_lon_point(dims, data)
+    _find_extp_and_staggering(dim_name, dim_array)
 
-Helper function for adding a extra longitude point when making an interpolant.
+Find the appropriate extrapolation condition and staggering for the `dim_name` dimension.
 
-An extra longitude point is added if the points of the longitude dimension represent centers
-instead of edges of the cells and the longitude dimension spans all 360 degrees.
-
-For example, if the longitude dimension is [0.5, 1.5, ..., 359.5] or [0.0, 1.0, ..., 359.0],
-then an extra longitude point will be added to the interpolant.
+Longitudes that are equispaced cell centers spanning all 360 degrees get a periodic boundary
+condition with the physical period of 360 degrees. Longitudes whose span is exactly 360
+degrees are nodes with a duplicated endpoint and also get a periodic boundary condition.
+Latitudes that are equispaced cell centers spanning all 180 degrees get a flat boundary
+condition. In all other cases, an error is thrown when extrapolating outside of `dim_array`.
 """
-function _add_extra_lon_point(dims, data)
-    # Do not want to add an extra point to the dimensions of the OutputVar
-    dims_tuple = tuple(deepcopy(values(dims))...)
-
-    for (idx, (dim_name, dim_array)) in enumerate(dims)
-        min_of_dim, max_of_dim = extrema(dim_array)
-        dim_size = max_of_dim - min_of_dim
-        dsize = dim_array[begin + 1] - dim_array[begin]
-        if conventional_dim_name(dim_name) == "longitude" &&
-           _isequispaced(dim_array) &&
-           isapprox(dim_size + dsize, 360.0)
-            lon = dims_tuple[idx]
-
-            # Append extra lon point
-            # For example, if the longitude dimension is [0.5, 1.5, ..., 359.5], then add
-            # 360.5. If the value of 360 is evaluated, it should be the average of the
-            # points at 0.5 and 359.5 which is what we compute by adding the extra longitude
-            # point and using ongrid.
-            push!(lon, lon[end] + dsize)
-
-            # Add corresponding lon slice to the end of data along the index
-            # corresponding to the longitude dimension
-            first_lon_slice = selectdim(data, idx, 1)
-            data = stack(
-                (eachslice(data, dims = idx)..., first_lon_slice),
-                dims = idx,
-            )
-        end
-    end
-
-    return (dims_tuple, data)
-end
-
-"""
-    _find_extp_bound_cond(dim_name, dim_array)
-
-Find the appropriate boundary condition for the `dim_name` dimension.
-"""
-function _find_extp_bound_cond(dim_name, dim_array)
+function _find_extp_and_staggering(dim_name, dim_array)
     min_of_dim, max_of_dim = extrema(dim_array)
     dim_size = max_of_dim - min_of_dim
     dsize = dim_array[begin + 1] - dim_array[begin]
@@ -227,17 +188,17 @@ function _find_extp_bound_cond(dim_name, dim_array)
         conventional_dim_name(dim_name) == "longitude" &&
         _isequispaced(dim_array) &&
         isapprox(dim_size + dsize, 360.0)
-    ) && return Intp.Periodic()
+    ) && return (Interpolation.Periodic(360.0), Interpolation.Center())
     (
         conventional_dim_name(dim_name) == "longitude" &&
         (dim_array[end] - dim_array[begin]) ≈ 360.0
-    ) && return Intp.Periodic()
+    ) && return (Interpolation.Periodic(360.0), Interpolation.Node())
     (
         conventional_dim_name(dim_name) == "latitude" &&
         _isequispaced(dim_array) &&
         isapprox(dim_size + dsize, 180.0)
-    ) && return Intp.Flat()
-    return Intp.Throw()
+    ) && return (Interpolation.Flat(), Interpolation.Center())
+    return (Interpolation.Throw(), Interpolation.Node())
 end
 
 function OutputVar(attribs, dims, dim_attribs, data)
@@ -1421,10 +1382,10 @@ end
 Interpolate variable `x` onto the given `target_coord` coordinate using
 multilinear interpolation.
 
-Extrapolation is now allowed and will throw a `BoundsError` in most cases.
+Extrapolation is not allowed and will throw a `DomainError` in most cases.
 
 If any element of the arrays of the dimensions is a Dates.DateTime, then interpolation is
-not possible. Interpolations.jl do not support making interpolations for dates. If the
+not possible, because interpolating on dates is not supported. If the
 longitudes span the entire range and are equispaced, then a periodic boundary condition is
 added for the longitude dimension. If the latitudes span the entire range and are
 equispaced, then a flat boundary condition is added for the latitude dimension. In all other
@@ -1448,8 +1409,8 @@ julia> var2d = ClimaAnalysis.OutputVar(Dict("time" => time, "z" => z), data); va
 ```
 """
 function (x::OutputVar)(target_coord)
-    itp = _make_interpolant(x.dims, x.data)
-    return itp(target_coord...)
+    regridder = _make_regridder(x.dims, x.data)
+    return Interpolation.interpolate(regridder, Tuple(target_coord))
 end
 
 """
@@ -1717,9 +1678,9 @@ function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
         src_var = reordered_as(src_var, dest_var)
     end
 
-    itp = _make_interpolant(src_var.dims, src_var.data)
+    regridder = _make_regridder(src_var.dims, src_var.data)
     src_resampled_data =
-        [itp(pt...) for pt in Base.product(values(dest_var.dims)...)]
+        Interpolation.regrid(regridder, Tuple(values(dest_var.dims)))
 
     # Make new dimensions for OutputVar
     src_var_ret_dims = empty(src_var.dims)
@@ -1765,9 +1726,9 @@ function _resampled_as_partial(
         end
     end
 
-    itp = _make_interpolant(src_var.dims, src_var.data)
+    regridder = _make_regridder(src_var.dims, src_var.data)
     src_resampled_data =
-        [itp(pt...) for pt in Base.product(values(src_var_ret_dims)...)]
+        Interpolation.regrid(regridder, Tuple(values(src_var_ret_dims)))
 
     return remake(src_var, dims = src_var_ret_dims, data = src_resampled_data)
 end

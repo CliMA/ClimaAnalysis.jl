@@ -139,7 +139,7 @@ A multilinear interpolation is used to determine the value at the coordinate (0,
 
 !!! warning "Interpolate on dates"
     If any of the dimensions contains `Dates.DateTime` elements, interpolation is not
-    possible. `Interpolations.jl` does not support interpolating on dates.
+    possible, because interpolating on dates is not supported.
 
 Extrapolating is supported only on the longitude and latitude dimensions. For the longitude
 and latitude dimensions, a periodic boundary condition and a flat boundary condition are
