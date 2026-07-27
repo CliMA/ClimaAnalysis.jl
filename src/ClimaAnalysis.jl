@@ -5,6 +5,7 @@ include("Utils.jl")
 import .Utils
 
 include("Numerics.jl")
+include("Interpolation.jl")
 
 include("Var.jl")
 @reexport using .Var
