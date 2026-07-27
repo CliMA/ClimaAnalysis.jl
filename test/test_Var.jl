@@ -2,7 +2,7 @@ using Test
 import ClimaAnalysis
 
 import Statistics
-import Interpolations as Intp
+import ClimaAnalysis.Interpolation as Intp
 import NaNStatistics: nanmean, nansum, nanvar
 import NCDatasets: NCDataset
 import OrderedCollections: OrderedDict
@@ -221,8 +221,10 @@ end
     time = 1.0:100 |> collect
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Periodic(), Intp.Flat(), Intp.Throw())
+    regridder = ClimaAnalysis.Var._make_regridder(dims, data)
+    @test regridder.extrapolation ==
+          (Intp.Periodic(360.0), Intp.Flat(), Intp.Throw())
+    @test regridder.staggering == (Intp.Center(), Intp.Center(), Intp.Node())
 
     # Not equispaced for lon and lat
     lon = 0.5:1.0:359.5 |> collect |> x -> push!(x, 42.0) |> sort
@@ -230,8 +232,8 @@ end
     time = 1.0:100 |> collect
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+    regridder = ClimaAnalysis.Var._make_regridder(dims, data)
+    @test regridder.extrapolation == (Intp.Throw(), Intp.Throw(), Intp.Throw())
 
     # Does not span entire range for and lat
     lon = 0.5:1.0:350.5 |> collect
@@ -239,15 +241,16 @@ end
     time = 1.0:100 |> collect
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Throw(), Intp.Throw(), Intp.Throw())
+    regridder = ClimaAnalysis.Var._make_regridder(dims, data)
+    @test regridder.extrapolation == (Intp.Throw(), Intp.Throw(), Intp.Throw())
 
     # Lon is exactly 360 degrees
     lon = 0.0:1.0:360.0 |> collect
     data = ones(length(lon))
     dims = OrderedDict(["lon" => lon])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test intp.et == (Intp.Periodic(),)
+    regridder = ClimaAnalysis.Var._make_regridder(dims, data)
+    @test regridder.extrapolation == (Intp.Periodic(360.0),)
+    @test regridder.staggering == (Intp.Node(),)
 
     # Dates for the time dimension
     lon = 0.5:1.0:359.5 |> collect
@@ -259,15 +262,15 @@ end
     ]
     data = ones(length(lon), length(lat), length(time))
     dims = OrderedDict(["lon" => lon, "lat" => lat, "time" => time])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test isnothing(intp)
+    regridder = ClimaAnalysis.Var._make_regridder(dims, data)
+    @test isnothing(regridder)
 
     # 2D dimensions
     arb_dim = reshape(collect(range(-89.5, 89.5, 16)), (4, 4))
     data = collect(1:16)
     dims = OrderedDict(["arb_dim" => arb_dim])
-    intp = ClimaAnalysis.Var._make_interpolant(dims, data)
-    @test isnothing(intp)
+    regridder = ClimaAnalysis.Var._make_regridder(dims, data)
+    @test isnothing(regridder)
 end
 
 @testset "empty" begin
@@ -1158,7 +1161,7 @@ end
     @test longvar.([10.5, 20.5]) == [10.5, 20.5]
 
     # Test error for data outside of range
-    @test_throws BoundsError longvar(200.0)
+    @test_throws DomainError longvar(200.0)
 
     # 2D interpolation with linear data, should yield correct results
     time = 100.0:110.0 |> collect
@@ -1752,7 +1755,7 @@ end
     @test src_var.data == ClimaAnalysis.resampled_as(src_var, src_var).data
     resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
     @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
-    @test_throws BoundsError ClimaAnalysis.resampled_as(dest_var, src_var)
+    @test_throws DomainError ClimaAnalysis.resampled_as(dest_var, src_var)
 
     # Test if reordering is automatically done
     src_var_transpose = permutedims(src_var, ("latitude", "longitude"))
@@ -1763,13 +1766,13 @@ end
     resampled_var =
         ClimaAnalysis.resampled_as(src_var, long = dest_long, lat = dest_lat)
     @test resampled_var.data == reshape(1.0:(181 * 91), (181, 91))[1:91, 1:46]
-    @test_throws BoundsError ClimaAnalysis.resampled_as(
+    @test_throws DomainError ClimaAnalysis.resampled_as(
         dest_var,
         long = src_long,
         lat = src_lat,
     )
 
-    # BoundsError check
+    # DomainError check
     src_long = 90.0:120.0 |> collect
     src_lat = 45.0:90.0 |> collect
     src_data = zeros(length(src_long), length(src_lat))
@@ -1783,7 +1786,7 @@ end
     dest_var =
         ClimaAnalysis.remake(dest_var, data = dest_data, dims = dest_dims)
 
-    @test_throws BoundsError ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test_throws DomainError ClimaAnalysis.resampled_as(src_var, dest_var)
 
     # Error handling with ordered iterable for dims
     @test_throws ErrorException ClimaAnalysis.resampled_as(
@@ -1976,7 +1979,7 @@ end
         add_dim("long", dest_long, units = "test_units1") |>
         add_attribs(long_name = "hi") |>
         initialize
-    @test_throws BoundsError ClimaAnalysis.resampled_as(
+    @test_throws DomainError ClimaAnalysis.resampled_as(
         src_var,
         dest_var,
         dim_names = "longitude",
@@ -3758,7 +3761,7 @@ end
         add_attribs(long_name = "hi") |>
         add_data(data = data) |>
         initialize
-    @test isnothing(ClimaAnalysis.Var._make_interpolant(var.dims, data))
+    @test isnothing(ClimaAnalysis.Var._make_regridder(var.dims, data))
 
     # Test reverse_dim
     reverse_var = ClimaAnalysis.reverse_dim(var, "lat")

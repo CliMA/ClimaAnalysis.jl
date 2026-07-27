@@ -305,14 +305,15 @@ function make_lonlat_mask(
 
         # Resample so that the mask match up with the grid of var
         # Round because linear resampling is done and we want the mask to be only ones and zeros
-        intp = _make_interpolant(mask_var.dims, mask_var.data)
+        regridder = _make_regridder(mask_var.dims, mask_var.data)
         mask_arr =
-            [
-                intp(pt...) for pt in Base.product(
+            Interpolation.regrid(
+                regridder,
+                (
                     input_var.dims[longitude_name(input_var)],
                     input_var.dims[latitude_name(input_var)],
-                )
-            ] .|> round
+                ),
+            ) .|> round
 
         # Reshape data for broadcasting
         lon_idx = input_var.dim2index[longitude_name(input_var)]
