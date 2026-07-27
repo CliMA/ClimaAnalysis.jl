@@ -40,6 +40,22 @@ Makie.surface(fig[1, 1], var)
 Makie.save("surface_plot.png", fig)
 ```
 
+## New regridder
+
+Interpolating and resampling no longer use `Interpolations.jl`. Instead,
+`ClimaAnalysis` now comes with its own regridder to improve the performance of
+`Var.resampled_as`.
+
+There are two user-visible changes:
+
+1. Interpolating or resampling outside of the domain of a dimension now throws a
+   `DomainError` instead of a `BoundsError`.
+2. For Interpolations.jl, the element type of the destination data depends on
+   the element types of the source coordinates, the source data, and the
+   destination coordinates. With the new regridder, the element type of the
+   destination data depends on the element types of the source coordinates and
+   the source data.
+
 ## Minor additions
 
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.

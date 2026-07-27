@@ -146,16 +146,16 @@ function Regridder(
 
     for (dim_idx, coords) in enumerate(src_grid)
         length(coords) >= 2 || error(
-            "The $(dim_idx)th dimension has less than two coordinates, which is not supported",
+            "Dimension $dim_idx has less than two coordinates, which is not supported",
         )
 
         # NaN and missing values in coordinates are not supported
         any(x -> ismissing(x) || isnan(x), coords) && error(
-            "Missing or NaN values for the $(dim_idx)th dimension is not supported",
+            "Missing or NaN values for dimension $dim_idx is not supported",
         )
 
         issorted(coords, lt = <=) ||
-            error("The $(dim_idx)th dimension  is not strictly increasing")
+            error("Dimension $dim_idx is not strictly increasing")
     end
 
     for (dim_idx, (coords, extp)) in enumerate(zip(src_grid, extrapolation))
