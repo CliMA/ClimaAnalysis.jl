@@ -271,6 +271,15 @@ end
     dims = OrderedDict(["arb_dim" => arb_dim])
     regridder = ClimaAnalysis.Var._make_regridder(dims, data)
     @test isnothing(regridder)
+
+    # Longitudes whose span slightly exceeds 360 degrees from floating-point
+    # noise still get a periodic regridder
+    lon = collect(range(0.0, 360.0, length = 361))
+    lon[end] += 1.0e-6
+    dims = OrderedDict(["lon" => lon])
+    regridder = ClimaAnalysis.Var._make_regridder(dims, ones(length(lon)))
+    @test regridder.extrapolation == (Intp.Periodic(360.0),)
+    @test Intp.interpolate(regridder, (365.0,)) == 1.0
 end
 
 @testset "empty" begin
@@ -1793,6 +1802,53 @@ end
         src_var,
         pfull = [1.0, 2.0],
     )
+end
+
+@testset "Resampling preserves the type of the data" begin
+    src_long = 0.0:180.0 |> collect
+    src_lat = 0.0:90.0 |> collect
+    dims = OrderedDict(["long" => src_long, "lat" => src_lat])
+    dim_attribs = OrderedDict([
+        "long" => Dict("units" => "deg"),
+        "lat" => Dict("units" => "deg"),
+    ])
+    make_var(data) =
+        ClimaAnalysis.OutputVar(Dict{String, Any}(), dims, dim_attribs, data)
+
+    dest_dims = OrderedDict([
+        "long" => 0.0:2.0:90.0 |> collect,
+        "lat" => 0.0:2.0:45.0 |> collect,
+    ])
+    dest_var = ClimaAnalysis.OutputVar(
+        Dict{String, Any}(),
+        dest_dims,
+        dim_attribs,
+        ones(length(dest_dims["long"]), length(dest_dims["lat"])),
+    )
+
+    size_src = (length(src_long), length(src_lat))
+
+    # The resampled data has the same eltype as the data being resampled
+    var64 = make_var(ones(size_src))
+    @test eltype(ClimaAnalysis.resampled_as(var64, dest_var).data) == Float64
+
+    var32 = make_var(ones(Float32, size_src))
+    @test eltype(ClimaAnalysis.resampled_as(var32, dest_var).data) == Float32
+
+    # Missing is kept whenever the source data allows it, whether or not a
+    # missing value is actually present
+    var_no_missing =
+        make_var(convert(Matrix{Union{Missing, Float64}}, ones(size_src)))
+    @test eltype(ClimaAnalysis.resampled_as(var_no_missing, dest_var).data) ==
+          Union{Missing, Float64}
+
+    # Missing values propagate and Missing is kept in the eltype
+    data_missing = convert(Matrix{Union{Missing, Float64}}, ones(size_src))
+    data_missing[5, 5] = missing
+    var_missing = make_var(data_missing)
+    resampled_missing = ClimaAnalysis.resampled_as(var_missing, dest_var)
+    @test eltype(resampled_missing.data) == Union{Missing, Float64}
+    @test any(ismissing, resampled_missing.data)
 end
 
 @testset "Resampling ongrid and oncenter" begin

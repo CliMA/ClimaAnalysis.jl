@@ -66,6 +66,25 @@ Linear interpolation, where NaNs propagate through the weighted sum.
 struct LinearInterpolation <: AbstractInterpolationMethod end
 
 """
+    NaNLinearInterpolation(max_nan_fraction)
+
+NaN-aware linear interpolation: the result is NaN when the NaN-weighted
+fraction of the contributing points exceeds `max_nan_fraction`, and the
+weighted average of the non-NaN points otherwise.
+
+With `max_nan_fraction = 0`, any NaN with a nonzero weight produces NaN; with
+`max_nan_fraction = 1`, the result is the average of whatever non-NaN points
+are available (NaN only when all contributing points are NaN). A NaN whose
+weight is zero never contributes, so a query that lands exactly on a
+coordinate is not affected by NaNs at the neighboring coordinates.
+
+Missing values are treated the same as NaN.
+"""
+struct NaNLinearInterpolation{FT} <: AbstractInterpolationMethod
+    max_nan_fraction::FT
+end
+
+"""
     Regridder
 
 Linearly interpolate gridded data with support for node and centers and throw,
@@ -94,7 +113,8 @@ struct Regridder{
     "Whether the coordinates of each dimension are cell centers (`Center`) or
     cell edges (`Node`)."
     staggering::S
-    "Interpolation method (`LinearInterpolation`)"
+
+    "Interpolation method (`LinearInterpolation` or `NaNLinearInterpolation`)"
     method::M
 
     "Preallocated per-dimension buffers of 1D stencils
@@ -131,6 +151,12 @@ function Regridder(
 )
     extrapolation = Tuple(extrapolation)
     staggering = Tuple(staggering)
+
+    if method isa NaNLinearInterpolation
+        0 <= method.max_nan_fraction <= 1 || error(
+            "max_nan_fraction ($(method.max_nan_fraction)) is not between 0 and 1",
+        )
+    end
 
     num_src_dims = ndims(src_data)
 
@@ -209,13 +235,38 @@ function regrid!(
 end
 
 """
+    _can_return_missing(method::AbstractInterpolationMethod)
+
+Return whether `method` can return `missing` when a missing value is among the
+contributing points.
+"""
+_can_return_missing(::LinearInterpolation) = true
+_can_return_missing(::NaNLinearInterpolation) = false
+
+"""
+    _dest_eltype(regridder::Regridder)
+
+Return the eltype of the data produced by `regridder`.
+
+Interpolating computes a weighted average, so the eltype is always a float, and
+`Missing` is part of it only when the source data can contain missing values and
+the method propagates them (`NaNLinearInterpolation` turns them into `NaN`
+instead).
+"""
+function _dest_eltype(regridder::Regridder)
+    ET = eltype(regridder.src_data)
+    FT = float(nonmissingtype(ET))
+    keep_missing = _can_return_missing(regridder.method) && Missing <: ET
+    return keep_missing ? Union{Missing, FT} : FT
+end
+
+"""
     regrid(regridder::Regridder, dest_grid::Tuple)
 
 Regrid the data in `regridder` to match `dest_grid`.
 """
 function regrid(regridder::Regridder, dest_grid::Tuple)
-    FT = float(nonmissingtype(eltype(regridder.src_data)))
-    dest_data = Array{FT}(undef, map(length, dest_grid))
+    dest_data = Array{_dest_eltype(regridder)}(undef, map(length, dest_grid))
     regrid!(dest_data, regridder, dest_grid)
     return dest_data
 end
@@ -228,6 +279,11 @@ end
     ) where {N, FT}
 
 Regrid `dest_data` in-place using `regridder` to match `dest_grid`.
+
+Values are computed in the float type of the source data and converted when
+they are stored, so the result does not depend on the eltype of `dest_data`.
+The eltype of `dest_data` has to allow `Missing` if the source data contains
+missing values and the method propagates them.
 """
 function regrid!(
     dest_data::AbstractArray,
@@ -258,7 +314,9 @@ function regrid!(
     end
 
     (; src_data, stencil_cache, method) = regridder
-    T = float(nonmissingtype(eltype(dest_data)))
+    # Interpolate in the float type of the source data, so that regrid! and
+    # regrid agree no matter what the eltype of dest_data is
+    T = float(nonmissingtype(eltype(src_data)))
     @inbounds for J in CartesianIndices(dest_data)
         stencils = ntuple(d -> stencil_cache[d][J[d]], Val(N))
         dest_data[J] = _apply_stencils(T, src_data, stencils, method)
@@ -308,8 +366,6 @@ Compute a single value for linear interpolation for a single point using the
     stencils,
     ::LinearInterpolation,
 ) where {T}
-    # length of a tuple constant-folds, so Val(N) is still a compile-time
-    # constant even without annotating stencils
     N = length(stencils)
     # Iterate over all 2^N corners and compute a weighted average
     corners = CartesianIndices(ntuple(_ -> 2, Val(N)))
@@ -323,9 +379,59 @@ Compute a single value for linear interpolation for a single point using the
         for d in 1:N
             w *= corner[d] == 1 ? stencils[d][3] : one(w) - stencils[d][3]
         end
-        acc += T(w * src_data[idx...])
+        v = src_data[idx...]
+        # A missing value propagates through the weighted sum
+        ismissing(v) && return missing
+        acc += T(w * v)
     end
     return acc
+end
+
+@inline function _apply_stencils(
+    ::Type{T},
+    src_data::AbstractArray,
+    stencils,
+    method::NaNLinearInterpolation,
+) where {T}
+    N = length(stencils)
+    corners = CartesianIndices(ntuple(_ -> 2, Val(N)))
+    val = zero(T)
+    valid_weight = zero(T)
+    nan_weight = zero(T)
+    total_weight = zero(T)
+    @inbounds for corner in corners
+        idx = ntuple(
+            d -> corner[d] == 1 ? stencils[d][1] : stencils[d][2],
+            Val(N),
+        )
+        w = one(stencils[1][3])
+        for d in 1:N
+            w *= corner[d] == 1 ? stencils[d][3] : one(w) - stencils[d][3]
+        end
+        v = src_data[idx...]
+        # A missing value carries no information, so treat it like NaN
+        m = ismissing(v) || isnan(v)
+        # Accumulate absolute weights for the NaN fraction: weights are
+        # negative when extrapolating into the margins of a Center dimension,
+        # and a signed sum would make the fraction meaningless (a negative
+        # nan_weight never exceeds the threshold). With nonnegative weights,
+        # this is the same as summing the weights themselves
+        total_weight += abs(T(w))
+        if m
+            nan_weight += abs(T(w))
+        else
+            valid_weight += T(w)
+            val += T(w * v)
+        end
+    end
+    # Compare against the accumulated total weight, not 1: the weights only sum
+    # to 1 up to floating-point round-off
+    nan_weight > method.max_nan_fraction * total_weight && return T(NaN)
+    # Renormalize so the result is the weighted average of only the non-NaN
+    # points. When every point is NaN, valid_weight is exactly zero because
+    # nothing was ever added to it
+    iszero(valid_weight) && return T(NaN)
+    return val / valid_weight
 end
 
 # All stencil functions return (index1, index2, w) where w is the weight used to

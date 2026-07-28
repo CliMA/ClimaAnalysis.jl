@@ -40,6 +40,24 @@ Makie.surface(fig[1, 1], var)
 Makie.save("surface_plot.png", fig)
 ```
 
+## New regridder
+
+Interpolating and resampling no longer use `Interpolations.jl`. Instead,
+`ClimaAnalysis` now comes with its own regridder, which supports the same
+boundary conditions (throw, flat, and periodic) and produces the same values,
+but is faster and allocates less. For example, resampling a 360 by 180
+longitude-latitude `OutputVar` onto a 180 by 90 grid is about eight times
+faster and allocates about eight times less memory.
+
+There are two user visible changes:
+
+- Interpolating or resampling outside of the domain of a dimension now throws a
+  `DomainError` instead of a `BoundsError`.
+- Resampled data keeps the type of the data being resampled. Previously, the
+  type of the data was promoted with the type of the dimensions, so resampling
+  a `OutputVar` whose data is `Float32` and whose dimensions are `Float64`
+  returned `Float64` data and now returns `Float32` data.
+
 ## Minor additions
 
 - The number of dimensions of a `OutputVar` can be accessed with `ndims`.
