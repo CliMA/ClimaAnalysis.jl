@@ -2614,8 +2614,7 @@ function _transform_dates(var::OutputVar, date_func)
     # Check if time dimension exists, floats are in the array, and unit of data is
     # second
     has_time(var) || error("Time is not a dimension of var")
-    eltype(times(var)) <: Dates.DateTime &&
-        error("Dates found in time array")
+    eltype(times(var)) <: Dates.DateTime && error("Dates found in time array")
     dim_units(var, time_name(var)) != "s" &&
         error("Unit of data is not in second")
 

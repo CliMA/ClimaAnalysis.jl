@@ -74,18 +74,18 @@ flat, and periodic boundary conditions.
 struct Regridder{
     N,
     FT,
-    SG <: NTuple{N, AbstractVector},
     A <: AbstractArray,
+    SG <: NTuple{N, AbstractVector},
     E <: NTuple{N, AbstractExtrapolation},
     S <: NTuple{N, Union{Node, Center}},
     M <: AbstractInterpolationMethod,
 }
 
+    "Source data to interpolate from"
+    src_data::A
+
     "Coordinates of the source data"
     src_grid::SG
-
-    "Source data to interpolate from`"
-    src_data::A
 
     "Extrapolation conditions for how queries outside the source coordinates are
     handled"
@@ -158,16 +158,15 @@ function Regridder(
             error("Dimension $dim_idx is not strictly increasing")
     end
 
-    # Check periodic boundary condition
+    # Check the periodic boundary condition if it exists for each dimension
     for (dim_idx, (coords, extp)) in enumerate(zip(src_grid, extrapolation))
         extp isa Periodic || continue
         extp.period > 0 || error(
             "Period of dimension $dim_idx ($(extp.period)) is not positive",
         )
-        # A span larger than the period would silently alias wrapped queries
-        # onto the wrong cells
-        coords[end] - coords[begin] <= extp.period || error(
-            "Span of dimension $dim_idx ($(coords[end] - coords[begin])) is larger than the period ($(extp.period))",
+        span = coords[end] - coords[begin]
+        (span <= extp.period || span ≈ extp.period) || error(
+            "Span of dimension $dim_idx ($span) is larger than the period ($(extp.period))",
         )
     end
 
@@ -178,8 +177,8 @@ function Regridder(
     stencil_cache = ntuple(_ -> Tuple{Int, Int, FT}[], Val(num_src_dims))
 
     return Regridder(
-        src_grid,
         src_data,
+        src_grid,
         extrapolation,
         staggering,
         method,
@@ -414,11 +413,14 @@ end
         x::Number,
         coords::AbstractVector,
         ::Throw,
-        ::Node,
+        ::Center,
 )
 
-Return the stencil `(index1, index2, w)` for `x` and `coords` when `x` is in the
-center of the leftmost or rightmost nodes and throw an error otherwise.
+Return the stencil `(index1, index2, w)` for `x` and `coords` when `x` is within
+half a cell of the first or last coordinate and throw an error otherwise.
+
+The stencil linearly extends the two nearest coordinates, so the weight is
+outside of `[0, 1]` there.
 """
 @inline function _boundary_stencil(
     x::Number,
@@ -457,7 +459,8 @@ end
 Return the stencil `(index1, index2, w)` for `x` and `coords` which compute the
 same value at the leftmost or rightmost center or node.
 
-Note that linear interpolation is not done for `Center`.
+For `Center`, the value is constant everywhere outside the first and last
+coordinates, including within half a cell of them.
 """
 function _boundary_stencil(
     x::Number,
@@ -467,7 +470,10 @@ function _boundary_stencil(
 )
     left = firstindex(coords)
     right = lastindex(coords)
-    w = one(float(nonmissingtype(eltype(coords))))
+    FT = float(nonmissingtype(eltype(coords)))
+    # NaN compares false with <
+    isnan(x) && return (left, left, FT(NaN))
+    w = one(FT)
     return x < coords[left] ? (left, left, w) : (right, right, w)
 end
 
