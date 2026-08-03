@@ -431,6 +431,8 @@ function _find_mask_to_apply(mask)
         return nothing, nothing
     elseif mask isa Function
         return nothing, mask
+    elseif mask isa ClimaAnalysis.Var.LonLatMask
+        return nothing, mask
     elseif mask == Visualize.landmask()
         return mask, ClimaAnalysis.apply_landmask
     elseif mask == Visualize.oceanmask()

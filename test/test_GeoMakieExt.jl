@@ -286,6 +286,22 @@ import ClimaAnalysis.Template:
     )
     output_name = joinpath(tmp_dir, "plot_bias_with_custom_mask.png")
     Makie.save(output_name, fig14)
+
+    # Make bias plot with a LonLatMask
+    binary_data = [x > 0.0 ? 1.0 : 0.0 for x in lon, y in lat]
+    binary_var = ClimaAnalysis.remake(var, data = binary_data)
+    lonlat_mask = ClimaAnalysis.generate_lonlat_mask(binary_var, NaN, 1.0)
+
+    # A LonLatMask should be recognized as a masking function
+    fig15 = Makie.Figure()
+    ClimaAnalysis.Visualize.plot_bias_on_globe!(
+        fig15,
+        var,
+        var_zero,
+        mask = lonlat_mask,
+    )
+    output_name = joinpath(tmp_dir, "plot_bias_with_lonlat_mask.png")
+    Makie.save(output_name, fig15)
 end
 
 @testset "Plot with Makie functions with GeoAxis" begin

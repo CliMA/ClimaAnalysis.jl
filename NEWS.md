@@ -54,6 +54,9 @@ Makie.save("surface_plot.png", fig)
 
 - Fix a bug where `arecompatible(x::OutputVar, y::OutputVar)` did not check
   that the names of the dimensions are the same.
+- Masks generated from `generate_lonlat_mask` are now recognized as masking
+  functions when plotting (e.g. `plot_bias_on_globe!`). Previously, they were
+  not recognized, so plotting proceeded without applying the mask.
 - Enforce uniqueness when splitting dates by seasons across time.
 - Exclude NaNStatistics v0.6.57 in compat, because of correctness issues and
   possibility of a segfault. See this

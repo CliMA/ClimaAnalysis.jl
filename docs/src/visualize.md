@@ -153,8 +153,7 @@ import CairoMakie
 mask_fn = ClimaAnalysis.generate_lonlat_mask(mask_var, NaN, 1.0)
 
 fig = CairoMakie.Figure()
-# Wrap mask_fn in a function so that it is recognized as a masking function
-plot_bias_on_globe!(fig, sim_var, obs_var, mask = v -> mask_fn(v))
+plot_bias_on_globe!(fig, sim_var, obs_var, mask = mask_fn)
 fig
 ```
 
