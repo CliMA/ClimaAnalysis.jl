@@ -942,7 +942,7 @@ function Makie.convert_arguments(
     if ClimaAnalysis.has_longitude(var) && ClimaAnalysis.has_latitude(var)
         dimnames =
             ClimaAnalysis.conventional_dim_name.(ClimaAnalysis.dim_names(var))
-        dimnames == ("longitude", "latitude") ||
+        dimnames == ["longitude", "latitude"] ||
             (var = permutedims(var, ("lon", "lat")))
     end
     dim_vecs = last.(collect(var.dims))
@@ -1013,7 +1013,11 @@ end
         var::ClimaAnalysis.OutputVar{T1, <:AbstractArray{T2, 2}},
     ) where {T1, T2}
         if ClimaAnalysis.has_longitude(var) && ClimaAnalysis.has_latitude(var)
-            var = permutedims(var, ("lon", "lat"))
+            dimnames = ClimaAnalysis.conventional_dim_name.(
+                ClimaAnalysis.dim_names(var),
+            )
+            dimnames == ["longitude", "latitude"] ||
+                (var = permutedims(var, ("lon", "lat")))
         end
         title = ClimaAnalysis.long_name(var)
         dimnames = collect(ClimaAnalysis.dim_names(var))
