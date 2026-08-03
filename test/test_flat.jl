@@ -707,6 +707,15 @@ end
     @test !isequal(flat_var1, flat_var_diff_order)
     @test hash(flat_var1) != hash(flat_var_diff_order)
 
+    # Differ by order of dims, but same flattening order
+    var_permuted = permutedims(var, ("lat", "lon", "time"))
+    flat_var_diff_dims_order =
+        ClimaAnalysis.flatten(var_permuted, dims = ("lon", "lat", "time"))
+    @test flat_var1 != flat_var_diff_dims_order
+    @test !isequal(flat_var1, flat_var_diff_dims_order)
+    @test hash(flat_var1) != hash(flat_var_diff_dims_order)
+    @test length(Set([flat_var1, flat_var_diff_dims_order])) == 2
+
     # Check differences between == and isequal with NaNs in data
     nan_data = fill(NaN, length(lon), length(lat), length(time))
     nan_var = ClimaAnalysis.remake(var, data = nan_data)
