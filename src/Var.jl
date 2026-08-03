@@ -1800,11 +1800,14 @@ function resampled_as(src_var::OutputVar; kwargs...)
     # If the values are dates, then compute the associated times before resampling
     function _kwarg_to_dim_pair(dim_name, dim_array)
         dim_name = String(dim_name)
-        vals_are_dates = eltype(dim_array) <: Dates.AbstractDateTime
+        vals_are_dates = eltype(dim_array) <: Dates.TimeType
         dim_is_time = conventional_dim_name(dim_name) == "time"
         (vals_are_dates && !dim_is_time) &&
             error("Dates are only supported with time dimension")
-        vals_are_dates && (dim_array = date_to_time.(Ref(src_var), dim_array))
+        if vals_are_dates
+            _check_time_dim(src_var)
+            dim_array = date_to_time.(Ref(src_var), Dates.DateTime.(dim_array))
+        end
         return dim_name => dim_array
     end
 

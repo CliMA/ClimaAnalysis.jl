@@ -2078,7 +2078,7 @@ end
         one_to_n_data() |>
         initialize
     resampled_var = ClimaAnalysis.resampled_as(src_var, time = dest_dates)
-    @test ClimaAnalysis.times(resampled_var) == [43200.0, 129600.0]
+    @test ClimaAnalysis.dates(resampled_var) == dest_dates
     @test resampled_var.dims["long"] == src_long
     @test resampled_var.data == [[1.5, 2.5] [5.5, 6.5] [9.5, 10.5]]
 
@@ -2091,6 +2091,12 @@ end
     @test ClimaAnalysis.times(resampled_var) == [43200.0, 129600.0]
     @test resampled_var.dims["long"] == [0.0, 1.0]
     @test resampled_var.data == [[1.5, 2.5] [5.5, 6.5]]
+
+    # Resampling with Dates.Date
+    dest_days = Dates.Date.(dest_dates)
+    resampled_var = ClimaAnalysis.resampled_as(src_var, time = dest_days)
+    @test ClimaAnalysis.times(resampled_var) == [0.0, 86400.0]
+    @test resampled_var.data == [[1.0, 2.0] [5.0, 6.0] [9.0, 10.0]]
 
     # Error handling
     # Dates for a dimension that is not time
@@ -2108,6 +2114,18 @@ end
         initialize
     @test_throws ErrorException ClimaAnalysis.resampled_as(
         no_start_date_var,
+        time = dest_dates,
+    )
+
+    # Dates when the unit of the time dimension is not seconds
+    day_var =
+        TemplateVar() |>
+        add_dim("time", [0.0, 1.0, 2.0, 3.0], units = "days") |>
+        add_attribs(long_name = "hi", start_date = "2010-01-01") |>
+        one_to_n_data() |>
+        initialize
+    @test_throws "Unit for time is not second" ClimaAnalysis.resampled_as(
+        day_var,
         time = dest_dates,
     )
 end
