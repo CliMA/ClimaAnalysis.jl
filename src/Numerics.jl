@@ -3,6 +3,8 @@ module Numerics
 import ..Utils: _isequispaced
 import NaNStatistics: nansum
 
+include("Interpolation.jl")
+
 """
     _integrate_lon(data::AbstractArray, lon::AbstractVector; dims)
 
