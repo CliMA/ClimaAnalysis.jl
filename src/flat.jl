@@ -430,7 +430,10 @@ each other, `-0.0` as equal to `0.0`, and `missing` as not equal to `missing`.
 """
 function Base.:(==)(metadata1::Metadata, metadata2::Metadata)
     # Use & instead of &&, since we want to propagate missing
+    # The order of the keys of dims is compared, because equality of OrderedDicts does not
+    # depend on the order of the keys
     return (metadata1.attributes == metadata2.attributes) &
+           (collect(keys(metadata1.dims)) == collect(keys(metadata2.dims))) &
            (metadata1.dims == metadata2.dims) &
            (metadata1.dim_attributes == metadata2.dim_attributes) &
            (metadata1.ordered_dims == metadata2.ordered_dims) &
@@ -447,7 +450,13 @@ This is similar to `==`, except `isequal` treats floating-point `NaN` values as 
 each other, `-0.0` as unequal to `0.0`, and `missing` as equal to `missing`.
 """
 function Base.isequal(metadata1::Metadata, metadata2::Metadata)
+    # The order of the keys of dims is compared, because equality of OrderedDicts does not
+    # depend on the order of the keys
     return isequal(metadata1.attributes, metadata2.attributes) &&
+           isequal(
+               collect(keys(metadata1.dims)),
+               collect(keys(metadata2.dims)),
+           ) &&
            isequal(metadata1.dims, metadata2.dims) &&
            isequal(metadata1.dim_attributes, metadata2.dim_attributes) &&
            isequal(metadata1.ordered_dims, metadata2.ordered_dims) &&
@@ -461,7 +470,10 @@ end
 Compute an integer hash code of `metadata` starting with the hash code `h`.
 """
 function Base.hash(metadata::Metadata, h::UInt)
+    # The order of the keys of dims is hashed, because hashing of OrderedDicts does not
+    # depend on the order of the keys
     h = hash(metadata.attributes, h)
+    h = hash(collect(keys(metadata.dims)), h)
     h = hash(metadata.dims, h)
     h = hash(metadata.dim_attributes, h)
     h = hash(metadata.ordered_dims, h)
