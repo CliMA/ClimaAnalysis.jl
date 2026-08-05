@@ -280,6 +280,33 @@ end
     )
     @test global_rmse_pfull ≈ global_rmse_test
 
+    # NaNs are excluded from both the integral and the normalization
+    pfull_dims = OrderedDict(["lon" => lon, "lat" => lat, "pfull" => zzz])
+    pfull_dim_attribs = OrderedDict([
+        "lon" => Dict("units" => "degrees_east"),
+        "lat" => Dict("units" => "degrees_north"),
+        "pfull" => Dict("units" => "kg m^-2 s^-2"),
+    ])
+    nan_data = 2.0 .* ones(length(lon), length(lat), length(zzz))
+    nan_data[:, 1:90, :] .= NaN
+    nan_var = ClimaAnalysis.OutputVar(
+        attribs,
+        pfull_dims,
+        pfull_dim_attribs,
+        nan_data,
+    )
+    zero_pfull_var = ClimaAnalysis.remake(
+        nan_var;
+        data = zeros(length(lon), length(lat), length(zzz)),
+    )
+    @test ClimaAnalysis.Atmos.global_rmse_pfull(nan_var, zero_pfull_var) ≈ 2.0
+
+    # Test warning is thrown about NaNs in observational data
+    @test_logs (:warn, r"NaNs detected in observational data") ClimaAnalysis.Atmos.global_rmse_pfull(
+        zero_pfull_var,
+        nan_var,
+    )
+
     # Test with data from era5; checking if we get no error
     ncpath = joinpath(@__DIR__, "sample_nc/test_pfull.nc")
     pfull_obs_var = ClimaAnalysis.OutputVar(ncpath, "t")

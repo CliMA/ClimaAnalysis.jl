@@ -183,6 +183,8 @@ function global_rmse_pfull(
 
     # Follow the same template for squared_error
     Var._check_sim_obs_units_consistent(sim, obs, 3)
+    any(isnan, obs.data) &&
+        @warn "NaNs detected in observational data, resampling is not NaN aware"
     obs_resampled = Var.resampled_as(obs, sim)
 
     squared_error = (sim - obs_resampled) * (sim - obs_resampled)
@@ -190,11 +192,12 @@ function global_rmse_pfull(
     # Compute global mse and global rmse and store it as an attribute
     integrated_squared_error_var = Var.integrate_lonlat(squared_error)
     integrated_squared_error = integrated_squared_error_var.data
+    # NaNs are skipped when integrating, so exclude them from the normalizations too
     ones_var = OutputVar(
         squared_error.attributes,
         squared_error.dims,
         squared_error.dim_attributes,
-        ones(size(squared_error.data)),
+        map(x -> isnan(x) ? x : one(x), squared_error.data),
     )
     normalization = Var.integrate_lonlat(ones_var).data
     # Doing ./ because both quantities are vectors
@@ -202,8 +205,13 @@ function global_rmse_pfull(
 
     pfull = Var.pressures(integrated_squared_error_var)
     # Use first because the return type is an array
-    length_pfull =
-        first(Numerics._integrate_dim(ones(size(pfull)), pfull; dims = 1))
+    length_pfull = first(
+        Numerics._integrate_dim(
+            map(x -> isnan(x) ? x : one(x), mse),
+            pfull;
+            dims = 1,
+        ),
+    )
 
     # Normalize and compute RMSE
     # Use first because the return type is an array

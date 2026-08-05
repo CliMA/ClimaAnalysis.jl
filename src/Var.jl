@@ -2286,10 +2286,11 @@ This function is currently implemented for `OutputVar`s with only the dimensions
 and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
 for longitude and latitude should be degrees. Resampling is done automatically by resampling
 `obs` on `sim`. Attributes in `sim` and `obs` will be thrown away. The long name and short
-name of the returned `OutputVar` will be updated to reflect that a bias is computed.
+name of the returned `OutputVar` will be updated to reflect that a bias is computed. If
+`mask` is provided, the data of the returned `OutputVar` is masked as well.
 
-The parameter `mask` is a function that masks a `OutputVar`. See [`apply_landmask`](@ref)
-and [`apply_oceanmask`](@ref).
+The parameter `mask` is a function that masks a `OutputVar` and must set masked values to
+NaN or zero. See [`apply_landmask`](@ref) and [`apply_oceanmask`](@ref).
 
 See also [`global_bias`](@ref), [`squared_error`](@ref), [`global_mse`](@ref),
 [`global_rmse`](@ref).
@@ -2323,12 +2324,15 @@ function bias(sim::OutputVar, obs::OutputVar; mask = nothing)
     # Compute global bias and store it as an attribute
     !isnothing(mask) && (bias = mask(bias))
     integrated_bias = integrate_lonlat(bias).data
+    # NaNs are skipped when integrating, so exclude them from the normalization too
     ones_var = OutputVar(
         bias.attributes,
         bias.dims,
         bias.dim_attributes,
-        ones(size(bias.data)),
+        map(x -> isnan(x) ? x : one(x), bias.data),
     )
+    # Masking ones_var keeps the normalization consistent for masks that zero out data
+    # instead of NaNing them
     !isnothing(mask) && (ones_var = mask(ones_var))
     normalization = integrate_lonlat(ones_var).data
     # Do ./ instead of / because we are dividing between zero dimensional arrays
@@ -2347,8 +2351,8 @@ longitude and latitude. Units must be supplied for data and dimensions in `sim` 
 The units for longitude and latitude should be degrees. Resampling is done automatically by
 resampling `obs` on `sim`.
 
-The parameter `mask` is a function that masks a `OutputVar`. See [`apply_landmask`](@ref)
-and [`apply_oceanmask`](@ref).
+The parameter `mask` is a function that masks a `OutputVar` and must set masked values to
+NaN or zero. See [`apply_landmask`](@ref) and [`apply_oceanmask`](@ref).
 
 See also [`bias`](@ref), [`squared_error`](@ref), [`global_mse`](@ref),
 [`global_rmse`](@ref).
@@ -2370,10 +2374,11 @@ This function is currently implemented for `OutputVar`s with only the dimensions
 and latitude. Units must be supplied for data and dimensions in `sim` and `obs`. The units
 for longitude and latitude should be degrees. Resampling is done automatically by resampling
 `obs` on `sim`. Attributes in `sim` and `obs` will be thrown away. The long name and short
-name of the returned `OutputVar` will be updated to reflect that a squared error is computed.
+name of the returned `OutputVar` will be updated to reflect that a squared error is
+computed. If `mask` is provided, the data of the returned `OutputVar` is masked as well.
 
-The parameter `mask` is a function that masks a `OutputVar`. See [`apply_landmask`](@ref)
-and [`apply_oceanmask`](@ref).
+The parameter `mask` is a function that masks a `OutputVar` and must set masked values to
+NaN or zero. See [`apply_landmask`](@ref) and [`apply_oceanmask`](@ref).
 
 See also [`global_mse`](@ref), [`global_rmse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
 """
@@ -2409,12 +2414,15 @@ function squared_error(sim::OutputVar, obs::OutputVar; mask = nothing)
     # Compute global mse and global rmse and store it as an attribute
     !isnothing(mask) && (squared_error = mask(squared_error))
     integrated_squared_error = integrate_lonlat(squared_error).data
+    # NaNs are skipped when integrating, so exclude them from the normalization too
     ones_var = OutputVar(
         squared_error.attributes,
         squared_error.dims,
         squared_error.dim_attributes,
-        ones(size(squared_error.data)),
+        map(x -> isnan(x) ? x : one(x), squared_error.data),
     )
+    # Masking ones_var keeps the normalization consistent for masks that zero out data
+    # instead of NaNing them
     !isnothing(mask) && (ones_var = mask(ones_var))
     normalization = integrate_lonlat(ones_var).data
     # Do ./ instead of / because we are dividing between zero dimensional arrays
@@ -2440,8 +2448,8 @@ and latitude. Units must be supplied for data and dimensions in `sim` and `obs`.
 for longitude and latitude should be degrees. Resampling is done automatically by resampling
 `obs` on `sim`.
 
-The parameter `mask` is a function that masks a `OutputVar`. See [`apply_landmask`](@ref)
-and [`apply_oceanmask`](@ref).
+The parameter `mask` is a function that masks a `OutputVar` and must set masked values to
+NaN or zero. See [`apply_landmask`](@ref) and [`apply_oceanmask`](@ref).
 
 See also [`squared_error`](@ref), [`global_rmse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
 """
@@ -2461,8 +2469,8 @@ and latitude. Units must be supplied for data and dimensions in `sim` and `obs`.
 for longitude and latitude should be degrees. Resampling is done automatically by resampling
 `obs` on `sim`.
 
-The parameter `mask` is a function that masks a `OutputVar`. See [`apply_landmask`](@ref)
-and [`apply_oceanmask`](@ref).
+The parameter `mask` is a function that masks a `OutputVar` and must set masked values to
+NaN or zero. See [`apply_landmask`](@ref) and [`apply_oceanmask`](@ref).
 
 See also [`squared_error`](@ref), [`global_mse`](@ref), [`bias`](@ref), [`global_bias`](@ref).
 """

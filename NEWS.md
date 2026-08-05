@@ -58,6 +58,11 @@ Makie.save("surface_plot.png", fig)
 - Masks generated from `generate_lonlat_mask` are now recognized as masking
   functions when plotting (e.g. `plot_bias_on_globe!`). Previously, they were
   not recognized, so plotting proceeded without applying the mask.
+- `bias` and `squared_error` (and thus `global_bias`, `global_mse`, and
+  `global_rmse`) now exclude NaNs from the normalization, so results are
+  correct when the data contains NaNs, whether or not a mask is passed.
+- `Atmos.global_rmse_pfull` also excludes NaNs from the normalizations and
+  warns when the observational data contains NaNs.
 - Enforce uniqueness when splitting dates by seasons across time.
 - Exclude NaNStatistics v0.6.57 in compat, because of correctness issues and
   possibility of a segfault. See this
