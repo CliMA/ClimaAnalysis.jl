@@ -524,6 +524,19 @@ end
         @test ClimaAnalysis.short_name(sqrt_var4) == "sqrt(bob)"
         @test ClimaAnalysis.long_name(sqrt_var4) == "sqrt(hi)"
 
+        # Absolute value (abs)
+        abs_var4 = abs(-var4)
+        @test abs_var4.data == abs.(-(var4.data))
+        @test ClimaAnalysis.short_name(abs_var4) == "abs(-(bob))"
+        @test ClimaAnalysis.long_name(abs_var4) == "abs(-(hi))"
+        @test abs_var4.attributes == Dict(
+            "short_name" => "abs(-(bob))",
+            "long_name" => "abs(-(hi))",
+            "start_date" => "2008",
+            "units" => "m^2",
+        )
+        @test abs_var4.dims == var4.dims
+
         # Unary Minus (-)
         neg_var4 = -var4
         @test neg_var4.data == -(var4.data)

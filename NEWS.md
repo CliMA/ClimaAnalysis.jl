@@ -49,6 +49,7 @@ Makie.save("surface_plot.png", fig)
   the time dimension (e.g. `resampled_as(var, time = [Dates.DateTime(2010)])`).
   Both `Dates.DateTime` and `Dates.Date` are supported.
 - Add `arecompatible` for `FlatVar` and `Metadata`.
+- `abs` is now defined for `OutputVar`.
 
 ## Bug fixes
 
