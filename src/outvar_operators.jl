@@ -174,10 +174,11 @@ Generate a method to overload the unary operator `op` for `OutputVar`.
 Handles the attributes `short_name`, `long_name`, `start_date`, and `units` and prepends the
 operator name, e.g., "log(Temperature)".
 
-The attribute `units` is only kept for unary minus.
+The attribute `units` is only kept for operators that preserve units (unary minus and
+`abs`).
 """
 macro overload_unary_op(op)
-    keep_attrs = op == :(-) ? ("start_date", "units") : ("start_date",)
+    keep_attrs = op in (:(-), :abs) ? ("start_date", "units") : ("start_date",)
     esc(
         quote
             function Base.$op(x::OutputVar)
@@ -227,4 +228,5 @@ end
 @overload_unary_op cos
 @overload_unary_op tan
 @overload_unary_op sqrt
+@overload_unary_op abs
 @overload_unary_op (-) # Unary minus
