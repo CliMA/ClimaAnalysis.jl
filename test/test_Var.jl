@@ -2680,6 +2680,15 @@ end
     @test global_bias == 1.0
     @test bias_var.data == ones(length(lon), length(lat)) * 1.0
 
+    # NaNs are excluded from both the integral and the normalization
+    data_nan = copy(data_twos)
+    data_nan[:, 1:90] .= NaN
+    var_nan = ClimaAnalysis.remake(var_twos, data = data_nan)
+    @test ClimaAnalysis.global_bias(var_nan, var_ones) ≈ 1.0
+
+    var_all_nan = ClimaAnalysis.remake(var_ones, data = fill(NaN, 360, 180))
+    @test isnan(ClimaAnalysis.global_bias(var_all_nan, var_ones))
+
     # Test warning is thrown about NaNs
     nan_data = [[0.0, 0.0] [NaN, 0.0]]
     nan_var =
@@ -2735,6 +2744,13 @@ end
     @test global_mse == (3.0 - 1.0)^2
     @test global_rmse == 2.0
     @test squared_error_var.data == (data_threes - data_ones) .^ 2
+
+    # NaNs are excluded from both the integral and the normalization
+    data_nan = copy(data_threes)
+    data_nan[:, 1:90] .= NaN
+    var_nan = ClimaAnalysis.remake(var_threes, data = data_nan)
+    @test ClimaAnalysis.global_mse(var_nan, var_ones) ≈ 4.0
+    @test ClimaAnalysis.global_rmse(var_nan, var_ones) ≈ 2.0
 
     # Check unit handling
     lon = collect(range(-179.5, 179.5, 36))
@@ -3351,6 +3367,16 @@ end
         0.0,
         atol = 1e-5,
     )
+
+    # NaNs not covered by the mask do not skew the normalization
+    data_nan = ones(length(lon), length(lat))
+    data_nan[:, lat .< 0.0] .= NaN
+    nan_var = ClimaAnalysis.remake(zero_var, data = data_nan)
+    @test ClimaAnalysis.global_bias(
+        nan_var,
+        zero_var,
+        mask = ClimaAnalysis.apply_landmask,
+    ) ≈ 1.0
 
     # Test squared error, global_mse, and global_rmse
     # Trim data because periodic boundary condition on the edges
