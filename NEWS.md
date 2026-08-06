@@ -3,6 +3,9 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+v0.5.23
+-------
+
 ## Split-apply-combine
 
 This release features an initial implemention of the split-combine-apply
@@ -66,6 +69,7 @@ There are two user-visible changes:
   Both `Dates.DateTime` and `Dates.Date` are supported.
 - Add `arecompatible` for `FlatVar` and `Metadata`.
 - `abs` is now defined for `OutputVar`.
+- The compat entry for OrderedCollections is expanded to include v2.
 
 ## Bug fixes
 
