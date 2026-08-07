@@ -66,6 +66,35 @@ Linear interpolation, where NaNs propagate through the weighted sum.
 struct LinearInterpolation <: AbstractInterpolationMethod end
 
 """
+    NaNLinearInterpolation(threshold = 0.5)
+
+Linear interpolation that is aware of NaNs in the source data. The `threshold`
+must be between zero and one.
+
+For each interpolated point, the interpolation weights of the NaN values are
+summed. If this sum is greater than the `threshold`, the result is `NaN`.
+Otherwise, the result is the weighted sum of the non-NaN values renormalized by
+the sum of their weights.
+
+A `threshold` of zero means any `NaN` with a nonzero weight in the interpolation
+produces `NaN`, and a `threshold` of one means the result is `NaN` only when all
+the values with nonzero weights in the interpolation are `NaN`.
+
+A `missing` value anywhere in the interpolation produces `missing`, regardless
+of its weight or the `threshold`.
+"""
+struct NaNLinearInterpolation{FT <: AbstractFloat} <:
+       AbstractInterpolationMethod
+    threshold::FT
+    function NaNLinearInterpolation(threshold::Real = 0.5)
+        0 <= threshold <= 1 ||
+            error("Threshold ($threshold) must be between 0 and 1")
+        threshold = float(threshold)
+        return new{typeof(threshold)}(threshold)
+    end
+end
+
+"""
     Regridder
 
 Linearly interpolate gridded data with support for node and centers and throw,
@@ -94,7 +123,7 @@ struct Regridder{
     cell edges (`Node`)."
     staggering::S
 
-    "Interpolation method (`LinearInterpolation`)"
+    "Interpolation method (`LinearInterpolation` or `NaNLinearInterpolation`)"
     method::M
 end
 
@@ -117,6 +146,9 @@ iterable of `Node` or `Center`, one entry per dimension.
 
 The number of dimensions of `src_data` and `src_grid` and the length of
 `extrapolation` and `staggering` must all be the same.
+
+The keyword `method` (`LinearInterpolation` or `NaNLinearInterpolation`)
+determines how NaNs in `src_data` are handled.
 """
 function Regridder(
     src_data::AbstractArray,
@@ -331,6 +363,52 @@ Compute a single value for linear interpolation for a single point using the
     # This is needed for the interpolate and interpolate! to return the same
     # type as regrid and regrid!
     return T(acc)
+end
+
+"""
+    _apply_stencils(
+        ::Type{T},
+        src_data::AbstractArray,
+        stencils,
+        method::NaNLinearInterpolation,
+    ) where {T}
+
+Compute a single value for `NaN`-aware linear interpolation for a single point using the
+`stencils` and `src_data`.
+
+For more details, see `NaNLinearInterpolation`.
+"""
+@inline function _apply_stencils(
+    ::Type{T},
+    src_data::AbstractArray,
+    stencils,
+    method::NaNLinearInterpolation,
+) where {T}
+    N = length(stencils)
+    # Iterate over all 2^N corners and compute a weighted average
+    corners = CartesianIndices(ntuple(_ -> 2, Val(N)))
+    acc = zero(T)
+    nan_weight = zero(T)
+    @inbounds for corner in corners
+        idx = ntuple(
+            d -> corner[d] == 1 ? stencils[d][1] : stencils[d][2],
+            Val(N),
+        )
+        w = one(stencils[1][3])
+        for d in 1:N
+            w *= corner[d] == 1 ? stencils[d][3] : one(w) - stencils[d][3]
+        end
+        v = src_data[idx...]
+        # A missing value propagates through the weighted sum
+        ismissing(v) && return missing
+        v_isnan = isnan(v)
+        nan_weight += ifelse(v_isnan, w, zero(w))
+        acc += w * ifelse(v_isnan, zero(v), v)
+    end
+    nan_weight > method.threshold && return T(NaN)
+    # The corner weights sum to one, so the sum of the weights of the non-NaN
+    # values is 1 - nan_weight (NaN if all values are NaN, from dividing by 0)
+    return T(acc / (one(T) - nan_weight))
 end
 
 # All stencil functions return (index1, index2, w) where w is the weight used to

@@ -237,6 +237,20 @@ end
         stag,
     )
 
+    # NaN and missing values in coordinates are not supported
+    @test_throws "Missing or NaN values" Intp.Regridder(
+        data,
+        ([1.0, NaN, 3.0], [4.0, 5.0, 6.0]),
+        extp,
+        stag,
+    )
+    @test_throws "Missing or NaN values" Intp.Regridder(
+        data,
+        ([1.0, 2.0, 3.0], Union{Missing, Float64}[4.0, missing, 6.0]),
+        extp,
+        stag,
+    )
+
     # Period must be positive and not smaller than the span of the coordinates
     @test_throws "is not positive" Intp.Regridder(
         data,
@@ -443,6 +457,310 @@ end
     # A point has to have as many coordinates as the regridder has dimensions
     @test_throws MethodError Intp.interpolate(regridder, (1.0,))
     @test_throws MethodError Intp.interpolate(regridder, (1.0, 4.0, 7.0))
+end
+
+@testset "NaN-aware regridding" begin
+    @test Intp.NaNLinearInterpolation().threshold == 0.5
+    @test Intp.NaNLinearInterpolation(0).threshold === 0.0
+    @test Intp.NaNLinearInterpolation(1.0).threshold === 1.0
+    @test Intp.NaNLinearInterpolation(1 // 2).threshold === 0.5
+    # Threshold must be between 0 and 1
+    @test_throws "must be between 0 and 1" Intp.NaNLinearInterpolation(-0.5)
+    @test_throws "must be between 0 and 1" Intp.NaNLinearInterpolation(1.5)
+    @test_throws "must be between 0 and 1" Intp.NaNLinearInterpolation(NaN)
+
+    # extp and stag apply to every dimension unless given as tuples
+    function make_regridder(
+        data,
+        coords;
+        extp = Intp.Throw(),
+        stag = Intp.Node(),
+        threshold = 0.5,
+    )
+        n = length(coords)
+        return Intp.Regridder(
+            data,
+            coords,
+            extp isa Tuple ? extp : ntuple(_ -> extp, n),
+            stag isa Tuple ? stag : ntuple(_ -> stag, n),
+            method = Intp.NaNLinearInterpolation(threshold),
+        )
+    end
+
+    # 1D
+    coords = ([1.0, 2.0, 3.0],)
+    data = [1.0, NaN, 3.0]
+    nan_regridder(threshold) = make_regridder(data, coords; threshold)
+
+    # NaN with zero weight does not affect the result for any threshold
+    for threshold in (0.0, 0.5, 1.0)
+        @test Intp.interpolate(nan_regridder(threshold), (1.0,)) == 1.0
+    end
+
+    # NaN weight is 0.5: below, at, and above the threshold
+    @test isnan(Intp.interpolate(nan_regridder(0.25), (1.5,)))
+    # Exceeding the threshold means strictly greater
+    @test Intp.interpolate(nan_regridder(0.5), (1.5,)) == 1.0
+    @test Intp.interpolate(nan_regridder(0.75), (1.5,)) == 1.0
+    # Weights are renormalized by the sum of the non-NaN weights
+    @test Intp.interpolate(nan_regridder(0.75), (1.25,)) == 1.0
+    @test Intp.interpolate(nan_regridder(0.75), (2.75,)) == 3.0
+
+    # NaN weight is 1, so the result is NaN even when the threshold is 1
+    @test isnan(Intp.interpolate(nan_regridder(1.0), (2.0,)))
+
+    # Regridding onto the source grid reproduces the data, including NaNs
+    @test Intp.regrid(nan_regridder(0.5), coords) ≈ data nans = true
+
+    # Interpolating a vector of points
+    @test isequal(
+        Intp.interpolate(nan_regridder(0.5), [(1.0,), (1.5,), (2.0,)]),
+        [1.0, 1.0, NaN],
+    )
+
+    # Renormalization returns the only non-NaN value when the threshold is not
+    # exceeded
+    sparse = make_regridder([NaN, 2.0, NaN], coords)
+    @test Intp.interpolate(sparse, (1.5,)) == 2.0
+    @test Intp.interpolate(sparse, (2.5,)) == 2.0
+    @test isnan(Intp.interpolate(sparse, (1.25,)))
+
+    # regrid! into a Float32 destination array converts values and NaNs
+    dest32 = zeros(Float32, 2)
+    Intp.regrid!(dest32, nan_regridder(0.25), ([1.0, 1.5],))
+    @test dest32[1] === 1.0f0
+    @test isnan(dest32[2])
+
+    # All NaN source data produces NaN for any threshold
+    all_nan = make_regridder([NaN, NaN, NaN], coords, threshold = 1.0)
+    @test all(isnan, Intp.regrid(all_nan, ([1.0, 1.5, 2.0, 3.0],)))
+
+    # Without NaNs, NaNLinearInterpolation agrees with LinearInterpolation
+    src_grid = ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
+    data2d = collect(reshape(1.0:9.0, (3, 3)))
+    dest_grid = ([1.0, 1.5, 2.5, 3.0], [4.0, 4.5, 5.5, 6.0])
+    linear = Intp.Regridder(
+        data2d,
+        src_grid,
+        (Intp.Throw(), Intp.Throw()),
+        (Intp.Node(), Intp.Node()),
+    )
+    nan_linear = make_regridder(data2d, src_grid)
+    @test Intp.regrid(nan_linear, dest_grid) == Intp.regrid(linear, dest_grid)
+
+    # TODO: Review this
+    # 2D with a single NaN: the query point (1.5, 4.5) weights all four
+    # corners by 0.25
+    data_nan = collect(reshape(1.0:9.0, (3, 3)))
+    data_nan[1, 1] = NaN
+    nan2d(threshold) = make_regridder(data_nan, src_grid; threshold)
+    # (2 + 4 + 5) * 0.25 / 0.75
+    @test Intp.interpolate(nan2d(0.25), (1.5, 4.5)) ≈ 11.0 / 3.0
+    @test isnan(Intp.interpolate(nan2d(0.2), (1.5, 4.5)))
+    # Points on the grid away from the NaN are unaffected
+    @test Intp.interpolate(nan2d(0.0), (2.0, 5.0)) == 5.0
+    @test isnan(Intp.interpolate(nan2d(0.0), (1.0, 4.0)))
+
+    # Asymmetric weights: the query point (1.5, 4.25) weights the NaN corner
+    # by 0.375, so the result is (2 * 0.375 + 4 * 0.125 + 5 * 0.125) / 0.625
+    @test Intp.interpolate(nan2d(0.375), (1.5, 4.25)) == 3.0
+    @test isnan(Intp.interpolate(nan2d(0.25), (1.5, 4.25)))
+
+    # 2D with two NaNs: NaN weight at (1.5, 4.5) is 0.5
+    data_nan2 = collect(reshape(1.0:9.0, (3, 3)))
+    data_nan2[1, 1] = NaN
+    data_nan2[2, 2] = NaN
+    nan2d_two(threshold) = make_regridder(data_nan2, src_grid; threshold)
+    # (2 + 4) * 0.25 / 0.5
+    @test Intp.interpolate(nan2d_two(0.5), (1.5, 4.5)) == 3.0
+    @test isnan(Intp.interpolate(nan2d_two(0.25), (1.5, 4.5)))
+
+    # 2D with three NaN corners: only one valid corner remains
+    data_nan3 = collect(reshape(1.0:9.0, (3, 3)))
+    data_nan3[1, 1] = NaN
+    data_nan3[2, 1] = NaN
+    data_nan3[1, 2] = NaN
+    nan2d_three(threshold) = make_regridder(data_nan3, src_grid; threshold)
+    @test Intp.interpolate(nan2d_three(0.75), (1.5, 4.5)) == 5.0
+    @test isnan(Intp.interpolate(nan2d_three(0.5), (1.5, 4.5)))
+
+    # 2D with all four NaN corners: NaN even when the threshold is 1
+    data_nan4 = copy(data_nan3)
+    data_nan4[2, 2] = NaN
+    nan2d_four = make_regridder(data_nan4, src_grid, threshold = 1.0)
+    @test isnan(Intp.interpolate(nan2d_four, (1.5, 4.5)))
+
+    # 3D with one NaN corner: the center of the cell weights all eight corners
+    # by 0.125
+    data3d = collect(reshape(1.0:8.0, (2, 2, 2)))
+    data3d[1, 1, 1] = NaN
+    nan3d(threshold) =
+        make_regridder(data3d, ([1.0, 2.0], [1.0, 2.0], [1.0, 2.0]); threshold)
+    # (2 + 3 + ... + 8) * 0.125 / 0.875
+    @test Intp.interpolate(nan3d(0.125), (1.5, 1.5, 1.5)) == 5.0
+    @test isnan(Intp.interpolate(nan3d(0.1), (1.5, 1.5, 1.5)))
+
+    # regrid, regrid!, and interpolate agree
+    expected = [
+        Intp.interpolate(nan2d(0.25), (x, y)) for
+        x in dest_grid[1], y in dest_grid[2]
+    ]
+    regridded = Intp.regrid(nan2d(0.25), dest_grid)
+    @test regridded ≈ expected nans = true
+    dest_data = zeros(4, 4)
+    Intp.regrid!(dest_data, nan2d(0.25), dest_grid)
+    @test dest_data ≈ expected nans = true
+
+    # Extrapolation conditions apply per dimension with NaN handling
+    lon_grid = [0.0, 90.0, 180.0, 270.0]
+    data_mixed = collect(reshape(1.0:12.0, (4, 3)))
+    data_mixed[1, 1] = NaN
+    mixed_extp(threshold) = make_regridder(
+        data_mixed,
+        (lon_grid, [4.0, 5.0, 6.0]);
+        extp = (Intp.Periodic(360.0), Intp.Flat()),
+        threshold,
+    )
+    # The wrap gap interpolates between the last (4.0) and first (NaN) points
+    @test Intp.interpolate(mixed_extp(0.5), (315.0, 4.0)) == 4.0
+    @test isnan(Intp.interpolate(mixed_extp(0.25), (315.0, 4.0)))
+    # Outside the flat dimension, away from the NaN
+    @test Intp.interpolate(mixed_extp(0.5), (315.0, 8.0)) == 10.5
+    # Outside the flat dimension, next to the NaN
+    @test Intp.interpolate(mixed_extp(0.5), (45.0, 3.0)) == 2.0
+
+    # NaN-aware interpolation with periodic and flat boundary conditions
+    lon = [0.0, 90.0, 180.0, 270.0]
+    data_periodic = [NaN, 2.0, 3.0, 4.0]
+    periodic =
+        make_regridder(data_periodic, (lon,), extp = Intp.Periodic(360.0))
+    # Interpolating across the wrap gap (270, 360) between 4.0 and NaN
+    @test Intp.interpolate(periodic, (315.0,)) == 4.0
+    @test isnan(Intp.interpolate(periodic, (350.0,)))
+
+    # NaN at the duplicated periodic endpoint
+    lon_dup = [0.0, 90.0, 180.0, 270.0, 360.0]
+    periodic_dup = make_regridder(
+        [1.0, 2.0, 3.0, 4.0, NaN],
+        (lon_dup,),
+        extp = Intp.Periodic(360.0),
+    )
+    @test Intp.interpolate(periodic_dup, (0.0,)) == 1.0
+    @test isnan(Intp.interpolate(periodic_dup, (360.0,)))
+    # Wrapped queries interpolate against the NaN endpoint
+    @test Intp.interpolate(periodic_dup, (-45.0,)) == 4.0
+    # Queries wrapped by whole periods
+    @test Intp.interpolate(periodic_dup, (720.0,)) == 1.0
+    @test Intp.interpolate(periodic_dup, (-405.0,)) == 4.0
+
+    # Interpolating across the wrap gap with Center staggering
+    lon_center = [45.0, 135.0, 225.0, 315.0]
+    periodic_center(threshold) = make_regridder(
+        [1.0, 2.0, 3.0, NaN],
+        (lon_center,);
+        extp = Intp.Periodic(360.0),
+        stag = Intp.Center(),
+        threshold,
+    )
+    # The point 0.0 is midway between the last (NaN) and first coordinates
+    @test Intp.interpolate(periodic_center(0.5), (0.0,)) == 1.0
+    @test isnan(Intp.interpolate(periodic_center(0.25), (0.0,)))
+
+    flat = make_regridder([NaN, 2.0, 3.0], coords, extp = Intp.Flat())
+    @test isnan(Intp.interpolate(flat, (0.0,)))
+    @test Intp.interpolate(flat, (4.0,)) == 3.0
+    # A NaN query coordinate produces NaN
+    @test isnan(Intp.interpolate(flat, (NaN,)))
+
+    # Flat with Center staggering behaves the same as with Node
+    flat_center = make_regridder(
+        [NaN, 2.0, 3.0],
+        coords,
+        extp = Intp.Flat(),
+        stag = Intp.Center(),
+    )
+    @test isnan(Intp.interpolate(flat_center, (0.5,)))
+    @test Intp.interpolate(flat_center, (3.75,)) == 3.0
+
+    # With Center staggering and Throw, the half-cell margins extrapolate with
+    # weights outside [0, 1]
+    throw_center(data, threshold) =
+        make_regridder(data, coords; stag = Intp.Center(), threshold)
+    # A NaN at the near boundary has weight greater than one, so the result is
+    # NaN for any threshold
+    @test isnan(Intp.interpolate(throw_center([NaN, 2.0, 3.0], 1.0), (0.75,)))
+    @test isnan(Intp.interpolate(throw_center([1.0, 2.0, NaN], 1.0), (3.25,)))
+    # A NaN at the far point has negative weight, so it is excluded and the
+    # result degrades to the boundary value
+    @test Intp.interpolate(throw_center([1.0, NaN, 3.0], 0.0), (0.75,)) == 1.0
+    @test Intp.interpolate(throw_center([1.0, NaN, 3.0], 0.0), (3.25,)) == 3.0
+    # A missing value propagates even from an extrapolated corner
+    @test ismissing(
+        Intp.interpolate(
+            throw_center(Union{Missing, Float64}[1.0, missing, 3.0], 0.0),
+            (0.75,),
+        ),
+    )
+    # Out-of-domain queries still throw regardless of NaNs
+    @test_throws DomainError Intp.interpolate(
+        throw_center([NaN, 2.0, 3.0], 1.0),
+        (0.25,),
+    )
+
+    # Missing values propagate through the weighted sum, like with
+    # LinearInterpolation
+    grid4 = ([1.0, 2.0, 3.0, 4.0],)
+    data_missing = Union{Missing, Float64}[1.0, 2.0, missing, 4.0]
+    missing_regridder(threshold) =
+        make_regridder(data_missing, grid4; threshold)
+    # Stencils away from the missing value are unaffected
+    @test Intp.interpolate(missing_regridder(0.5), (1.5,)) == 1.5
+    # Missing propagates for any threshold and any weight, including zero
+    @test ismissing(Intp.interpolate(missing_regridder(1.0), (2.5,)))
+    @test ismissing(Intp.interpolate(missing_regridder(1.0), (3.0,)))
+    @test ismissing(Intp.interpolate(missing_regridder(1.0), (4.0,)))
+    # The eltype of the destination data includes Missing
+    out = Intp.regrid(missing_regridder(0.5), ([1.5, 2.5],))
+    @test eltype(out) == Union{Missing, Float64}
+    @test out[1] == 1.5
+    @test ismissing(out[2])
+
+    # NaN handling applies alongside missing propagation: the NaN is excluded,
+    # the missing propagates
+    nan_missing =
+        make_regridder(Union{Missing, Float64}[1.0, NaN, missing, 4.0], grid4)
+    @test Intp.interpolate(nan_missing, (1.5,)) == 1.0
+    @test ismissing(Intp.interpolate(nan_missing, (2.5,)))
+    @test ismissing(Intp.interpolate(nan_missing, (3.5,)))
+
+    # All missing source data produces missing
+    all_missing = make_regridder(
+        Vector{Union{Missing, Float64}}(missing, 3),
+        coords,
+        threshold = 1.0,
+    )
+    @test all(ismissing, Intp.regrid(all_missing, ([1.0, 1.5, 2.0],)))
+
+    # Integer source data with missing keeps Missing in the eltype
+    int_missing = make_regridder(
+        Union{Missing, Int}[1, missing, 3],
+        coords,
+        threshold = 0.75,
+    )
+    @test ismissing(Intp.interpolate(int_missing, (1.25,)))
+    @test eltype(Intp.regrid(int_missing, ([1.25],))) == Union{Missing, Float64}
+
+    # Float32 source data keeps its element type
+    nan32 = make_regridder(Float32[1.0, NaN, 3.0], ([1.0f0, 2.0f0, 3.0f0],))
+    @test Intp.interpolate(nan32, (1.5f0,)) === 1.0f0
+    @test eltype(Intp.regrid(nan32, (Float32[1.5],))) == Float32
+
+    # Integer source data cannot contain NaN and produces floating point data,
+    # matching LinearInterpolation
+    int_nan = make_regridder(reshape(1:9, (3, 3)), src_grid)
+    @test Intp.interpolate(int_nan, (1.5, 4.5)) === 3.0
+    @test eltype(Intp.regrid(int_nan, src_grid)) == Float64
+    @test Intp.regrid(int_nan, src_grid) == reshape(1:9, (3, 3))
 end
 
 @testset "Interpolating and regridding agree" begin
