@@ -241,6 +241,12 @@ dimensions in either `OutputVar`s are missing units, the dimensions between the
 `OutputVar`s do not agree, or the data in `src_var` is not defined everywhere on
 the dimensions in `dest_var`.
 
+!!! tip "Resampling data with NaNs"
+    If the data contains `NaN`s, then consider passing the keyword argument
+    `nan_threshold` to prevent `NaN`s from spreading in the resampled data.
+    See [How do I resample data that contains NaNs?](@ref) for more
+    information.
+
 ```@setup resampled_as
 import ClimaAnalysis
 import OrderedCollections: OrderedDict
@@ -266,6 +272,10 @@ time_dims = OrderedDict("time" => [0.0, 86400.0, 172800.0])
 time_dim_attribs = OrderedDict("time" => Dict("units" => "s"))
 time_attribs = Dict("long_name" => "hi", "start_date" => "2010-01-01")
 time_var = ClimaAnalysis.OutputVar(time_attribs, time_dims, time_dim_attribs, [1.0, 2.0, 3.0])
+
+nan_data = reshape(1.0:12.0, (3, 4)) |> Array
+nan_data[2, 2] = NaN
+nan_var = ClimaAnalysis.OutputVar(src_attribs, src_dims, src_dim_attribs, nan_data)
 ```
 
 ```@repl resampled_as
@@ -329,6 +339,24 @@ resampled_var = ClimaAnalysis.resampled_as(
 );
 resampled_var.data
 ClimaAnalysis.dates(resampled_var)
+```
+
+## How do I resample data that contains NaNs?
+
+!!! compat "`nan_threshold` keyword argument"
+    The keyword argument `nan_threshold` for `resampled_as` is introduced
+    after ClimaAnalysis v0.5.23.
+
+You can pass a value ranging from zero to one for the `nan_threshold` keyword argument to
+limit the `NaN`s propagating when resampling. Higher values for the `nan_threshold` keyword
+argument result in less `NaN`s in the resampled data at the cost of resampling from fewer
+points. We recommend passing `nothing` for `nan_threshold` when the data does not contain
+`NaN`s, since resampling is faster in that case.
+
+```@repl resampled_as
+nan_var.data
+ClimaAnalysis.resampled_as(nan_var, dest_var).data # no NaN-aware resampling
+ClimaAnalysis.resampled_as(nan_var, dest_var, nan_threshold = 0.5).data # NaN-aware resampling
 ```
 
 ## How do I load multiple NetCDF files along the time dimension?

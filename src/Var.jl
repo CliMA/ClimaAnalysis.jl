@@ -118,7 +118,7 @@ include("flat.jl")
 const HasDimAndAttribs = Union{OutputVar, FlatVar, Metadata}
 
 """
-    _make_regridder(dims, data)
+    _make_regridder(dims, data; nan_threshold = nothing)
 
 Make a `Interpolation.Regridder` from `dims`, a dictionary mapping dimension name to array
 and `data`, an array containing data.
@@ -129,8 +129,12 @@ are equispaced, then a periodic boundary condition is added for the longitude di
 the latitudes span the entire range and are equispaced, then a flat boundary condition is
 added for the latitude dimension. In all other cases, an error is thrown when extrapolating
 outside of `dim_array`.
+
+If `nan_threshold` is `nothing`, the regridder uses `Interpolation.LinearInterpolation`.
+Otherwise, it uses `Interpolation.NaNLinearInterpolation` with `nan_threshold` as the
+threshold.
 """
-function _make_regridder(dims, data)
+function _make_regridder(dims, data; nan_threshold = nothing)
     # If any element is DateTime, then return nothing for the regridder because
     # regridding on dates is not supported
     for dim_array in values(dims)
@@ -157,11 +161,16 @@ function _make_regridder(dims, data)
         (dim_name, dim_array) in dims
     ]
 
+    method =
+        isnothing(nan_threshold) ? Interpolation.LinearInterpolation() :
+        Interpolation.NaNLinearInterpolation(nan_threshold)
+
     return Interpolation.Regridder(
         data,
         Tuple(values(dims)),
         Tuple(first.(extp_and_stag)),
-        Tuple(last.(extp_and_stag)),
+        Tuple(last.(extp_and_stag));
+        method,
     )
 end
 
@@ -1604,7 +1613,12 @@ function reordered_as(src_var::OutputVar, dest_var::OutputVar)
 end
 
 """
-    resampled_as(src_var::OutputVar, dest_var::OutputVar, dim_names = nothing)
+    resampled_as(
+        src_var::OutputVar,
+        dest_var::OutputVar;
+        dim_names = nothing,
+        nan_threshold = nothing,
+    )
 
 Resample `data` in `src_var` to `dims` in `dest_var`.
 
@@ -1612,6 +1626,42 @@ The resampling performed here is a 1st-order linear resampling.
 
 If the string or iterable `dim_names` is `nothing`, then resampling is done over all
 dimensions. Otherwise, resampling is done over the dimensions in `dim_names`.
+
+The keyword argument `nan_threshold` is the fraction of `NaN`s allowed when computing a
+resampled value. If `nan_threshold` is `nothing`, then linear interpolation is used. Higher
+values of `nan_threshold` result in fewer `NaN`s in the resampled data at the cost of
+resampling from fewer points. A `nan_threshold` of zero means the result is `NaN` whenever a
+`NaN` contributes to the average, and a `nan_threshold` of one means the result is `NaN`
+only when every value contributing to the average is `NaN`. If there are no `NaN`s in the
+data, we recommend passing `nothing` for `nan_threshold`, since it is faster.
+
+!!! details "How `nan_threshold` works"
+    Linear resampling computes each resampled value as a weighted average of the values at
+    the nearest points of the source grid, where closer points contribute more to the
+    average. If `nan_threshold` is `nothing`, a resampled value is `NaN` whenever any value
+    in its average is `NaN`. If a number between zero and one is passed, then for each
+    resampled point, `nan_threshold` is compared against the fraction of the average that
+    comes from `NaN` values. If this fraction is greater than `nan_threshold`, the result
+    is `NaN`. Otherwise, the `NaN`s are discarded, and the result is the weighted average
+    of the remaining values. A `nan_threshold` of zero means the result is `NaN` whenever a
+    `NaN` contributes to the average, and a `nan_threshold` of one means the result is
+    `NaN` only when every value contributing to the average is `NaN`.
+
+    For example, consider the one-dimensional case with the value `2.0` at `x = 0.0` and
+    `NaN` at `x = 1.0`. Resampling at `x = 0.25` computes `0.75 * 2.0 + 0.25 * NaN`, so 25%
+    of the average comes from a `NaN`. With `nan_threshold = 0.5`, the `NaN` is discarded,
+    and the result is `2.0`, the average of the remaining values. Resampling at `x = 0.75`
+    computes `0.25 * 2.0 + 0.75 * NaN`, so 75% of the average comes from a `NaN`, which is
+    greater than the threshold, and the result is `NaN`.
+
+`NaN`-aware resampling is useful when handling with data that is only defined over the land
+or ocean and everything else is `NaN`. With the default behavior, values near the coastlines
+become `NaN` after resampling.
+
+!!! note "Missing values"
+    The keyword argument `nan_threshold` does not affect `missing` values and `missing`
+    values propagate. If this is a problem, replace them with `NaN` first (e.g.,
+    `replace(var, missing => NaN)`, see [`replace`](@ref) and [`replace!`](@ref)).
 
 !!! note "Automatic reordering"
     If resampling is done over all dimensions, then reordering the dimensions of the
@@ -1626,6 +1676,9 @@ longitude dimension because `conventional_dim_name` maps `lon`, `long`, and `lon
 !!! compat "`dim_names` keyword argument"
     The keyword argument `dim_names` is introduced in ClimaAnalysis v0.5.14.
 
+!!! compat "`nan_threshold` keyword argument"
+    The keyword argument `nan_threshold` is introduced after ClimaAnalysis v0.5.23.
+
 !!! note "Reference date"
     If `src_var` and `dest_var` do not have the same reference or start date,
     then the reference date of `src_var` is set to the reference date of
@@ -1635,6 +1688,7 @@ function resampled_as(
     src_var::OutputVar,
     dest_var::OutputVar;
     dim_names = nothing,
+    nan_threshold = nothing,
 )
     if dim_names isa AbstractString
         dim_names = [dim_names]
@@ -1644,7 +1698,7 @@ function resampled_as(
 
     # If dim_names is nothing, then resample over all dimensions
     if isnothing(dim_names)
-        return _resampled_as_all(src_var, dest_var)
+        return _resampled_as_all(src_var, dest_var, nan_threshold)
     end
 
     # If the dimensions are the same between both OutputVars and dim_names are the same as
@@ -1654,20 +1708,24 @@ function resampled_as(
     conventional_dim_names = Set(conventional_dim_name.(dim_names))
     if (src_var_dim_names == dest_var_dim_names) &&
        (src_var_dim_names == conventional_dim_names)
-        return _resampled_as_all(src_var, dest_var)
+        return _resampled_as_all(src_var, dest_var, nan_threshold)
     end
 
-    return _resampled_as_partial(src_var, dest_var, dim_names)
+    return _resampled_as_partial(src_var, dest_var, dim_names, nan_threshold)
 end
 
 """
-    _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
+    _resampled_as_all(src_var::OutputVar, dest_var::OutputVar, nan_threshold)
 
 Resample `data` in `src_var` to `dims` in `dest_var` over all dimensions.
 
 Reordering is automatically done.
 """
-function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
+function _resampled_as_all(
+    src_var::OutputVar,
+    dest_var::OutputVar,
+    nan_threshold,
+)
     conventional_names_src = collect(conventional_dim_name.(keys(src_var.dims)))
     conventional_names_dest =
         collect(conventional_dim_name.(keys(dest_var.dims)))
@@ -1678,7 +1736,7 @@ function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
         src_var = reordered_as(src_var, dest_var)
     end
 
-    regridder = _make_regridder(src_var.dims, src_var.data)
+    regridder = _make_regridder(src_var.dims, src_var.data; nan_threshold)
     src_resampled_data =
         Interpolation.regrid(regridder, Tuple(values(dest_var.dims)))
 
@@ -1694,7 +1752,12 @@ function _resampled_as_all(src_var::OutputVar, dest_var::OutputVar)
 end
 
 """
-    _resampled_as_partial(src_var::OutputVar, dest_var::OutputVar, dim_names...)
+    _resampled_as_partial(
+        src_var::OutputVar,
+        dest_var::OutputVar,
+        dim_names,
+        nan_threshold,
+    )
 
 Resample `data` in `src_var` to `dim_names` in `dest_var`.
 
@@ -1707,6 +1770,7 @@ function _resampled_as_partial(
     src_var::OutputVar,
     dest_var::OutputVar,
     dim_names,
+    nan_threshold,
 )
     dim_names = conventional_dim_name.(collect(dim_names))
 
@@ -1726,7 +1790,7 @@ function _resampled_as_partial(
         end
     end
 
-    regridder = _make_regridder(src_var.dims, src_var.data)
+    regridder = _make_regridder(src_var.dims, src_var.data; nan_threshold)
     src_resampled_data =
         Interpolation.regrid(regridder, Tuple(values(src_var_ret_dims)))
 
@@ -1734,7 +1798,7 @@ function _resampled_as_partial(
 end
 
 """
-    resampled_as(src_var::OutputVar, kwargs...)
+    resampled_as(src_var::OutputVar; nan_threshold = nothing, kwargs...)
 
 Resample `data` in `src_var` to dimensions as defined by the keyword arguments.
 
@@ -1742,6 +1806,10 @@ The resampling performed here is a 1st-order linear resampling.
 
 For example, to resample on the longitude dimension of `[0.0, 1.0, 2.0]`, one can do
 `resampled_as(src_var, lon = [0.0, 1.0, 2.0])`.
+
+See the docstring of [`resampled_as(src_var::OutputVar, dest_var::OutputVar)`](@ref) for
+how the keyword argument `nan_threshold` controls the handling of `NaN`s in the data of
+`src_var`.
 
 If the dimensions in `dims` and `src_var.dims` match (ignoring order), the resulting
 `OutputVar` will have its dimensions reordered to match the order in `dims`. Otherwise, the
@@ -1756,8 +1824,11 @@ Note that there is no checking for units of the dimensions.
 !!! compat "Support for dates"
     Passing dates for the time dimension is introduced after ClimaAnalysis
     v0.5.22.
+
+!!! compat "`nan_threshold` keyword argument"
+    The keyword argument `nan_threshold` is introduced after ClimaAnalysis v0.5.23.
 """
-function resampled_as(src_var::OutputVar; kwargs...)
+function resampled_as(src_var::OutputVar; nan_threshold = nothing, kwargs...)
     # If the values are dates, then compute the associated times before resampling
     function _kwarg_to_dim_pair(dim_name, dim_array)
         dim_name = String(dim_name)
@@ -1805,9 +1876,16 @@ function resampled_as(src_var::OutputVar; kwargs...)
     )
 
     # Do not pass to resampled_as as we do not want to check units
-    return length(dest_dims) == length(src_var.dims) ?
-           _resampled_as_all(src_var, dest_var) :
-           _resampled_as_partial(src_var, dest_var, keys(dest_dims))
+    if length(dest_dims) == length(src_var.dims)
+        return _resampled_as_all(src_var, dest_var, nan_threshold)
+    else
+        return _resampled_as_partial(
+            src_var,
+            dest_var,
+            keys(dest_dims),
+            nan_threshold,
+        )
+    end
 end
 
 """
