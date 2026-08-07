@@ -3,6 +3,23 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+## NaN-aware resampling
+
+The `resampled_as` functions now accept the keyword argument `nan_threshold`
+to control how `NaN`s in the source data are handled.
+
+```julia
+resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var, nan_threshold = 0.5)
+```
+
+By default, a resampled value is `NaN` whenever any of the values it
+interpolates from is `NaN`, so a few `NaN`s in the source data can spread to
+many points in the resampled data. For example, when resampling data that is
+only defined over the land and is `NaN` over the ocean, values near the
+coastlines become `NaN`. Passing a value from 0 to 1 for `nan_threshold` fix
+this problem. For more information, see the section "How do I resample data
+that contains NaNs?" in the documentation.
+
 v0.5.23
 -------
 

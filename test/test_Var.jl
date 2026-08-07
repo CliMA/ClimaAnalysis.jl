@@ -1884,6 +1884,112 @@ end
     @test any(ismissing, resampled_missing.data)
 end
 
+@testset "NaN-aware resampling" begin
+    src_long = [0.0, 1.0, 2.0, 3.0]
+    src_var =
+        TemplateVar() |>
+        add_dim("long", src_long, units = "deg") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = [1.0, NaN, 3.0, 4.0]) |>
+        initialize
+
+    dest_long = [0.25, 2.5]
+    dest_var = ClimaAnalysis.remake(
+        src_var,
+        data = ones(length(dest_long)),
+        dims = OrderedDict("long" => dest_long),
+    )
+
+    # By default, NaNs propagate
+    resampled_var = ClimaAnalysis.resampled_as(src_var, dest_var)
+    @test isequal(resampled_var.data, [NaN, 3.5])
+
+    # At long = 0.25, the NaN contributes 25% of the average, so the result is
+    # NaN only when nan_threshold is smaller than 0.25
+    resampled_var =
+        ClimaAnalysis.resampled_as(src_var, dest_var, nan_threshold = 0.5)
+    @test resampled_var.data == [1.0, 3.5]
+    resampled_var =
+        ClimaAnalysis.resampled_as(src_var, dest_var, nan_threshold = 0.1)
+    @test isequal(resampled_var.data, [NaN, 3.5])
+
+    # NaN at long = 1.0 and lat = 0.0
+    src_var2d =
+        TemplateVar() |>
+        add_dim("long", [0.0, 1.0], units = "deg") |>
+        add_dim("lat", [0.0, 1.0], units = "deg") |>
+        add_attribs(long_name = "hi") |>
+        add_data(data = [1.0 3.0; NaN 5.0]) |>
+        initialize
+
+    # Resampling with keyword arguments
+    resampled_var =
+        ClimaAnalysis.resampled_as(src_var2d, long = [0.5], lat = [0.5])
+    @test isequal(resampled_var.data, reshape([NaN], (1, 1)))
+    resampled_var = ClimaAnalysis.resampled_as(
+        src_var2d,
+        long = [0.5],
+        lat = [0.5],
+        nan_threshold = 0.5,
+    )
+    @test resampled_var.data == reshape([3.0], (1, 1))
+
+    # Partial resampling with dim_names
+    dest_var2d = ClimaAnalysis.remake(
+        src_var2d,
+        data = ones(1, 2),
+        dims = OrderedDict("long" => [0.5], "lat" => [0.0, 1.0]),
+    )
+    resampled_var = ClimaAnalysis.resampled_as(
+        src_var2d,
+        dest_var2d,
+        dim_names = "longitude",
+        nan_threshold = 0.5,
+    )
+    @test resampled_var.data == [1.0 4.0]
+
+    # With no NaNs in the data, nan_threshold does not change the result
+    no_nan_var = ClimaAnalysis.remake(src_var, data = [1.0, 2.0, 3.0, 4.0])
+    @test ClimaAnalysis.resampled_as(
+        no_nan_var,
+        dest_var,
+        nan_threshold = 0.5,
+    ).data == ClimaAnalysis.resampled_as(no_nan_var, dest_var).data
+
+    # Resampling ocean-masked data (NaN over the ocean); the number of NaNs
+    # decreases near the coastlines as nan_threshold increases
+    lon = collect(range(-179.5, 179.5, 360))
+    lat = collect(range(-89.5, 89.5, 180))
+    ocean_var =
+        TemplateVar() |>
+        add_dim("lon", lon, units = "deg") |>
+        add_dim("lat", lat, units = "deg") |>
+        add_attribs(long_name = "hi") |>
+        ones_data() |>
+        initialize |>
+        ClimaAnalysis.apply_oceanmask
+    dest_lon = collect(range(-179.0, 179.0, 240))
+    dest_lat = collect(range(-89.0, 89.0, 120))
+    nan_counts = map([nothing, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0]) do nan_threshold
+        resampled_var = ClimaAnalysis.resampled_as(
+            ocean_var,
+            lon = dest_lon,
+            lat = dest_lat,
+            nan_threshold = nan_threshold,
+        )
+        count(isnan, resampled_var.data)
+    end
+    @test issorted(nan_counts, rev = true)
+    @test first(nan_counts) > last(nan_counts)
+
+    # Error handling
+    @test_throws ErrorException ClimaAnalysis.resampled_as(
+        src_var,
+        dest_var,
+        nan_threshold = 2.0,
+    )
+end
+
 @testset "Resampling ongrid and oncenter" begin
     # Checking oncell (1d)
     src_long = 0.0:359.0 |> collect

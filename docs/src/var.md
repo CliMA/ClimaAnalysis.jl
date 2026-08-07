@@ -146,6 +146,12 @@ and latitude dimensions, a periodic boundary condition and a flat boundary condi
 added, respectively, when the dimension array is equispaced and spans the entire range. For
 all other cases, extrapolating beyond the domain of the dimension will throw an error.
 
+!!! tip "Resampling data with NaNs"
+    By default, `NaN`s in the data propagate through interpolation. When resampling with
+    `resampled_as`, you can pass the keyword argument `nan_threshold` to prevent `NaN`s
+    from spreading in the resampled data. See
+    [How do I resample data that contains NaNs?](@ref) for more information.
+
 ## Preprocess dates and seconds
 When loading a NetCDF file, dates in the time dimension are automatically converted to
 seconds and a start date is added to the attributes of the `OutputVar`. This is done because
