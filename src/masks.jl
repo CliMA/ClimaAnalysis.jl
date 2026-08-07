@@ -168,7 +168,7 @@ function _generate_binary_mask(mask_var::LonLatMask, var::OutputVar)
     # Use _resampled_as_partial as we do not want to do units checking as
     # it would be too restrictive
     resampled_mask_var =
-        _resampled_as_partial(mask_var.output_var, var, ("lon", "lat"))
+        _resampled_as_partial(mask_var.output_var, var, ("lon", "lat"), nothing)
 
     mask = copy(resampled_mask_var.data)
     # Reshape data for broadcasting
