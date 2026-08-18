@@ -387,11 +387,12 @@ function Average(; ignore_nan = true, weights = nothing)
         return ignore_nan ? Reduce(nanmean) : Reduce(mean)
     end
     ignore_nan && return ReduceWithCoords(
-        (A, g) -> nanmean(A, weights(g); dims = g.dim_indices),
+        (A, g) ->
+            nanmean(A, _match_eltype(weights(g), A); dims = g.dim_indices),
     )
     # Mirrors average_lonlat: normalize elementwise, then sum
     return ReduceWithCoords() do A, g
-        w = weights(g)
+        w = _match_eltype(weights(g), A)
         norm = mapslices(A; dims = g.dim_indices) do slice
             sum(ifelse.(isnan.(slice), NaN, 1.0) .* w)
         end
@@ -399,11 +400,16 @@ function Average(; ignore_nan = true, weights = nothing)
     end
 end
 
+# Weights follow the data's precision, so a Float32 variable stays Float32
+_match_eltype(w, ::AbstractArray{T}) where {T <: AbstractFloat} =
+    convert.(T, w)
+_match_eltype(w, ::AbstractArray) = w
+
 LatWeightedAverage(; ignore_nan = true) =
     Average(; ignore_nan, weights = g -> cosd.(g.lat))
 ```
 
-Three things here are not stylistic:
+Four things here are not stylistic:
 
 - `ignore_nan ? Reduce(nanmean) : Reduce(mean)` rather than
   `Reduce(ignore_nan ? nanmean : mean)`. The latter is a runtime branch over two
@@ -415,6 +421,12 @@ Three things here are not stylistic:
   assert `==`. The obvious `sum(A .* w; dims) ./ sum(w; dims)` is **wrong**: `w`
   has the block's shape only along the weighted axis, so the denominator is short
   by the product of the sizes of the other grouped dimensions.
+- `_match_eltype` narrows the weights to the data's precision. Dimensions read
+  from NetCDF are `Float64` even when the data is `Float32`, so `cosd.(g.lat)` is
+  `Float64` and the plain `nanmean(A, W)` promotes the whole result — a `Float32`
+  variable comes back `Float64` at twice the memory. Narrowing only ever applies
+  to floating-point data: the `AbstractArray` fallback leaves `Float64` weights
+  alone on integer data, where converting them would be catastrophic.
 
 `weights` is a function of the group returning anything broadcastable against
 the block:
@@ -427,8 +439,25 @@ LatWeightedAverage()
 
 `nanmean(A, W; dims)` is native to NaNStatistics and is the exact call the repo
 already makes for `weighted_average_lonlat`
-([Var.jl:973](src/Var.jl#L973)), so `LatWeightedAverage()` reproduces existing
-semantics bitwise on the `ignore_nan = true` path.
+([Var.jl:973](src/Var.jl#L973)), so on the `ignore_nan = true` path
+`LatWeightedAverage()` reproduces existing semantics bitwise **for `Float64`
+data** — the overwhelmingly common case, and the one the regression test should
+assert with `==`.
+
+For `Float32` data the two now differ in the last bits, deliberately:
+`weighted_average_lonlat` returns `Float64`, `LatWeightedAverage()` returns
+`Float32`. That test needs `≈`, and it is the one place where "matches the
+existing function exactly" and "does not silently double the memory of a `Float32`
+variable" cannot both hold. Record it in NEWS.
+
+Two limits on the narrowing:
+
+- It covers only `Average`'s `weights` keyword. A hand-written
+  `ReduceWithCoords((A, g) -> nanmean(A, cosd.(g.lat); dims = g.dim_indices))`
+  promotes exactly as before; say so in the `ReduceWithCoords` docstring.
+- The `ignore_nan = false` branch still promotes through its mask, whose `NaN` and
+  `1.0` literals are `Float64`. Writing them as `T(NaN)` and `one(T)` belongs with
+  the `dropdims` fix that branch needs anyway (appendix A.2), not here.
 
 > `LatWeightedAverage` matches `weighted_average_lonlat`, **not**
 > `weighted_average_lat`, which builds a per-column NaN-masked normalization by
@@ -476,6 +505,61 @@ user-defined subtype hits a `MethodError`.
 A `Tuple` rather than a `Vector` for `split_ops`: a
 `Vector{AbstractSplitOperation}` boxes the operations and dispatches `by`
 dynamically once per coordinate.
+
+### Printing the pipeline
+
+`SplitApplyVar` has no `show` today, so a forgotten `combine` prints the default
+struct dump — which recurses into `Base.show(io::IO, ::OutputVar)`
+([Var.jl:2919](src/Var.jl#L2919)) and spills every attribute and dimension
+attribute of the variable, wrapped in the struct's type parameters. Ten lines fix
+it:
+
+```julia
+function Base.show(io::IO, sav::SplitApplyVar)
+    print(io, "SplitApplyVar(", short_name(sav.var), ")")
+    for op in sav.split_ops
+        print(io, " |> ")
+        _show_op(io, op)
+    end
+    isnothing(sav.apply_op) && return print(io, "  (no apply operation)")
+    print(io, " |> ")
+    _show_op(io, sav.apply_op)
+    return print(io, "  (call combine to materialize)")
+end
+
+_show_op(io::IO, op) = print(io, nameof(typeof(op)))
+_show_op(io::IO, op::GroupBy) =
+    print(io, "GroupBy(\"", op.dim_name, "\", ", op.by, ")")
+_show_op(io::IO, op::Reduce) = print(io, "Reduce(", op.reduction, ")")
+Base.show(io::IO, f::WithCoords) = print(io, "WithCoords(", f.f, ")")
+```
+
+```
+julia> var |> GroupBy("t", Dates.year)
+SplitApplyVar(ta) |> GroupBy("time", year)  (no apply operation)
+
+julia> var |> GroupBy("t", Dates.year) |> Average()
+SplitApplyVar(ta) |> GroupBy("time", year) |> Reduce(nanmean)  (call combine to materialize)
+```
+
+Four notes:
+
+- Only the two-argument `show`, matching `Base.show(io::IO, var::OutputVar)`;
+  `display` falls back to it.
+- It deliberately does **not** compute groups. Name errors are already caught at
+  pipe time by `_resolve`, but `"Grouping $name produced no groups"` is not, and a
+  `show` that throws makes the variable unprintable. Group counts stay unavailable
+  until `combine`.
+- Because `_resolve` runs at pipe time, `op.dim_name` is the **resolved** name:
+  the user typed `"t"` and the pipeline reports `"time"`. That is the cheapest
+  possible confirmation that name resolution did what they expected.
+- `Average()` prints as `Reduce(nanmean)`, since `Average` is a constructor rather
+  than a type. Mildly surprising, but it discloses the NaN policy — the one place
+  where `Average()` and `Reduce(mean)` quietly disagree.
+
+`short_name` returns `""` for a variable without one
+([Var.jl:488-490](src/Var.jl#L488-L490)), so nothing here can throw. Anonymous
+`by` and `weights` functions print as `#7`; unavoidable.
 
 ### combine
 
@@ -540,9 +624,10 @@ Details that are load-bearing:
   `_conventional` lookup misses.
 - `Val(N)` rather than a runtime `N`, so the index tuples' element types are
   inferred. `N = ndims(var.data)` is a type-domain constant, so this is free.
-- The block loop lives in its own function so the `Group`'s `C` parameter is
-  concrete inside it — otherwise `_apply` returns `Any`, `ret` is `Any`, and
-  every user broadcast is dynamically dispatched.
+- The block loop lives in its own function, but **that is not enough to make the
+  `Group`'s `C` parameter concrete** — measured, `_combine_blocks` as written above
+  infers `ret::Any`. See "Type stability — measured" under Performance; the three
+  causes and their cost are quantified there.
 - `deepcopy(var.dims)`, matching
   [line 250](src/split_apply_combine.jl#L250): the result must own its dims.
   `remake` deep-copies only *omitted* keyword arguments, so a passed `dims` is
@@ -564,6 +649,83 @@ Analysis"](https://www.jstatsoft.org/article/view/v040i01), cited by the docs.
 | Combinations across axes | ✅ Chained `GroupBy`s form the Cartesian product. |
 | `.drop` | ➖ Moot: labels only exist where data exists, and a product of non-empty groups is non-empty. `nothing` from `by` is the deliberate way to discard. |
 | Split a list | ➖ No analogue for `OutputVar`. |
+
+### Split — overlapping windows (future work, but constrains the design now)
+
+Moving averages need element *i* to belong to *k* different windows. `GroupBy`
+maps one coordinate to **one** label and `_group_indices` pushes each index into
+exactly one bucket, so its groups are a partition by construction. No `by` can
+produce overlapping groups — this is an impossibility, not an awkward spelling.
+
+Note that **non**-overlapping windows are already expressible, so only rolling
+operations are affected:
+
+```julia
+# 3-month block means / coarsening / resample-to-annual
+var |> GroupBy("time", i -> fld(i - 1, 3), on = var -> eachindex(var.dims["time"])) |>
+    Average() |> combine
+```
+
+This is a capability the shipped `_create_groups` and the `group_and_reduce_by`
+prototype in `src/temp.jl` both had — the latter's docstring says explicitly
+"`group_by` does not need to partition the values of the dimension" — and which
+the labeler-based `GroupBy` gives up. Worth recording as a deliberate trade.
+
+**`combine` already supports overlapping groups.** In `_combine_blocks`, each
+group index `I` reads from `src` and writes to `dst = I:I`. Sources may overlap
+freely; only destinations must be disjoint, and they are by construction. Nothing
+in the block loop assumes a partition.
+
+So the only missing piece is a second split operation that yields index groups
+directly rather than through labels:
+
+```julia
+struct Rolling <: AbstractSplitOperation
+    "Dimension to roll along"
+    dim_name::String
+    "Number of coordinates per window"
+    width::Int
+    "Step between successive windows"
+    stride::Int
+end
+Rolling(dim_name, width; stride = 1) = Rolling(dim_name, width, stride)
+```
+
+Prefer `Rolling` over `Window`/`Windows`: the package already has
+`window(var, dim_name; left, right)`
+([outvar_selectors.jl:201](src/outvar_selectors.jl#L201)) for *subsetting* a
+dimension, and reusing the word for a rolling reduction would collide. `Rolling`
+also matches the vocabulary this audience knows from pandas and xarray.
+
+**What this requires of the design as written — four things to preserve:**
+
+1. **Keep `AbstractSplitOperation` as a real extension point.** Rolling windows
+   are the concrete second split operation with genuinely different semantics, so
+   the abstract type is not vestigial. It needs a documented contract:
+   `_group_indices(var, op)` must return `(; idx, name, groups, labels, coords)`.
+2. **Keep `_group_indices` dispatching on the operation type.** Do not inline the
+   labeler-bucketing logic into `combine`; `Rolling` supplies its own method.
+3. **Do not assume groups partition anywhere in `combine`.** They do not today,
+   and nothing added later should start to.
+4. **Let each split operation choose its own representative coordinate.** With
+   data-derived coordinates a centred rolling mean would otherwise be labelled by
+   the window's *first* coordinate. `Rolling`'s `_group_indices` should set
+   `coords` to the window centre directly — a per-operation decision needing no
+   global change.
+
+Given those, `Rolling` slots in with **zero changes** to `combine`, `Reduce`,
+`Average`, `LatWeightedAverage` or `Group`, and `Reduce(mean)` /
+`LatWeightedAverage()` work over windows unmodified.
+
+Two caveats to settle when it lands: edge handling (`valid` gives `n - k + 1`
+windows, `same` pads to `n`, and only the former needs no policy), and cost —
+each window reduces `k` elements independently, so this is `O(n·k)` rather than
+the `O(n)` a cumulative-sum implementation would achieve. Fine for a 12-month
+window over a decade; wasteful for a wide window over a long record.
+
+A rolling reduction is **not** the deferred `Transform` case below; it is a
+reduction over overlapping groups. Both pandas and xarray keep `rolling` separate
+from `groupby` for the same reason.
 
 ### Apply
 
@@ -647,6 +809,61 @@ A typing constraint: `OutputVar.attributes` is `Dict{String, B}`, so writing a
 with a promoted value type. `average_season_across_time` already works around
 this ([Var.jl:2146-2149](src/Var.jl#L2146-L2149)).
 
+### Coordinate bounds (future work, but decide the shape now)
+
+The "coordinate range" row above is not just a debugging nicety — it is the CF
+`bounds` convention, and it is the difference between a coarsened variable that
+downstream code can use correctly and one it silently misreads.
+
+After grouping, **one coordinate value stands for an interval**. Nothing in the
+output records that. A `GroupBy("lat", Bins(-90:30:90))` result is six latitudes
+with no indication that each spans 30°, so `integrate_lat`, `weighted_average_lat`,
+area weighting and every plotting recipe treat them as point samples and infer
+spacing from the gaps between representatives. CF solves this with a `bounds`
+attribute on the coordinate variable naming an `(n, 2)` companion variable —
+`time_bnds`, `lat_bnds`. `OutputVar` has nowhere to put one.
+
+**It is nearly free to compute.** `_group_indices` already scans each group's
+coordinates to pick the representative; `extrema(view(coord, buckets[k]))` returns
+`(lo, hi)` from the same scan. Ask for both in that one pass rather than
+retrofitting a second traversal later.
+
+Where it could live, in increasing order of invasiveness:
+`dim_attributes[dim_name]["bounds"]` as an `(n, 2)` array (closest to CF, and it
+hits the same value-type promotion problem as the label channel, since
+`dim_attributes` is `OrderedDict{String, C}` with `C <: AbstractDict`); a
+`bounds` field on `OutputVar` (touches every constructor, `remake`,
+`arecompatible`, `flatten`); or a companion dimension.
+
+**Five things to preserve now so this stays layerable:**
+
+1. `_group_indices` must keep each group's index set in hand while it computes the
+   representative. It does — do not optimize that away.
+2. **Do not derive the representative coordinate from the label.** With
+   data-derived coordinates the representative and the bounds come from the same
+   scan and are consistent by construction. This is a second, independent argument
+   for the decision already taken in the appendix.
+3. Whatever holds bounds must survive `remake`, since `combine` builds its result
+   that way.
+4. `Rolling` needs this more than anything else does: a centred window's
+   representative coordinate loses the width entirely, so a rolling mean without
+   bounds is indistinguishable from a point series.
+5. Decide what `bounds` *means* before writing any of it. For
+   `GroupBy("lat", Bins(-90:30:90))` the honest data bounds are the extreme
+   latitudes actually present (say −89 and −61), while the bin edges are −90 and
+   −60. Both are useful and they are different numbers. For
+   `GroupBy("time", Dates.year)` there are no edges at all, only data. So bounds
+   are per-split-operation, the same way the representative coordinate is —
+   which is a third reason to let each split operation decide, rather than
+   computing either one centrally.
+
+One caveat that argues for keeping this modest: exact bounds need the *cell*
+extent, not the extreme cell centres. Recovering −90 from a centre at −89 requires
+assuming uniform spacing, and the appendix already notes the package is
+inconsistent about that (`integrate_lonlat` uses `Δφ·cos φ` while
+`average_lonlat(weighted = true)` uses bare `cos φ`). Record data bounds, which are
+cheap and exact; do not synthesize cell bounds.
+
 ---
 
 ## Concerns from the original PR
@@ -704,6 +921,75 @@ mask — three full-block temporaries, ~2.1× the block plus the mask. This is
 pre-existing (`average_lonlat` does the same), but it means `LatWeightedAverage`
 is not cheap, and a fine block grid multiplies the constant.
 
+### Type stability — measured
+
+Measured on Julia 1.12.6 with a standalone prototype of `_combine_blocks` exactly
+as written above, reducing with `Reduce(mean)`. `Base.return_types` on the loop as
+written gives **`Any`**, so the design has a real per-block dynamic dispatch.
+
+Three *independent* causes, each verified by changing one thing at a time:
+
+| Cause | Inferred type | Fix |
+|---|---|---|
+| `_block_coords` keys are runtime `Symbol`s | `_block_coords` → `NamedTuple`, so `Group{D, C}` is not concrete | store the names in a `Tuple{String,…}` **field** and have `getproperty` scan it |
+| `Colon()` mixed with ranges in `src`/`dst` | `SubArray{Float64, 3, Array{Float64, 3}}` — parameters 4 and 5 unknown | `1:size(data, d)` instead of `Colon()` |
+| `_as_range` applied per group | `groups` is `Vector{AbstractVector{Int64}}` as soon as one group has a gap | apply `_as_range` all-or-nothing per split operation |
+
+With all three fixed the loop infers `Union{Nothing, Array{Float64, 3}}` — concrete
+apart from the `ret = nothing` sentinel.
+
+Two of those corrections matter for the plan as written:
+
+- **`Colon()` is the culprit, not the `Nothing` sentinel.** `slot`'s
+  `Union{Nothing, Int}` elements are harmless — inference union-splits them, and
+  `1:size(data, d)` with `isnothing(slot[d])` still infers a fully concrete
+  `SubArray`. `axes(var.data, d)` is **not** sufficient either: it yields
+  `Base.OneTo{Int}`, a different type from the `UnitRange{Int}` of a group, so the
+  eight branch combinations again exceed union-splitting. Only a literal
+  `1:size(data, d)` makes both branches the same type.
+- **A single non-consecutive group defeats everything else.** With
+  `groups::Vector{AbstractVector{Int64}}` the loop infers `Any` even with the other
+  two fixes applied. `_as_range`'s value is not the affine inner loop the plan
+  already claims — it is this.
+
+Cost, `plan` vs. all three fixed, best of several runs:
+
+| Case | as written | fixed | ratio | allocated |
+|---|---|---|---|---|
+| one block, 360×180×12 | 92 µs | 79 µs | 1.16× | |
+| 120 blocks of 360×180×1 (monthly climatology) | 54.0 ms | 46.9 ms | 1.15× | |
+| 180 blocks of 360×1×12 | 3.06 ms | 2.31 ms | 1.32× | |
+| 180 blocks of 360×1×120 | 45.8 ms | 48.6 ms | 0.94× | |
+| **64800 blocks of 4×4×12** (0.25°→1° coarsening) | 326 ms | 47 ms | **6.9×** | 245 → 55 MiB |
+| 64800 blocks of 1×1×12 | 271 ms | 32 ms | **8.4×** | 241 → 51 MiB |
+
+So the instability is genuinely negligible when blocks are large — including the
+120-group monthly climatology the plan names as its worst case — and costs 7-8× in
+wall time and 4.4× in allocations when blocks are small and numerous. Conservative
+coarsening by block-averaging is a real workflow that lands squarely in that
+regime.
+
+**This also qualifies "allocations are unchanged".** That holds for the
+large-block cases. In the many-small-blocks regime the boxing from the dynamic
+dispatch is itself 4.4× the necessary allocation, which no amount of `cat`
+avoidance recovers.
+
+**The two internal fixes buy 1.5× of the 8.4×; the rest needs the API change.**
+Measured separately on the 64800×(1×1×12) case: as written 271 ms / 241 MiB;
+ranges instead of `Colon()` 182 ms / 173 MiB; ranges *and* names-in-a-field
+32 ms / 51 MiB. So replacing `Colon()` and fixing `_as_range` are free wins with
+no visible consequence, while the remaining 5.7× requires giving up the
+`coords` NamedTuple for a `names::Tuple` field plus a `coords::Tuple`.
+
+That third one is smaller than it sounds. `g.lat === g.latitude` still works —
+`getproperty` scans a tuple of at most `ndims` names instead of doing a NamedTuple
+lookup, once per reduction rather than per element — and `values(g.coords)` becomes
+just `g.coords`, which shortens the "naming a dimension at all" example above to
+`prod(_cell_width.(g.coords))`. What is actually lost is `keys(g.coords)` returning
+`Symbol`s, replaced by `g.names` returning `String`s, and NamedTuple destructuring
+of `g.coords`. It still changes an exported type's shape and its docstring, so it
+is a decision rather than a bug fix — just a cheaper one than the ratio suggests.
+
 **Future work:** an `_apply!(op, out_view, block, group)` seam would let
 `nanmean!`/`sum!` write straight into `view(ret, dst...)`, removing the last
 per-block temporary. It is the only way the "allocations go down" claim becomes
@@ -718,7 +1004,7 @@ true. Deferred — revisit if profiling justifies it.
 | [src/split_apply_combine.jl](src/split_apply_combine.jl) | Full rewrite |
 | [test/test_split_apply_combine.jl](test/test_split_apply_combine.jl) | Two amendments plus ~10 new testsets |
 | [docs/src/split_apply_combine.md](docs/src/split_apply_combine.md) | New sections, **and** fix the existing prose at lines 95-98, which says the coordinate is "the first element of that group" |
-| [docs/src/api.md:143-153](docs/src/api.md#L143-L153) | Add every new export |
+| [docs/src/api.md:143-153](docs/src/api.md#L143-L153) | Add every new export, plus `Base.show(io::IO, sav::SplitApplyVar)` alongside the existing `Base.show(io::IO, var::OutputVar)` entry |
 | [NEWS.md:3](NEWS.md#L3) | Entry under `main` |
 
 Export list: `AbstractSplitOperation`, `AbstractApplyOperation`,
@@ -764,6 +1050,11 @@ fails for an unexported name, and it is the type every user lambda receives.
    empty group and a `NaN`.
 6. `GroupAll`/`SplitSeason` are functions rather than types, so dispatching on
    them no longer works.
+7. `LatWeightedAverage()` preserves the data's floating-point precision, so on a
+   `Float32` variable it returns `Float32` where `weighted_average_lonlat`
+   returns `Float64`. Also note `Average` is a generic name in a reexported
+   namespace, and so are `Bins` (clashes with `DimensionalData.Bins`) and the
+   already-shipped `combine` (clashes with `DataFrames.combine`).
 
 ---
 
@@ -819,9 +1110,13 @@ reduction over two dimensions **and** that chaining order does not matter;
 descending; degenerate variables (1-D, single-element groups where `std` returns
 `NaN` rather than throwing, duplicate coordinates, zero-length dimensions);
 element types (`Int` stays `Int` under `sum`, becomes `Float64` under `mean`;
-`Float32` data and coordinates); and the `Group` contract (`g.lat === g.latitude`,
+`Float32` data and coordinates, **and** the mixed `Float32` data with `Float64`
+dimensions case, which is what NetCDF actually produces — assert the result is
+`Float32`); the `Group` contract (`g.lat === g.latitude`,
 `values(g.coords)` reachable, `g.lon` errors when longitude was not grouped,
-`size(g.lat)` reshaped correctly, `dims` arriving as a `Tuple`).
+`size(g.lat)` reshaped correctly, `dims` arriving as a `Tuple`); and `show` on a
+`SplitApplyVar` both with and without an apply operation, asserting the
+**resolved** dimension name appears when the user typed an alias.
 
 Also assert dimension-order independence via `permutedims` and dimension-name
 independence via a `latitude`/`longitude` variable.
@@ -830,9 +1125,16 @@ independence via a `latitude`/`longitude` variable.
 
 `@allocated` on `GroupAll("time") |> Reduce(mean)` will show **no change** and is
 the wrong acceptance criterion. Instead measure wall time and GC time on a
-120-group monthly climatology (exposes `cat`'s splat), a fine block grid
-(exposes the per-block constant), and `@code_warntype` on `combine` to confirm
-`ret` is not `Any`.
+120-group monthly climatology (exposes `cat`'s splat) and on a fine block grid
+such as 0.25°→1° coarsening (exposes the per-block constant, where the measured
+penalty is 7×).
+
+Do **not** assert that `combine` infers a concrete `ret`. As written it infers
+`Any`, and the three causes are catalogued under "Type stability — measured";
+only the third of them is fixable without changing `Group`. If the two internal
+fixes are taken, the useful regression test is
+`only(Base.return_types(_combine_blocks, …)) !== Any` — which still fails until
+the NamedTuple goes, so gate it on that decision rather than writing it now.
 
 ---
 
@@ -854,6 +1156,13 @@ reintroduced:
   array. Materializing is still marginally better.
 - "`combine` errors when a reduction drops the reduced dimension." `setindex!`
   silently accepts it; hence the explicit shape check.
+- "The function barrier makes the `Group`'s `C` parameter concrete." Measured on
+  Julia 1.12.6: `_block_coords` infers `NamedTuple` and `_combine_blocks` infers
+  `Any`. A barrier fixes its *arguments*, but `_block_coords` computes its keys
+  from runtime strings inside the barrier. See "Type stability — measured".
+- "`slot`'s `Union{Nothing, Int}` costs inference." It does not — inference
+  union-splits it. The `Colon()`/range mixing in `src` is what widens the view
+  type, and `axes(var.data, d)` does not fix it either.
 
 ---
 ---
