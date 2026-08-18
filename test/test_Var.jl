@@ -3709,6 +3709,94 @@ end
     @test isequal(var2.data, [2.0, 2.0, NaN])
 end
 
+@testset "Propagate NaNs" begin
+    var =
+        TemplateVar() |>
+        add_time_dim(dim = [1.0, 2.0]) |>
+        add_lon_dim(dim = [-60.0, 0.0, 60.0]) |>
+        add_lat_dim(dim = [-30.0, 0.0, 30.0]) |>
+        add_attribs(long_name = "hi") |>
+        one_to_n_data(collected = true) |>
+        initialize
+
+    no_nan_var = ClimaAnalysis.propagate_nans(var)
+    @test var == no_nan_var
+
+    # NaNs in different time slices
+    nan_var = deepcopy(var)
+    nan_var.data[1, 1, 1] = NaN
+    nan_var.data[2, 3, 2] = NaN
+
+    expected_data = copy(nan_var.data)
+    expected_data[:, 1, 1] .= NaN
+    expected_data[:, 3, 2] .= NaN
+    propagated_nan_var = ClimaAnalysis.propagate_nans(nan_var, dims = "time")
+    @test isequal(propagated_nan_var.data, expected_data)
+
+    # Input var is not modified and does not share data with the result
+    @test count(isnan, nan_var.data) == 2
+    propagated_nan_var.data[1, 2, 2] = 42.0
+    @test nan_var.data[1, 2, 2] != 42.0
+
+    # Different name for time
+    propagated_alias_var = ClimaAnalysis.propagate_nans(nan_var, dims = "t")
+    @test isequal(propagated_alias_var.data, expected_data)
+
+    # Missing values pass through unchanged and do not propagate
+    missing_data = convert(Array{Union{Missing, Float64}}, nan_var.data)
+    missing_data[1, 1, 1] = missing
+    missing_var = ClimaAnalysis.remake(nan_var, data = missing_data)
+    expected_missing_data = copy(missing_data)
+    expected_missing_data[:, 3, 2] .= NaN
+    propagated_missing_var = ClimaAnalysis.propagate_nans(missing_var)
+    @test isequal(propagated_missing_var.data, expected_missing_data)
+
+    # Slice with both missing and NaN: NaN propagates and missing is preserved
+    mixed_data = copy(missing_data)
+    mixed_data[1, 1, 2] = missing
+    mixed_var = ClimaAnalysis.remake(nan_var, data = mixed_data)
+    expected_mixed_data = copy(mixed_data)
+    expected_mixed_data[:, :, 2] .= NaN
+    expected_mixed_data[1, 1, 2] = missing
+    propagated_mixed_var =
+        ClimaAnalysis.propagate_nans(mixed_var, dims = ("time", "lon"))
+    @test isequal(propagated_mixed_var.data, expected_mixed_data)
+
+    # Propagate NaNs for multiple dimensions
+    expected_data = copy(nan_var.data)
+    expected_data[:, 1, :] .= NaN
+    expected_data[:, 3, :] .= NaN
+    propagated_nan_var2 =
+        ClimaAnalysis.propagate_nans(nan_var, dims = ("time", "lat"))
+    @test isequal(propagated_nan_var2.data, expected_data)
+
+    propagated_nan_var3 =
+        ClimaAnalysis.propagate_nans(nan_var, dims = ("lat", "time", "lon"))
+    @test all(isnan.(propagated_nan_var3.data))
+
+    # Error handling
+    @test_throws ErrorException ClimaAnalysis.propagate_nans(
+        nan_var,
+        dims = "no_dim",
+    )
+    @test_throws ErrorException ClimaAnalysis.propagate_nans(
+        nan_var,
+        dims = ("time", "t"),
+    )
+
+    # Test in-place version of propagate_nans
+    expected_data = copy(nan_var.data)
+    expected_data[:, 1, 1] .= NaN
+    expected_data[:, 3, 2] .= NaN
+    ClimaAnalysis.propagate_nans!(nan_var)
+    @test isequal(nan_var.data, expected_data)
+
+    expected_data[:, 1, :] .= NaN
+    expected_data[:, 3, :] .= NaN
+    ClimaAnalysis.propagate_nans!(nan_var, dims = ("lat", "time"))
+    @test isequal(nan_var.data, expected_data)
+end
+
 @testset "Concatenate OutputVars" begin
     # Initialize 3D OutputVar (lon, lat, time)
     times = Float64[

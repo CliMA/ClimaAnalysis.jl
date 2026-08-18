@@ -79,6 +79,8 @@ export OutputVar,
     set_reference_date!,
     replace,
     replace!,
+    propagate_nans,
+    propagate_nans!,
     reverse_dim,
     reverse_dim!,
     remake,
@@ -2844,6 +2846,52 @@ function Base.replace!(
     count::Integer = typemax(Int),
 )
     replace!(new, var.data, count = count)
+    return nothing
+end
+
+"""
+    propagate_nans(var::OutputVar; dims = ("time",))
+
+Propagate `NaN`s for slices over `dims` for `var`.
+
+If the data contains a `NaN` anywhere along a slice over `dims`, then the entire
+slice is filled with `NaN`s. For example, if `dims = "time"` is passed to
+`propagate_nans`, then any time slice of the resulting `OutputVar` will have
+NaNs at the same coordinates as any other time slices of resulting `OutputVar`.
+
+!!! note "Missing values"
+    If `missing` is in the data of `var`, then you should use [`replace`](@ref)
+    or [`replace!`](@ref) to replace `missing` values with `NaN`s. Note that
+    `missing` is preserved, since `missing * NaN == missing`.
+
+See also [`propagate_nans!`](@ref).
+"""
+function propagate_nans(var::OutputVar; dims = ("time",))
+    var = deepcopy(var)
+    propagate_nans!(var; dims)
+    return var
+end
+
+"""
+    propagate_nans!(var::OutputVar; dims = ("time",))
+
+In-place version of [`propagate_nans`](@ref).
+"""
+function propagate_nans!(var::OutputVar; dims = ("time",))
+    dims isa AbstractString && (dims = (dims,))
+    dim_names = collect(
+        find_corresponding_dim_name_in_var(dim_name, var) for dim_name in dims
+    )
+    allunique(dim_names) || error("Dimensions ($dim_names) must be unique")
+
+    dim_indices = Tuple(var.dim2index[dim_name] for dim_name in dim_names)
+
+    FT = nonmissingtype(eltype(var.data))
+    nan_mask = map(
+        contains_nan -> contains_nan ? FT(NaN) : one(FT),
+        any(x -> !ismissing(x) && isnan(x), var.data, dims = dim_indices),
+    )
+    var.data .*= nan_mask
     return nothing
 end
 
