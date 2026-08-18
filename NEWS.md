@@ -20,6 +20,19 @@ coastlines become `NaN`. Passing a value from 0 to 1 for `nan_threshold` fix
 this problem. For more information, see the section "How do I resample data
 that contains NaNs?" in the documentation.
 
+## Propagate NaNs
+
+With this release, you can use `propagate_nans` or `propagate_nans!` to fill
+slices over dimensions with `NaN`s whenever any other slice over the same
+dimensions contains a `NaN` at the same coordinates. This is useful when
+computing statistics over data whose `NaN`s vary between slices, such as
+observational data with missing measurements at different times.
+
+```julia
+# Every time slice of var_nans has NaNs at the same coordinates
+var_nans = ClimaAnalysis.propagate_nans(var, dims = "time")
+```
+
 ## Bug fixes
 
 - Fix a bug where `unflatten` did not work with `OutputVar`s with no dimensions.

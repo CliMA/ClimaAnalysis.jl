@@ -453,6 +453,49 @@ a `OutputVar` with 0.0. See the example below of this usage.
 var_no_nan_and_missing = replace(var, missing => 0.0, NaN => 0.0)
 ```
 
+## How do I make `NaN`s consistent across slices of a `OutputVar`?
+
+You can use [`propagate_nans`](@ref) or [`propagate_nans!`](@ref) to fill all
+slices of the `OutputVar` with `NaN`s whenever any other slice over the same
+dimensions contains a `NaN`. For example, if you pass `dims = "time"` to the
+function, then every time slice of the result has `NaN`s at the same
+coordinates. This is useful when you are computing statistics over data whose
+`NaN` vary between slices, such as observational data with missing measurements
+at different times.
+
+```@setup propagate_nans
+import ClimaAnalysis
+import ClimaAnalysis.Template:
+    TemplateVar,
+    add_attribs,
+    add_dim,
+    add_data,
+    initialize
+
+time = [0.0, 1.0, 2.0]
+lat = collect(range(-90.0, 90.0, 4))
+data = ones(length(time), length(lat))
+data[1, 2] = NaN
+data[3, 4] = NaN
+var =
+    TemplateVar() |>
+    add_dim("time", time, units = "s") |>
+    add_dim("lat", lat, units = "degrees_north") |>
+    add_attribs(short_name = "pr") |>
+    add_data(data = data) |>
+    initialize
+```
+
+In the example below, each row of `var.data` is a time slice. After calling
+`propagate_nans`, a column is entirely `NaN`s if any other slice at the same
+non-temporal coordinates contain a `NaN`.
+
+```@repl propagate_nans
+var.data
+var_nans = ClimaAnalysis.propagate_nans(var, dims = "time");
+var_nans.data
+```
+
 ## How do I reverse a dimension so that an interpolant can be made?
 
 You can use `reverse_dim` or `reverse_dim!` to reverse a dimension by name. See
