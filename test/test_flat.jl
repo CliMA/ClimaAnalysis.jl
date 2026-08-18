@@ -242,6 +242,43 @@ import ClimaAnalysis.Template:
     )
 end
 
+@testset "Flatten and unflatten OutputVar with no dimensions" begin
+    var =
+        TemplateVar() |>
+        add_attribs(short_name = "ts", units = "K") |>
+        add_data(data = fill(300.0)) |>
+        initialize
+
+    flat_var = ClimaAnalysis.flatten(var)
+    @test ClimaAnalysis.flatten_dim_order(flat_var) == ()
+    @test ClimaAnalysis.flattened_length(flat_var) == 1
+    @test flat_var.data == [300.0]
+    @test flat_var.metadata.attributes == var.attributes
+    @test flat_var.metadata.dims == var.dims
+    @test flat_var.metadata.dim_attributes == var.dim_attributes
+
+    unflatten_var = ClimaAnalysis.unflatten(flat_var)
+    @test unflatten_var.data == var.data
+    @test ndims(unflatten_var.data) == 0
+    @test unflatten_var.attributes == var.attributes
+    @test unflatten_var.dim_attributes == var.dim_attributes
+    @test unflatten_var.dims == var.dims
+
+    # Flatten with metadata
+    flat_var2 = ClimaAnalysis.flatten(var, flat_var.metadata)
+    @test flat_var2.data == flat_var.data
+
+    @test ClimaAnalysis.Var.arecompatible(flat_var.metadata, flat_var2.metadata)
+
+    # OutputVar with no dimensions whose data is NaN
+    nan_var = ClimaAnalysis.remake(var, data = fill(NaN))
+    flat_nan_var = ClimaAnalysis.flatten(nan_var)
+    @test ClimaAnalysis.flattened_length(flat_nan_var) == 0
+    unflatten_nan_var = ClimaAnalysis.unflatten(flat_nan_var)
+    @test isequal(unflatten_nan_var.data, nan_var.data)
+    @test ndims(unflatten_nan_var.data) == 0
+end
+
 @testset "Flatten with metadata" begin
     lat = [-90.0, -30.0, 30.0, 90.0]
     lon = [-60.0, -30.0, 0.0, 30.0, 60.0]
