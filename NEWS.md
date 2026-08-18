@@ -20,6 +20,10 @@ coastlines become `NaN`. Passing a value from 0 to 1 for `nan_threshold` fix
 this problem. For more information, see the section "How do I resample data
 that contains NaNs?" in the documentation.
 
+## Bug fixes
+
+- Fix a bug where `unflatten` did not work with `OutputVar`s with no dimensions.
+
 v0.5.23
 -------
 

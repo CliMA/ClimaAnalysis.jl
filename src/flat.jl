@@ -247,10 +247,15 @@ function unflatten(metadata::Metadata, data::AbstractVector)
         dim_name => index for
         (index, dim_name) in enumerate(keys(metadata.dims))
     )
+    # Pass Int to collect since invperm does not work with vector whose eltype
+    # is Any
     perm = invperm(
-        collect(dim2index[dim_name] for dim_name in metadata.ordered_dims),
+        collect(Int, dim2index[dim_name] for dim_name in metadata.ordered_dims),
     )
-    data = permutedims(unflattened_data, perm)
+    # permutedims errors on 0-dim arrays on Julia 1.10
+    data =
+        ndims(unflattened_data) == 0 ? copy(unflattened_data) :
+        permutedims(unflattened_data, perm)
 
     return OutputVar(
         deepcopy(metadata.attributes),
