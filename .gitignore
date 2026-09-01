@@ -22,3 +22,6 @@ docs/site/
 # committed for packages, but should be committed for applications that require a static
 # environment.
 Manifest.toml
+
+# Large example NetCDF files - regenerate with aux_coord_examples/generate_examples.jl
+aux_coord_examples/*.nc

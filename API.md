@@ -382,3 +382,7 @@ Tier A–C backlog items (`indices`, `groupby`, `sort`, `shift_longitude`,
 `in`, DimensionalData interop, `dims_mismatch_message`) are
 optional, not scope commitments — see the Extended API backlog in
 GRID_DESIGN.md.
+
+## Other thoughts
+- `subgrid` function? I am not sure what this would be but I got reminded of it
+  by looking at `subset`
