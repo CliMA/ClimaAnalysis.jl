@@ -1,0 +1,144 @@
+
+────────────────────────────────────────────────────────────────────────
+▶ 1. Load ta_with_topography.nc — discovery chain in action
+────────────────────────────────────────────────────────────────────────
+  [discovery] promoting 'z_physical' as auxiliary coordinate (name convention)
+  [discovery] skipping 'time_bnds': bounds variable
+  [discovery] promoting 'date' as auxiliary coordinate (coordinate-like units)
+  [discovery] skipping 'date_bnds': bounds variable
+Var (1, 36, 18, 10) ::Float64
+  dimension coordinates:
+    time             1  0.0 … 0.0                         s
+    lon             36  -180.0 … 180.0                    degrees_east
+    lat             18  -90.0 … 90.0                      degrees_north
+    z_reference     10  500.0 … 9500.0                    m
+  auxiliary coordinates:
+    z_physical    spans ("lon", "lat", "z_reference")   size (36, 18, 10)  m
+    date          spans ("time",)                       size (1,)  seconds since 2010-01-01T00:00:00
+  ✓ axes are the 4 data dims
+  ✓ z_physical promoted (name convention — no CF link in file)
+  ✓ date promoted as 1D aux coord over time
+  ✓ z_physical spans 3 axes
+
+────────────────────────────────────────────────────────────────────────
+▶ 2. Load rasm.nc — curvilinear grid, bare index dims
+────────────────────────────────────────────────────────────────────────
+  [discovery] promoting 'xc' as auxiliary coordinate (CF coordinates attribute)
+  [discovery] promoting 'yc' as auxiliary coordinate (CF coordinates attribute)
+Var (275, 205, 36) ::Union{Missing, Float64}
+  dimension coordinates:
+    x              275  1 … 275                           
+    y              205  1 … 205                           
+    time            36  DateTimeNoLeap(1980-09-16T00:00:00) … DateTimeNoLeap(1983-08-16T12:00:00.000000000002398081)days since 0001-01-01
+  auxiliary coordinates:
+    xc            spans ("x", "y")                      size (275, 205)  degrees_east
+    yc            spans ("x", "y")                      size (275, 205)  degrees_north
+  ✓ xc/yc are 2D aux coords over (x, y)
+  ✓ x is a bare index axis (no coordinate variable in file)
+
+────────────────────────────────────────────────────────────────────────
+▶ 3. Generic coordinate lookup: one contract for 1D and N-D coords
+────────────────────────────────────────────────────────────────────────
+  at index (1, 10, 5, 2): lon = -87.42857142857143, lat = -47.64705882352941,
+  z_reference = 1500.0 (nominal level) vs z_physical = 2960.8 (terrain-warped)
+  ✓ terrain lifts the physical altitude above the nominal level
+  ✓ ta.data == coordinate_field(ta, "z_physical") exactly (file ground truth)
+
+────────────────────────────────────────────────────────────────────────
+▶ 4. Subsetting: aux coords follow the axes they span
+────────────────────────────────────────────────────────────────────────
+  ✓ data windowed
+  ✓ z_physical windowed along its shared axes (lon, z_reference)
+  ✓ …with exactly the right slab
+  ✓ integer index dropped lat axis
+  ✓ z_physical lost the lat axis: 3D → 2D
+  ✓ data/coordinate correspondence survives
+  ✓ dropping every spanned axis leaves a scalar coordinate (xc = 118.33)
+
+────────────────────────────────────────────────────────────────────────
+▶ 5. Value-based slice: works on dimension coords, guarded on aux coords
+────────────────────────────────────────────────────────────────────────
+  slice(ta; lon = -87.0, z_reference = 3100.0) → lon = -87.42857142857143, z_reference = 3500.0
+  ✓ sliced axes dropped
+  ✓ sliced values survive as scalar coordinates (vs today's attributes["slice_lon"] hack)
+  ✓ z_physical reduced to the surviving lat axis
+  slice(ta; z_physical = 3000.0) →
+    ERROR: cannot slice by 'z_physical': it spans ("lon", "lat", "z_reference"), not just itself. Use nearest_point (curvilinear) or interp_to_coord_levels (terrain-following) instead.
+  ✓ aux-coord slicing rejected with an actionable message
+
+────────────────────────────────────────────────────────────────────────
+▶ 6. Reductions: aux coords spanning a reduced axis are dropped
+────────────────────────────────────────────────────────────────────────
+  [reduce] dropping auxiliary coordinate(s) date: spanned a reduced axis
+  ✓ averaging over time drops date (spans time) but keeps z_physical (doesn't)
+  [reduce] dropping auxiliary coordinate(s) z_physical: spanned a reduced axis
+  ✓ averaging over lon/lat drops z_physical (spanned a reduced axis)
+  ✓ reduced data shape correct
+
+────────────────────────────────────────────────────────────────────────
+▶ 7. permutedims: aux coordinate arrays are untouched
+────────────────────────────────────────────────────────────────────────
+  ✓ data permuted
+  ✓ z_physical array is the identical object (spans carry its own axis order)
+  ✓ coordvalue agrees across the permutation
+
+────────────────────────────────────────────────────────────────────────
+▶ 8. cat along an axis an aux coord spans
+────────────────────────────────────────────────────────────────────────
+  ✓ data reassembled
+  ✓ z_physical reassembled by concatenating along ITS OWN matching axis
+  ✓ cat refuses two vars with different terrain (aux coord mismatch off the cat axis)
+  ✓ cat along time: z_physical NOT duplicated (doesn't span time), date concatenated
+
+────────────────────────────────────────────────────────────────────────
+▶ 9. interp_to_coord_levels: terrain-following → fixed physical altitudes
+────────────────────────────────────────────────────────────────────────
+Var (1, 36, 18, 3) ::Float64
+  dimension coordinates:
+    time             1  0.0 … 0.0                         s
+    lon             36  -180.0 … 180.0                    degrees_east
+    lat             18  -90.0 … 90.0                      degrees_north
+    z_physical       3  2000.0 … 8000.0                   m
+  auxiliary coordinates:
+    date          spans ("time",)                       size (1,)  seconds since 2010-01-01T00:00:00
+  ✓ z_reference axis replaced by a real z_physical dimension coordinate
+  ✓ the 3D aux coord was consumed
+  level 2000.0 m: max |error| = 0.0, NaN columns = 316 (columns whose terrain starts above target: 316)
+  ✓ interpolated values equal the target altitude (2000.0 m)
+  ✓ NaNs exactly where the column starts above 2000.0 m
+  level 5000.0 m: max |error| = 0.0, NaN columns = 0 (columns whose terrain starts above target: 0)
+  ✓ interpolated values equal the target altitude (5000.0 m)
+  ✓ NaNs exactly where the column starts above 5000.0 m
+  level 8000.0 m: max |error| = 0.0, NaN columns = 0 (columns whose terrain starts above target: 0)
+  ✓ interpolated values equal the target altitude (8000.0 m)
+  ✓ NaNs exactly where the column starts above 8000.0 m
+
+────────────────────────────────────────────────────────────────────────
+▶ 10. Curvilinear rasm: nearest-point lookup on 2D coords
+────────────────────────────────────────────────────────────────────────
+  nearest to (lon 118.33, lat 57.19): cell (100, 150), xc = 118.33, yc = 57.19, Tair[time=3] = -11.54
+  ✓ probe lands on cell (x=100, y=150) — real-file geometry, preserved by the generator
+  ✓ subset at the nearest cell carries exactly that cell's coords and data
+
+────────────────────────────────────────────────────────────────────────
+▶ 11. Curvilinear rasm: 2D-coordinate-weighted reduction
+────────────────────────────────────────────────────────────────────────
+  [reduce] dropping auxiliary coordinate(s) xc, yc: spanned a reduced axis
+  ✓ area-weighted mean over the curvilinear plane (xc/yc consumed and dropped)
+  cos(lat)-weighted mean Tair, first 3 months: -8.66, -10.27, -8.66 °C
+  ✓ values are physically sensible
+  ✓ curvilinear window: 2D coords windowed with the data
+
+────────────────────────────────────────────────────────────────────────
+▶ 12. Discovery guard: sibling data variable is NOT promoted
+────────────────────────────────────────────────────────────────────────
+  [discovery] promoting 'z_physical' as auxiliary coordinate (name convention)
+  [discovery] skipping 'time_bnds': bounds variable
+  [discovery] promoting 'date' as auxiliary coordinate (coordinate-like units)
+  [discovery] skipping 'date_bnds': bounds variable
+  [discovery] NOT promoting 'tb': dims ⊆ var dims but no coordinate signal (a greedy subset-only rule would have taken it)
+  ✓ tb (dims ⊆ ta dims!) rejected; z_physical still promoted — the chain, not the subset rule, decides
+
+════════════════════════════════════════════════════════════════════════
+  43 checks passed, 0 failed
+════════════════════════════════════════════════════════════════════════
