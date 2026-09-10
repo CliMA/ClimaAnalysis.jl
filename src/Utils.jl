@@ -651,6 +651,6 @@ have default keyword arguments.
 
 See: https://discourse.julialang.org/t/multi-layer-dict-merge/27261/6
 """
-_recursive_merge(x::AbstractDict...) = merge(_recursive_merge, x...)
+_recursive_merge(x::AbstractDict...) = mergewith(_recursive_merge, x...)
 _recursive_merge(x...) = x[end]
 end
