@@ -40,6 +40,7 @@ Var.long_name
 Var.dim_names
 Var.units
 Var.has_units
+Var.is_missing_units
 Var.remake
 Base.dropdims
 Var.slice
@@ -83,6 +84,7 @@ Var.conventional_dim_name
 Var.find_corresponding_dim_name
 Var.find_corresponding_dim_name_in_var
 Var.dim_units
+Var.is_missing_dim_units
 Var.range_dim
 Base.permutedims(var::OutputVar, perm)
 Var.reordered_as

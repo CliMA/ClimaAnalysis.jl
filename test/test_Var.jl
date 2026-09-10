@@ -1227,10 +1227,18 @@ end
     @test ClimaAnalysis.dim_units(var, "y") == ""
     @test ClimaAnalysis.dim_units(var, "time") == "seconds"
     @test ClimaAnalysis.dim_units(var, "x") == "km"
+    @test ClimaAnalysis.is_missing_dim_units(var, "y")
+    @test !ClimaAnalysis.is_missing_dim_units(var, "time")
+    @test !ClimaAnalysis.is_missing_dim_units(var, "x")
+    ClimaAnalysis.set_dim_units!(var, "x", "")
+    @test ClimaAnalysis.is_missing_dim_units(var, "x")
     @test ClimaAnalysis.range_dim(var, "x") == (0.0, 180.0)
     @test_throws ErrorException(
         "Var does not have dimension z, found [\"time\", \"x\", \"y\"]",
     ) ClimaAnalysis.dim_units(var, "z")
+    @test_throws ErrorException(
+        "Var does not have dimension z, found [\"time\", \"x\", \"y\"]",
+    ) ClimaAnalysis.is_missing_dim_units(var, "z")
     @test_throws ErrorException(
         "Var does not have dimension z, found [\"time\", \"x\", \"y\"]",
     ) ClimaAnalysis.range_dim(var, "z")
@@ -2336,6 +2344,9 @@ end
     )
 
     @test ClimaAnalysis.has_units(var_with_unitful)
+    @test !ClimaAnalysis.is_missing_units(var_with_unitful)
+    @test ClimaAnalysis.is_missing_units(var_without_unitful)
+    @test ClimaAnalysis.is_missing_units(var_empty_unit)
 
     # Convert to cm/s
     var_unitful_in_cms = ClimaAnalysis.convert_units(var_with_unitful, "cm/s")

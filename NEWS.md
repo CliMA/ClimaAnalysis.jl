@@ -33,6 +33,17 @@ observational data with missing measurements at different times.
 var_nans = ClimaAnalysis.propagate_nans(var, dims = "time")
 ```
 
+## Check for missing units
+
+The functions `is_missing_units` and `is_missing_dim_units` return whether the
+units of the data or of a dimension are missing. Units are considered missing
+when the `units` attribute is absent or is an empty string.
+
+```julia
+ClimaAnalysis.is_missing_units(var)
+ClimaAnalysis.is_missing_dim_units(var, "lon")
+```
+
 ## Bug fixes
 
 - Fix a bug where `unflatten` did not work with `OutputVar`s with no dimensions.

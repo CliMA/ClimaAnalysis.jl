@@ -173,7 +173,8 @@ function flatten(var::OutputVar, metadata::Metadata)
         var_dim_units == md_dim_units || error(
             "Units of $var_dim_name in var ($var_dim_units) is not the same as the units of $md_dim_name in metadata",
         )
-        if var_dim_units == "" || md_dim_units == ""
+        if is_missing_dim_units(var, var_dim_name) ||
+           is_missing_dim_units(metadata, md_dim_name)
             @warn(
                 "Units for $(conventional_dim_name(var_dim_name)) is missing in var or metadata"
             )
@@ -333,9 +334,9 @@ function arecompatible(x::Metadata, y::Metadata; ignore_dims = ())
         x_dim_units == y_dim_units || return false
 
         # Warn if dimension units are empty
-        isempty(x_dim_units) &&
+        is_missing_dim_units(x, x_dim_name) &&
             @warn "Missing units for dimension $x_dim_name in FlatVar/Metadata with short name $(short_name(x))"
-        isempty(y_dim_units) &&
+        is_missing_dim_units(y, y_dim_name) &&
             @warn "Missing units for dimension $y_dim_name in FlatVar/Metadata with short name $(short_name(y))"
     end
 
