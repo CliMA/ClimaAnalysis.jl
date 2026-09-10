@@ -150,13 +150,8 @@ function find_units_for_binary(
     x_var::OutputVar,
     y_var::OutputVar,
 )
-    x_units = units(x_var)
-    y_units = units(y_var)
-    # Empty string is considered missing units
-    if x_units == "" || y_units == ""
-        return ""
-    end
-    return "($x_units) $f ($y_units)"
+    (is_missing_units(x_var) || is_missing_units(y_var)) && return ""
+    return "($(units(x_var))) $f ($(units(y_var)))"
 end
 
 @overload_binary_op (+)

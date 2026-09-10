@@ -52,6 +52,8 @@ export OutputVar,
     reordered_as,
     resampled_as,
     has_units,
+    is_missing_units,
+    is_missing_dim_units,
     convert_units,
     convert_dim_units,
     integrate_lonlat,
@@ -538,6 +540,19 @@ Return whether the given `var` has `units` or not.
 """
 function has_units(var::HasDimAndAttribs)
     return haskey(var.attributes, "units")
+end
+
+"""
+    is_missing_units(var::OutputVar)
+
+Return whether `var` is missing `units` for its data.
+
+Units are missing if the `units` attribute is absent or is an empty string.
+
+See also [`Var.is_missing_dim_units`](@ref).
+"""
+function is_missing_units(var::HasDimAndAttribs)
+    return isempty(units(var))
 end
 
 # Implemented in ClimaAnalysisUnitfulExt
@@ -1142,6 +1157,20 @@ function dim_units(var::HasDimAndAttribs, dim_name)
 end
 
 """
+    is_missing_dim_units(var::OutputVar, dim_name)
+
+Return whether `var` is missing `units` for the dimension `dim_name`.
+
+Units are missing if the `units` attribute of the dimension is absent or is an
+empty string.
+
+See also [`Var.is_missing_units`](@ref).
+"""
+function is_missing_dim_units(var::HasDimAndAttribs, dim_name)
+    return isempty(dim_units(var, dim_name))
+end
+
+"""
     range_dim(var::OutputVar, dim_name)
 
 Return the range of the dimension `dim_name` in `var`.
@@ -1449,8 +1478,10 @@ function arecompatible(x::OutputVar, y::OutputVar)
 
 
     for (x_dim, x_unit, y_dim, y_unit) in zip(x_dims, x_units, y_dims, y_units)
-        x_unit == "" && @warn "Missing units for dimension $x_dim in x"
-        y_unit == "" && @warn "Missing units for dimension $y_dim in y"
+        is_missing_dim_units(x, x_dim) &&
+            @warn "Missing units for dimension $x_dim in x"
+        is_missing_dim_units(y, y_dim) &&
+            @warn "Missing units for dimension $y_dim in y"
         x_unit != y_unit && return false
     end
     x_dims_conventional_names != y_dims_conventional_names && return false
@@ -1525,9 +1556,11 @@ function _check_dims_consistent(x::OutputVar, y::OutputVar; dim_names = nothing)
     x_units = [dim_units(x, dim_name) for dim_name in x_dim_names_reordered]
     y_units = [dim_units(y, dim_name) for dim_name in y_dim_names_reordered]
 
-    # Check for any missing units (missing units are represented with an empty string)
-    missing_x = (x_units .== "")
-    missing_y = (y_units .== "")
+    # Check for any missing units
+    missing_x =
+        [is_missing_dim_units(x, name) for name in x_dim_names_reordered]
+    missing_y =
+        [is_missing_dim_units(y, name) for name in y_dim_names_reordered]
     (any(missing_x) && any(missing_y)) && error(
         "Units for dimensions $(x_dim_names_reordered[missing_x]) are missing in x and units for dimensions $(y_dim_names_reordered[missing_y]) are missing in y",
     )
@@ -2303,11 +2336,10 @@ function _check_sim_obs_units_consistent(
         "There are not only $num_dim dimensions in sim ($sim_num_dims) or obs ($obs_num_dims).",
     )
 
-    # Check units for data is not missing
+    is_missing_units(sim) && error("Unit is missing in data for sim")
+    is_missing_units(obs) && error("Unit is missing in data for obs")
     sim_data_units = units(sim)
     obs_data_units = units(obs)
-    sim_data_units == "" && error("Unit is missing in data for sim")
-    obs_data_units == "" && error("Unit is missing in data for obs")
 
     # Check if units of data match between sim and obs
     sim_data_units == obs_data_units || error(
