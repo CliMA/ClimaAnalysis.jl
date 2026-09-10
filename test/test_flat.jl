@@ -637,6 +637,8 @@ end
     @test ClimaAnalysis.has_units(flat_var)
     @test ClimaAnalysis.units(flat_var) == "idk"
     @test ClimaAnalysis.dim_units(flat_var, "lon") == "degrees_east"
+    @test !ClimaAnalysis.is_missing_units(flat_var)
+    @test !ClimaAnalysis.is_missing_dim_units(flat_var, "lon")
     @test ClimaAnalysis.short_name(flat_var) == "hi"
     @test ClimaAnalysis.long_name(flat_var) == "hello"
 
@@ -657,6 +659,8 @@ end
     @test ClimaAnalysis.has_units(metadata)
     @test ClimaAnalysis.units(metadata) == "idk"
     @test ClimaAnalysis.dim_units(metadata, "lon") == "degrees_east"
+    @test !ClimaAnalysis.is_missing_units(metadata)
+    @test !ClimaAnalysis.is_missing_dim_units(metadata, "lon")
     @test ClimaAnalysis.short_name(metadata) == "hi"
     @test ClimaAnalysis.long_name(metadata) == "hello"
 end
