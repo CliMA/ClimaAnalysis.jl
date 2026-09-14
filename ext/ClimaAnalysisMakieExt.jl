@@ -993,8 +993,9 @@ end
         dim_units = ClimaAnalysis.dim_units(var, xlabel)
         var_units = ClimaAnalysis.units(var)
 
-        isempty(dim_units) || (xlabel *= " ($dim_units)")
-        isempty(var_units) || (ylabel *= " ($var_units)")
+        ClimaAnalysis.is_missing_dim_units(var, xlabel) ||
+            (xlabel *= " ($dim_units)")
+        ClimaAnalysis.is_missing_units(var) || (ylabel *= " ($var_units)")
 
         return (; title, ylabel, xlabel)
     end
@@ -1028,9 +1029,11 @@ end
         first_dim_units = ClimaAnalysis.dim_units(var, xlabel)
         second_dim_units = ClimaAnalysis.dim_units(var, ylabel)
 
-        isempty(var_units) || (title *= " ($var_units)")
-        isempty(first_dim_units) || (xlabel *= " ($first_dim_units)")
-        isempty(second_dim_units) || (ylabel *= " ($second_dim_units)")
+        ClimaAnalysis.is_missing_units(var) || (title *= " ($var_units)")
+        ClimaAnalysis.is_missing_dim_units(var, xlabel) ||
+            (xlabel *= " ($first_dim_units)")
+        ClimaAnalysis.is_missing_dim_units(var, ylabel) ||
+            (ylabel *= " ($second_dim_units)")
 
         return (; title, xlabel, ylabel)
     end
