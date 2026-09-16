@@ -71,10 +71,32 @@ end
 
     simdir = ClimaAnalysis.SimDir(simulation_path)
 
-    @test sprint(show, simdir) ==
-          "Output directory: " *
-          simulation_path *
-          "\nVariables:\n- va\n    average (2.0h)\n- pfull\n    inst (1.0d)\n- ua\n    average (6.0h)\n- orog\n    inst (nothing)\n- thetaa\n    average (1d)\n- ta\n    average (3.0h)\n    max (4.0h, 3.0h)\n    min (3.0h)\n- ts\n    max (1.0h)"
+    # Dict iteration order varies across Julia versions, so compare the lines of
+    # each variable block as sets. The two periods of ta max can also come in
+    # either order, so both are listed
+    header, blocks... = split(sprint(show, simdir), "\n- ")
+    @test header == "Output directory: $simulation_path\nVariables:"
+    @test length(blocks) == 7
+    @test Set(Set(split(block, "\n")) for block in blocks) ⊆ Set([
+        Set(["va", "    average (2.0h)"]),
+        Set(["pfull", "    inst (1.0d)"]),
+        Set(["ua", "    average (6.0h)"]),
+        Set(["orog", "    inst (nothing)"]),
+        Set(["thetaa", "    average (1d)"]),
+        Set([
+            "ta",
+            "    average (3.0h)",
+            "    max (4.0h, 3.0h)",
+            "    min (3.0h)",
+        ]),
+        Set([
+            "ta",
+            "    average (3.0h)",
+            "    max (3.0h, 4.0h)",
+            "    min (3.0h)",
+        ]),
+        Set(["ts", "    max (1.0h)"]),
+    ])
     @test sprint(summary, simdir) == sprint(show, simdir)
 
     # Empty simdir
