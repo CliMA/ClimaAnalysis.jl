@@ -3,6 +3,9 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+v0.5.24
+-------
+
 ## NaN-aware resampling
 
 The `resampled_as` functions now accept the keyword argument `nan_threshold`
