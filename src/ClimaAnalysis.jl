@@ -6,6 +6,8 @@ import .Utils
 
 include("Numerics.jl")
 
+include("Grids.jl")
+
 include("Var.jl")
 @reexport using .Var
 include("Sim.jl")

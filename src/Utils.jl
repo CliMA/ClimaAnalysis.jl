@@ -486,9 +486,10 @@ function find_season_and_year(date::Dates.DateTime)
 end
 
 """
-    _isequispaced(arr::Vector)
+    _isequispaced(arr::AbstractVector)
 
-Return whether the array is equispaced or not.
+Return whether the array is equispaced or not. Arrays with fewer than two elements are
+equispaced.
 
 Examples
 =========
@@ -501,7 +502,8 @@ julia> Utils._isequispaced([0.0, 2.0, 3.0])
 false
 ```
 """
-function _isequispaced(arr::Vector)
+function _isequispaced(arr::AbstractVector)
+    length(arr) < 2 && return true
     return all(diff(arr) .≈ arr[begin + 1] - arr[begin])
 end
 

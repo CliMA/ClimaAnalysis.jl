@@ -1,4 +1,5 @@
 import ClimaAnalysis
+import ..Grids: AbstractSelector, NearestValue, MatchValue, Index
 
 export slice,
     window,
@@ -9,65 +10,6 @@ export slice,
     Index,
     AbstractSelector,
     get_index
-
-"""
-    AbstractSelector
-
-An object that determines which indices are selected.
-
-`AbstractSelector`s have to provide one function, `get_index`
-
-The function has to have the signature
-`get_index(var, dim_name, idx_or_val, ::AbstractSelector)` and return a single index. You
-can assume that `dim_name` is in `ClimaAnalysis.dim_names(var)`.
-
-The function `get_index` is used by [`slice`](@ref) and [`window`](@ref). For instance, if
-you use `ClimaAnalysis.slice(var, time = 2)`, then `dim_name` is `time`, and `idx_or_val` is
-`2`.
-
-For example, to implement an `AbstractSelector` that always take the first index of the
-dimension regardless of the value or index passed in, you can write the following:
-
-```julia
-struct FirstIndex <: ClimaAnalysis.AbstractSelector end
-
-function ClimaAnalysis.get_index(var, dim_name, idx_or_val, ::FirstIndex)
-    return 1
-end
-
-# Get the first time slice of var. The parameter 10 does not do anything.
-ClimaAnalysis.slice(var, time = 10, by = FirstIndex())
-```
-"""
-abstract type AbstractSelector end
-
-"""
-    NearestValue
-
-Get the index of the nearest value.
-
-If the dimension is not one dimesional, then an error is thrown.
-"""
-struct NearestValue <: AbstractSelector end
-
-"""
-    MatchValue
-
-Get the index of the approximately matched value.
-
-If the value does not exist, or the dimension is not one-dimensional, then an error is
-thrown.
-"""
-struct MatchValue <: AbstractSelector end
-
-"""
-    Index
-
-Select the index in the dimension.
-
-If the index is out of bounds, then an error is thrown.
-"""
-struct Index <: AbstractSelector end
 
 """
     _slice_general(var, val, dim_name, by)
