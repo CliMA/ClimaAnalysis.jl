@@ -1,11 +1,3 @@
-# Customize these variables to allow other names
-const LONGITUDE_NAMES = ["long", "lon", "longitude"]
-const LATITUDE_NAMES = ["lat", "latitude"]
-const TIME_NAMES = ["t", "time", "valid_time"]
-const DATE_NAMES = ["date"]
-const ALTITUDE_NAMES = ["z", "z_reference", "z_physical", "height"]
-const PRESSURE_NAMES = ["pfull", "pressure_level"]
-
 export times,
     dates,
     longitudes,
@@ -219,22 +211,6 @@ pressure_name(var::HasDimAndAttribs) =
 Return the `pressure` dimension in `var`.
 """
 pressures(var::HasDimAndAttribs) = var.dims[pressure_name(var)]
-
-"""
-    conventional_dim_name(dim_name::AbstractString)
-
-Return the type of dimension as a string from longitude, latitude, time, date, altitude, or
-pressure if possible or `dim_name` as a string otherwise.
-"""
-function conventional_dim_name(dim_name::AbstractString)
-    dim_name in LONGITUDE_NAMES && return "longitude"
-    dim_name in LATITUDE_NAMES && return "latitude"
-    dim_name in TIME_NAMES && return "time"
-    dim_name in DATE_NAMES && return "date"
-    dim_name in ALTITUDE_NAMES && return "altitude"
-    dim_name in PRESSURE_NAMES && return "pressure"
-    return dim_name
-end
 
 """
     find_corresponding_dim_name(dim_name::AbstractString, dim_names::Iterable)
