@@ -169,7 +169,7 @@ end
 
 function Base.getindex(dim::Dim, ind::Integer)
     error(
-        "Indexing dimension $(name(dim)) with an integer would remove it; use coord_values(dim)[$ind] for the value",
+        "Indexing dimension $(name(dim)) with an integer is not allowed",
     )
 end
 

@@ -93,8 +93,8 @@ function select_indices(
         _selector_indices(grid, by, dim_name, indices_or_vals) for
         (dim_name, indices_or_vals) in zip(selected_dim_names, values(inds))
     ]
-    return ntuple(length(grid.dims)) do i
-        j = findfirst(==(grid.dims[i].name), selected_dim_names)
+    return map(grid.dims) do dim
+        j = findfirst(==(name(dim)), selected_dim_names)
         isnothing(j) ? Colon() : selected_indices[j]
     end
 end

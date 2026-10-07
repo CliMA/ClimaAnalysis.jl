@@ -30,8 +30,8 @@ end
 
 function Grid(dims::Dim...; aux_coords = ())
     aux_coords = Tuple(aux_coords)
-    dim_names_of_grid = Tuple(name(dim) for dim in dims)
-    aux_coord_names_of_grid = Tuple(name(aux_coord) for aux_coord in aux_coords)
+    dim_names_of_grid = map(name, dims)
+    aux_coord_names_of_grid = map(name, aux_coords)
 
     # Check coordinate names are all different
     coord_names = (dim_names_of_grid..., aux_coord_names_of_grid...)
@@ -114,11 +114,11 @@ function _find_coord(coords, name)
 end
 
 function dim_names(grid::Grid)
-    return Tuple(dim.name for dim in grid.dims)
+    return map(name, grid.dims)
 end
 
 function aux_coord_names(grid::Grid)
-    return Tuple(aux_coord.name for aux_coord in grid.aux_coords)
+    return map(name, grid.aux_coords)
 end
 
 function dim_index(grid::Grid, name)
