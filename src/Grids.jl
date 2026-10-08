@@ -9,7 +9,8 @@ import ..Utils: nearest_index, date_to_time, _isequispaced
 export AbstractCoordinate, Dim, AuxCoord, AbstractGrid, Grid
 export AbstractSelector, NearestValue, MatchValue, Index
 export dim, aux_coord, coordinate, dim_names, aux_coord_names, dim_index
-export hasdim, is_z_1D, reference_date, calendar
+export has_dim, has_aux_coord, has_coord
+export is_z_1D, reference_date, calendar
 export has_time, has_date, has_longitude, has_latitude, has_altitude
 export has_pressure
 export time_name, longitude_name, latitude_name, altitude_name, pressure_name
@@ -135,18 +136,15 @@ function dim_index(grid::Grid, name)
     )
 end
 
-function hasdim(grid::Grid, name)
-    (; dims) = grid
-    name = conventional_dim_name(name)
-    for dim in dims
-        if conventional_dim_name(dim.name) == name
-            return true
-        end
-    end
-    return false
+function has_dim(grid::Grid, name)
+    return !isnothing(_find_coord(grid.dims, name))
 end
 
-function Base.haskey(grid::Grid, name)
+function has_aux_coord(grid::Grid, name)
+    return !isnothing(_find_coord(grid.aux_coords, name))
+end
+
+function has_coord(grid::Grid, name)
     return !isnothing(_find_coord((grid.dims..., grid.aux_coords...), name))
 end
 
@@ -182,7 +180,7 @@ end
 # TODO: This is wrong since CF conventions said that we identify
 # dimensions by their units and not their names
 function has_time(grid::Grid)
-    return hasdim(grid, "time")
+    return has_dim(grid, "time")
 end
 
 function has_date(grid::Grid)
@@ -191,19 +189,19 @@ function has_date(grid::Grid)
 end
 
 function has_longitude(grid::Grid)
-    return hasdim(grid, "longitude")
+    return has_dim(grid, "longitude")
 end
 
 function has_latitude(grid::Grid)
-    return hasdim(grid, "latitude")
+    return has_dim(grid, "latitude")
 end
 
 function has_altitude(grid::Grid)
-    return hasdim(grid, "altitude")
+    return has_dim(grid, "altitude")
 end
 
 function has_pressure(grid::Grid)
-    return hasdim(grid, "pressure")
+    return has_dim(grid, "pressure")
 end
 
 function time_name(grid::Grid)
