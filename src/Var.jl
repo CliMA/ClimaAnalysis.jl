@@ -2814,10 +2814,11 @@ function set_reference_date!(var::OutputVar, reference_date)
 end
 
 """
-    replace(var::OutputVar, old_new::Pair...)
+    replace(var::OutputVar, old_new::Pair...; [count::Integer])
 
-Return a `OutputVar` where, for each pair `old  => new`, all occurences of `old` are
-replaced by `new` in `var.data`
+Return an `OutputVar` where, for each pair `old => new`, all occurrences of `old` are
+replaced by `new` in `var.data`. If `count` is specified, then replace at most `count`
+values in total.
 
 This function is useful if there are `NaN`s or `missing` values in the data. For instance,
 you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
@@ -2835,8 +2836,9 @@ end
 """
     replace!(var::OutputVar, old_new::Pair...; [count::Integer])
 
-For each pair `old  => new`, all occurences of `old` are replaced by `new` in
-`var.data`. See [`replace`](@ref).
+For each pair `old => new`, all occurrences of `old` are replaced by `new` in
+`var.data`. If `count` is specified, then replace at most `count` values in total. See
+[`replace`](@ref).
 
 This function is useful if there are `NaN`s or `missing` values in the data. For instance,
 you want to use the ocean mask, but there are `NaN`s in the ocean. You can replace all the
@@ -2852,10 +2854,10 @@ function Base.replace!(
 end
 
 """
-    replace!(new::Union{Function, Type}, var::OutputVar; [count::Integer])
+    replace(new::Union{Function, Type}, var::OutputVar; [count::Integer])
 
-Return a new `OutputVar where each value of `var.data` is replaced by `new(x)`. If `count`
-is specified, then replace at most `count` values in total.
+Return a new `OutputVar` where each value `x` of `var.data` is replaced by `new(x)`. If
+`count` is specified, then replace at most `count` values in total.
 """
 function Base.replace(
     new::Union{Function, Type},
@@ -2869,8 +2871,8 @@ end
 """
     replace!(new::Union{Function, Type}, var::OutputVar; [count::Integer])
 
-Return each value of `var.data` by `new(x)`. If `count` is specified, then replace at most
-`count` values in total.
+Replace each value `x` of `var.data` by `new(x)`. If `count` is specified, then replace at
+most `count` values in total.
 """
 function Base.replace!(
     new::Union{Function, Type},
