@@ -168,9 +168,7 @@ function Base.getindex(dim::Dim, ind::Union{AbstractVector, Colon})
 end
 
 function Base.getindex(dim::Dim, ind::Integer)
-    error(
-        "Indexing dimension $(name(dim)) with an integer is not allowed",
-    )
+    error("Indexing dimension $(name(dim)) with an integer is not allowed")
 end
 
 function Base.getindex(aux_coord::AuxCoord, inds...)
