@@ -1,6 +1,7 @@
 module Grids
 
 import NCDatasets: CFTime
+import NCDatasets
 import Dates
 import ..Utils: nearest_index, _isequispaced
 
@@ -71,7 +72,99 @@ function calendar(grid::Grid)
 end
 
 # TODO: Implement this
-function read_grid() end
+
+function read_grid(path::String, short_name)
+    return NCDatasets.NCDataset(path) do nc
+        read_grid(nc, short_name)
+    end
+end
+
+"""
+    read_grid(nc::NCDatasets.NCDataset, short_name)
+
+Create a `Grid` from the variable with the name `short_name` in the NetCDF
+dataset `nc`.
+
+This function does not close `nc`.
+"""
+function read_grid(nc::NCDatasets.NCDataset, short_name)
+    # We will not try to automatically determine the short name here since this
+    # function will be called by the OutputVar constructor
+    haskey(nc, short_name) ||
+        error("Variable $short_name is not available in the NetCDF file")
+
+    dim_names = NCDatasets.dimnames(nc[short_name])
+    dims = map(dim_names) do dim_name
+        # TODO: Check the line below since I haven't seen it and maybe it is
+        # mentioend in the CF conventions?
+        # A dimension without a coordinate variable becomes an index axis
+        haskey(nc, dim_name) ||
+            return Dim(dim_name, collect(1:nc.dim[dim_name]))
+        variable = nc[dim_name]
+        dim_attribs = Dict{String, Any}(variable.attrib)
+        units = pop!(dim_attribs, "units", "")
+        bounds_name = pop!(dim_attribs, "bounds", nothing)
+        bounds = isnothing(bounds_name) ? nothing : Array(nc[bounds_name])
+
+        # TODO: Need to handle the time dimension as a special case since it
+        # could be some Dates.DateTime
+
+        return Dim(
+            dim_name,
+            Array(variable);
+            units,
+            bounds,
+            attributes = dim_attribs,
+        )
+    end
+
+    # TODO: Is this split right?
+    aux_coord_names = split(get(nc[short_name].attrib, "coordinates", " "))
+    aux_coord_names = filter(
+        name -> _is_valid_aux_coord(nc, name, dim_names),
+        aux_coord_names,
+    )
+    unique!(aux_coord_names)
+    aux_coords = map(aux_coord_names) do aux_coord_name
+        variable = nc[aux_coord_name]
+        spans = NCDatasets.dimnames(variable)
+        dim_attribs = Dict{String, Any}(variable.attrib)
+        units = pop!(dim_attribs, "units", "")
+        bounds_name = pop!(dim_attribs, "bounds", nothing)
+        bounds = isnothing(bounds_name) ? nothing : Array(nc[bounds_name])
+        return AuxCoord(
+            aux_coord_name,
+            spans,
+            Array(variable);
+            units,
+            bounds,
+            attributes = dim_attribs,
+        )
+    end
+
+    return Grid(dims...; aux_coords)
+
+end
+
+function _is_valid_aux_coord(nc, aux_coord_name, dim_names)
+    aux_coord_name in dim_names && return false
+    if !haskey(nc, aux_coord_name)
+        @warn "$aux_coord_name is not in the file; skipping it"
+        return false
+    end
+    # We do not support 0D spans right now
+    spans = NCDatasets.dimnames(nc[aux_coord_name])
+    if isempty(spans)
+        @warn "$aux_coord_name is a scalar coordinate; skipping it";
+        return false
+    end
+    # TODO: Mention edge cases here
+    if !issubset(spans, dim_names)
+        @warn "$aux_coord_name has dimensions $spans not in $dim_names; skipping it"
+        return false
+    end
+    return true
+end
 
 # Construction
 # TODO: Change the name of this since we are just checking the data size match
