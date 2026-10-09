@@ -2,7 +2,7 @@ module Grids
 
 import NCDatasets: CFTime
 import Dates
-import ..Utils: nearest_index, date_to_time, _isequispaced
+import ..Utils: nearest_index, _isequispaced
 
 
 # TODO: Determine if we should export these or not
@@ -168,6 +168,7 @@ function is_z_1D(grid)
 end
 
 function reference_date(grid::Grid)
+    # TODO: Check this function too. It looks weird to me
     has_time(grid) || return nothing
     time_units = units(dim(grid, "time"))
     occursin(" since ", time_units) || return nothing
@@ -184,8 +185,7 @@ function has_time(grid::Grid)
 end
 
 function has_date(grid::Grid)
-    # TODO: Check units attribute to see if dates make sense
-    return has_time(grid)
+    return has_time(grid) && !isnothing(reference_date(grid))
 end
 
 function has_longitude(grid::Grid)
@@ -231,8 +231,14 @@ function times(grid::Grid)
 end
 
 function dates(grid::Grid)
-    # TODO: Convert to dates here
-    return dim(grid, "time")
+    time_dim = dim(grid, "time")
+    has_date(grid) || error(
+        "Cannot compute dates because the units of $(name(time_dim)) ($(units(time_dim))) have no reference date",
+    )
+    cal = calendar(grid)
+    time_dates = CFTime.timedecode(coord_values(time_dim), units(time_dim), cal)
+    eltype(time_dates) <: Dates.DateTime && return time_dates
+    return map(date -> _calendar_date(cal, date), time_dates)
 end
 
 function longitudes(grid::Grid)
@@ -276,14 +282,51 @@ function set_values!(grid::Grid, name, new_values; bounds = nothing)
     return nothing
 end
 
-function transform_coords!(f, grid::Grid, name; units = nothing) end
+function transform_coords!(f, grid::Grid, name; units = nothing)
+    coord = coordinate(grid, name)
+    coord_bounds = bounds(coord)
+    # Compute everything before mutating, so a failing f leaves the grid unchanged
+    new_values = f.(coord_values(coord))
+    new_bounds = isnothing(coord_bounds) ? nothing : f.(coord_bounds)
+    set_values!(grid, name, new_values; bounds = new_bounds)
+    isnothing(units) || set_units!(grid, name, units)
+    return nothing
+end
 
-# TODO: Use the time axis's units once they are not always seconds (D-21)
-function _date_to_time(grid::Grid, date::Dates.DateTime)
-    ref_date = reference_date(grid)
-    isnothing(ref_date) &&
+function _date_to_time(grid::Grid, date)
+    has_date(grid) ||
         error("$date is a date, but the time dimension has no reference date")
-    return date_to_time(ref_date, date)
+    cal = calendar(grid)
+    return CFTime.timeencode(
+        _to_calendar(date, cal),
+        units(dim(grid, "time")),
+        cal,
+    )
+end
+
+# A DateTime is read as the same calendar date in the time dimension's calendar
+function _to_calendar(date::Dates.DateTime, cal)
+    cal in ("standard", "gregorian", "proleptic_gregorian") && return date
+    # TODO: Look into whether we need to do this?
+    return _calendar_date(cal, date)
+end
+
+function _to_calendar(date, cal)
+    return date
+end
+
+# CFTime date types encode their units and reference date, so rebuild dates with the
+# default type parameters to get one type per calendar
+function _calendar_date(cal, date)
+    return CFTime.timetype(cal)(
+        Dates.year(date),
+        Dates.month(date),
+        Dates.day(date),
+        Dates.hour(date),
+        Dates.minute(date),
+        Dates.second(date),
+        Dates.millisecond(date),
+    )
 end
 
 function Base.getindex(grid::Grid, inds...)
