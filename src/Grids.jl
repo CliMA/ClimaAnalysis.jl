@@ -167,6 +167,9 @@ function is_z_1D(grid)
     error("TODO!")
 end
 
+# TODO: Check the dates functions like dates, has_date,
+# and date_to_time for conciseness and correctness
+
 function reference_date(grid::Grid)
     # TODO: Check this function too. It looks weird to me
     has_time(grid) || return nothing
