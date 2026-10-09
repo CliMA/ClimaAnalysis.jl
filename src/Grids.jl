@@ -168,7 +168,7 @@ function is_z_1D(grid)
 end
 
 # TODO: Check the dates functions like dates, has_date,
-# and date_to_time for conciseness and correctness
+# and date_to_time for conciseness and correctness and type stability
 
 function reference_date(grid::Grid)
     # TODO: Check this function too. It looks weird to me
