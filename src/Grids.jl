@@ -104,14 +104,21 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
         dim_attribs = Dict{String, Any}(variable.attrib)
         units = pop!(dim_attribs, "units", "")
         bounds_name = pop!(dim_attribs, "bounds", nothing)
-        bounds = isnothing(bounds_name) ? nothing : Array(nc[bounds_name])
+        # The number of vertices for the bounds of Dim is 2.
+        bounds = _read_bounds(
+            nc,
+            dim_name,
+            bounds_name,
+            (dim_name,);
+            nvertices = 2,
+        )
 
         # TODO: Need to handle the time dimension as a special case since it
         # could be some Dates.DateTime
 
         return Dim(
             dim_name,
-            Array(variable);
+            _coord_values(variable);
             units,
             bounds,
             attributes = dim_attribs,
@@ -127,15 +134,16 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
     unique!(aux_coord_names)
     aux_coords = map(aux_coord_names) do aux_coord_name
         variable = nc[aux_coord_name]
-        spans = NCDatasets.dimnames(variable)
+        spans = _coord_dimnames(variable)
         dim_attribs = Dict{String, Any}(variable.attrib)
         units = pop!(dim_attribs, "units", "")
         bounds_name = pop!(dim_attribs, "bounds", nothing)
-        bounds = isnothing(bounds_name) ? nothing : Array(nc[bounds_name])
+        # Aux coordinate cells can be polygons, so the vertex count is not fixed
+        bounds = _read_bounds(nc, aux_coord_name, bounds_name, spans)
         return AuxCoord(
             aux_coord_name,
             spans,
-            Array(variable);
+            _coord_values(variable);
             units,
             bounds,
             attributes = dim_attribs,
@@ -146,6 +154,90 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
 
 end
 
+"""
+TODO: This entire docstring
+
+Read the bounds named by a coordinate's `bounds` attribute (CF 7.1), or warn and return
+# nothing if they are missing or malformed.
+"""
+function _read_bounds(
+    nc,
+    coord_name,
+    bounds_name,
+    coord_dims;
+    nvertices = nothing,
+)
+    isnothing(bounds_name) && return nothing
+    if !haskey(nc, bounds_name)
+        @warn "Bounds $bounds_name of $coord_name are not in the file; skipping them"
+        return nothing
+    end
+
+    bounds_dims = _coord_dimnames(nc[bounds_name])
+    # The number of dimensions for the bounds is one more than the number of
+    # dimensions of the coordinates due to the bound dimension. Furthermore,
+    # bound dimension should be the first one and not present in the coordinate
+    # dimensions.
+    is_valid_layout =
+        length(bounds_dims) == length(coord_dims) + 1 &&
+        bounds_dims[2:end] == Tuple(coord_dims) &&
+        bounds_dims[1] ∉ coord_dims
+    if !is_valid_layout
+        @warn "Bounds $bounds_name of $coord_name have dimensions $bounds_dims, but a vertex dimension followed by $(Tuple(coord_dims)) is expected; skipping them"
+        return nothing
+    end
+
+    # Check the size of the bounds match the nvertices if passed
+    bounds = _coord_values(nc[bounds_name])
+    if !isnothing(nvertices) && size(bounds, 1) != nvertices
+        @warn "Bounds $bounds_name of $coord_name have $(size(bounds, 1)) vertices, but $nvertices are expected; skipping them"
+        return nothing
+    end
+    return bounds
+end
+
+# TODO: Verify if _coord_dimnames and _coord_values work correctly for strings
+# A char array's first dimension holds the characters of each string (CF §2.2)
+function _coord_dimnames(variable)
+    dims = NCDatasets.dimnames(variable)
+    return eltype(variable) <: Char ? dims[2:end] : dims
+end
+
+function _coord_values(variable)
+    values = Array(variable)
+    eltype(values) <: Char || return values
+    # CF pads strings with trailing NULs or spaces
+    return map(eachslice(values; dims = Tuple(2:ndims(values)))) do chars
+        String(rstrip(c -> c == '\0' || c == ' ', String(UInt8.(chars))))
+    end
+end
+
+# TODO for read_grid
+# 1. Time should be decoded to floating poitns
+# 2. _FillValue changes the element type
+# 3. Dataset type is too narrow
+# 4. Encoding attributes are kept
+# 5. Units/attributes extraction is duplicated
+# 6. The "not available" error could list the variables that do exist.
+# 7. Small tidy-ups:
+# the local dim_names hides the module function;
+# dim_attribs in the auxiliary-coordinate map should be aux_coord_attribs;
+# there's a stray ; after the scalar-coordinate @warn in _is_valid_aux_coord;
+# there's a blank line before read_grid's final
+# 8. Legacy N-D same-name coordinate (z(z, lat, lon) in pfull_1.0d_inst.nc) makes Dim throw; split it (IO-8)
+# 9. NCDatasets decodes bounds with the parent's units/calendar; #1 must cover bounds and date(time) too
+# 10. Warn when bounds units disagree with the coordinate's (UN-4)
+# 11. Reference date from time units, then date units, then start_date (IO-13)
+# 12. Aux discovery tiers 3-4, e.g. unlinked z_physical (IO-3)
+# 13. Reject ragged DSG files (sample_dimension/instance_dimension) (IO-11)
+# 15. More tidy-ups:
+# unique! before filter so duplicate invalid names warn once;
+# _read_bounds: drop the redundant length check, check vertex count before Array(...);
+# stale "TODO: Implement this" above read_grid(path);
+# stray # in the _read_bounds docstring;
+# typos "poitns", "mentioend"
+
+
 function _is_valid_aux_coord(nc, aux_coord_name, dim_names)
     aux_coord_name in dim_names && return false
     if !haskey(nc, aux_coord_name)
@@ -153,7 +245,7 @@ function _is_valid_aux_coord(nc, aux_coord_name, dim_names)
         return false
     end
     # We do not support 0D spans right now
-    spans = NCDatasets.dimnames(nc[aux_coord_name])
+    spans = _coord_dimnames(nc[aux_coord_name])
     if isempty(spans)
         @warn "$aux_coord_name is a scalar coordinate; skipping it";
         return false

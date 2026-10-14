@@ -60,17 +60,24 @@ struct Index <: AbstractSelector end
 # Selection and structural indexing
 
 function get_index(grid::Grid, dim_name, value, ::NearestValue)
-    return nearest_index(coord_values(dim(grid, dim_name)), value)
+    dim_values = coord_values(dim(grid, dim_name))
+    eltype(dim_values) <: AbstractString && error(
+        "Cannot find the nearest value in $dim_name dimension because its values are labels. Use MatchValue() or Index() instead",
+    )
+    return nearest_index(dim_values, value)
 end
 
 function get_index(grid::Grid, dim_name, value, ::MatchValue)
     dim_values = coord_values(dim(grid, dim_name))
-    idx = findfirst(x -> x ≈ value, dim_values)
+    idx = findfirst(x -> _matches(x, value), dim_values)
     isnothing(idx) && error(
         "Cannot find $value in $dim_name dimension with values $dim_values",
     )
     return idx
 end
+
+_matches(x::Number, value::Number) = x ≈ value
+_matches(x, value) = isequal(x, value)
 
 function get_index(grid::Grid, dim_name, idx, ::Index)
     idx ∉ eachindex(coord_values(dim(grid, dim_name))) &&
