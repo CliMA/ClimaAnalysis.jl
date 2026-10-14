@@ -71,8 +71,6 @@ function calendar(grid::Grid)
     return get(attributes(dim(grid, "time")), "calendar", "standard")
 end
 
-# TODO: Implement this
-
 function read_grid(path::String, short_name)
     return NCDatasets.NCDataset(path) do nc
         read_grid(nc, short_name)
@@ -96,7 +94,7 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
     dim_names = NCDatasets.dimnames(nc[short_name])
     dims = map(dim_names) do dim_name
         # TODO: Check the line below since I haven't seen it and maybe it is
-        # mentioend in the CF conventions?
+        # mentioned in the CF conventions?
         # A dimension without a coordinate variable becomes an index axis
         haskey(nc, dim_name) ||
             return Dim(dim_name, collect(1:nc.dim[dim_name]))
@@ -127,17 +125,17 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
 
     # TODO: Is this split right?
     aux_coord_names = split(get(nc[short_name].attrib, "coordinates", " "))
+    unique!(aux_coord_names)
     aux_coord_names = filter(
         name -> _is_valid_aux_coord(nc, name, dim_names),
         aux_coord_names,
     )
-    unique!(aux_coord_names)
     aux_coords = map(aux_coord_names) do aux_coord_name
         variable = nc[aux_coord_name]
         spans = _coord_dimnames(variable)
-        dim_attribs = Dict{String, Any}(variable.attrib)
-        units = pop!(dim_attribs, "units", "")
-        bounds_name = pop!(dim_attribs, "bounds", nothing)
+        aux_coord_attribs = Dict{String, Any}(variable.attrib)
+        units = pop!(aux_coord_attribs, "units", "")
+        bounds_name = pop!(aux_coord_attribs, "bounds", nothing)
         # Aux coordinate cells can be polygons, so the vertex count is not fixed
         bounds = _read_bounds(nc, aux_coord_name, bounds_name, spans)
         return AuxCoord(
@@ -146,19 +144,18 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
             _coord_values(variable);
             units,
             bounds,
-            attributes = dim_attribs,
+            attributes = aux_coord_attribs,
         )
     end
 
     return Grid(dims...; aux_coords)
-
 end
 
 """
 TODO: This entire docstring
 
 Read the bounds named by a coordinate's `bounds` attribute (CF 7.1), or warn and return
-# nothing if they are missing or malformed.
+nothing if they are missing or malformed.
 """
 function _read_bounds(
     nc,
@@ -179,21 +176,19 @@ function _read_bounds(
     # bound dimension should be the first one and not present in the coordinate
     # dimensions.
     is_valid_layout =
-        length(bounds_dims) == length(coord_dims) + 1 &&
-        bounds_dims[2:end] == Tuple(coord_dims) &&
-        bounds_dims[1] ∉ coord_dims
+        bounds_dims[2:end] == Tuple(coord_dims) && bounds_dims[1] ∉ coord_dims
     if !is_valid_layout
         @warn "Bounds $bounds_name of $coord_name have dimensions $bounds_dims, but a vertex dimension followed by $(Tuple(coord_dims)) is expected; skipping them"
         return nothing
     end
 
-    # Check the size of the bounds match the nvertices if passed
-    bounds = _coord_values(nc[bounds_name])
-    if !isnothing(nvertices) && size(bounds, 1) != nvertices
-        @warn "Bounds $bounds_name of $coord_name have $(size(bounds, 1)) vertices, but $nvertices are expected; skipping them"
+    # Check the size of the bounds match
+    file_nvertices = nc.dim[bounds_dims[1]]
+    if !isnothing(nvertices) && file_nvertices != nvertices
+        @warn "Bounds $bounds_name of $coord_name have $file_nvertices vertices, but $nvertices are expected; skipping them"
         return nothing
     end
-    return bounds
+    return _coord_values(nc[bounds_name])
 end
 
 # TODO: Verify if _coord_dimnames and _coord_values work correctly for strings
@@ -212,30 +207,28 @@ function _coord_values(variable)
     end
 end
 
-# TODO for read_grid
-# 1. Time should be decoded to floating poitns
-# 2. _FillValue changes the element type
-# 3. Dataset type is too narrow
-# 4. Encoding attributes are kept
-# 5. Units/attributes extraction is duplicated
-# 6. The "not available" error could list the variables that do exist.
-# 7. Small tidy-ups:
-# the local dim_names hides the module function;
-# dim_attribs in the auxiliary-coordinate map should be aux_coord_attribs;
-# there's a stray ; after the scalar-coordinate @warn in _is_valid_aux_coord;
-# there's a blank line before read_grid's final
-# 8. Legacy N-D same-name coordinate (z(z, lat, lon) in pfull_1.0d_inst.nc) makes Dim throw; split it (IO-8)
-# 9. NCDatasets decodes bounds with the parent's units/calendar; #1 must cover bounds and date(time) too
-# 10. Warn when bounds units disagree with the coordinate's (UN-4)
-# 11. Reference date from time units, then date units, then start_date (IO-13)
-# 12. Aux discovery tiers 3-4, e.g. unlinked z_physical (IO-3)
-# 13. Reject ragged DSG files (sample_dimension/instance_dimension) (IO-11)
-# 15. More tidy-ups:
-# unique! before filter so duplicate invalid names warn once;
-# _read_bounds: drop the redundant length check, check vertex count before Array(...);
-# stale "TODO: Implement this" above read_grid(path);
-# stray # in the _read_bounds docstring;
-# typos "poitns", "mentioend"
+# TODO for read_grid, easiest first
+# Tidy-ups (no behaviour change)
+# 5. Factor the duplicated units/bounds/attributes extraction into one helper
+# Small behaviour changes
+# 6. The "not available" error lists the variables that do exist
+# 7. Accept any NCDatasets.AbstractNCDataset, e.g. multi-file datasets (NCCatalog)
+# 8. A variable named like its dim but not 1-D over it (legacy z(z, lat, lon)):
+#    warn and use a 1:n axis instead of letting Dim throw (D-7)
+# 9. Reject ragged DSG files (sample_dimension/instance_dimension) (IO-11)
+# Need a decision first
+# 10. Encoding attributes (_FillValue, scale_factor, ...) end up in attributes:
+#     drop them or keep them apart (CR-5)
+# 11. _FillValue makes values Union{Missing, T}, e.g. CALIPSO lat/lon: convert
+#     to NaN or keep missing
+# 12. Warn when bounds units disagree with the coordinate's (UN-4, units PR)
+# Hard
+# 13. Decode time to relative floats, not DateTime (DM-14), including time
+#     bounds and date(time): NCDatasets decodes bounds with the parent's
+#     units/calendar
+# 14. Reference date from time units, then date units, then start_date (IO-13)
+# 15. Aux discovery tiers 3-4, e.g. unlinked z_physical, without promoting data
+#     variables (IO-3, IO-4)
 
 
 function _is_valid_aux_coord(nc, aux_coord_name, dim_names)
@@ -247,7 +240,7 @@ function _is_valid_aux_coord(nc, aux_coord_name, dim_names)
     # We do not support 0D spans right now
     spans = _coord_dimnames(nc[aux_coord_name])
     if isempty(spans)
-        @warn "$aux_coord_name is a scalar coordinate; skipping it";
+        @warn "$aux_coord_name is a scalar coordinate; skipping it"
         return false
     end
     # TODO: Mention edge cases here
@@ -315,7 +308,7 @@ function dim_index(grid::Grid, name)
             return i
         end
     end
-    # TODO: Better error message when it is an auxillary coordinate
+    # TODO: Better error message when it is an auxiliary coordinate
     return error(
         "Cannot find index of the dimension with the name $name in the grid",
     )
