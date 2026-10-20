@@ -9,7 +9,7 @@ export SimDir,
     available_coord_types
 
 import ..Utils
-import ..Var: read_var
+import ..Var: OutputVar
 
 """
     SimDir(simulation_path::String)
@@ -273,7 +273,7 @@ function get(
         file_path =
             simdir.variable_paths[short_name][reduction][period][coord_type]
         simdir.vars[short_name][reduction][period][coord_type] =
-            read_var(file_path)
+            OutputVar(file_path)
     end
     return simdir.vars[short_name][reduction][period][coord_type]
 end
