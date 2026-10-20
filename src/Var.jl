@@ -263,15 +263,14 @@ If `short_name` is `nothing`, automatically find the name.
 If `path` is a `Vector{String}`, then the files should contain the same variable, and the
 times should be sorted. The non-temporal dimensions should be the same across all the files.
 
-Dates in the time dimension are automatically converted to seconds with respect to the first
-date in the time dimension array or the `new_start_date`. The parameter `new_start_date` can
-be any string parseable by the [Dates](https://docs.julialang.org/en/v1/stdlib/Dates/)
-module or a `Dates.DateTime` object. The parameter `shift_by` is a function that takes in
-Dates.DateTime elements and return Dates.DateTime elements. The start date is added to the
-attributes of the `OutputVar`. The parameter `shift_by` is a function that takes in
-`Dates.DateTime` elements and returns `Dates.DateTime` elements. This function is applied to
-each element of the time array. Shifting the dates and converting to seconds is done in that
-order.
+Dates in the time dimension are automatically converted to seconds with respect to
+`new_start_date` if given, else the `start_date` attribute of the variable if present, else
+the first date in the time dimension array. The parameter `new_start_date` can be any string
+parseable by the [Dates](https://docs.julialang.org/en/v1/stdlib/Dates/) module or a
+`Dates.DateTime` object. The parameter `shift_by` is a function that takes in Dates.DateTime
+elements and return Dates.DateTime elements. The start date is added to the attributes of
+the `OutputVar`. This function is applied to each element of the time array. Shifting the
+dates and converting to seconds is done in that order.
 
 !!! warning "Deprecated keyword arguments"
     The keyword arguments `new_start_date` and `shift_by` are deprecated in versions of
@@ -300,6 +299,8 @@ function OutputVar(
             (time_type = nonmissingtype(time_type))
         if time_type <:
            Union{Dates.DateTime, NCDatasets.CFTime.AbstractCFDateTime}
+            isnothing(new_start_date) &&
+                (new_start_date = get(var.attributes, "start_date", nothing))
             var = _dates_to_seconds(
                 var,
                 new_start_date = new_start_date,
