@@ -19,7 +19,7 @@ import CairoMakie
 
 fig = CairoMakie.Figure()
 plot_bias_on_globe!(fig, sim_var, obs_var)
-fig</code></pre><img src="93e51297.png" alt="Example block output"/><p>We can also plot the bias using an ocean mask. This also means we compute the bias only over land.</p><pre><code class="language-julia hljs">import ClimaAnalysis
+fig</code></pre><img src="a9c2c320.png" alt="Example block output"/><p>We can also plot the bias using an ocean mask. This also means we compute the bias only over land.</p><pre><code class="language-julia hljs">import ClimaAnalysis
 import ClimaAnalysis.Visualize: plot_bias_on_globe!, oceanmask
 import ClimaAnalysis.Utils: kwargs as ca_kwargs
 import GeoMakie
