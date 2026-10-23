@@ -3,6 +3,9 @@ ClimaAnalysis.jl Release Notes
 main
 -------
 
+v0.5.25
+-------
+
 ## Bug fixes
 
 - When reading NetCDF files whose time dimension is stored as dates, times are
