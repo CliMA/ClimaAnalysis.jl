@@ -78,14 +78,14 @@ function read_grid(path::String, short_name)
 end
 
 """
-    read_grid(nc::NCDatasets.NCDataset, short_name)
+    read_grid(nc::NCDatasets.AbstractDataset, short_name)
 
 Create a `Grid` from the variable with the name `short_name` in the NetCDF
 dataset `nc`.
 
 This function does not close `nc`.
 """
-function read_grid(nc::NCDatasets.NCDataset, short_name)
+function read_grid(nc::NCDatasets.AbstractDataset, short_name)
     # We will not try to automatically determine the short name here since this
     # function will be called by the OutputVar constructor
     haskey(nc, short_name) ||
@@ -106,6 +106,7 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
         bounds = _read_bounds(
             nc,
             dim_name,
+            units,
             bounds_name,
             (dim_name,);
             nvertices = 2,
@@ -134,10 +135,11 @@ function read_grid(nc::NCDatasets.NCDataset, short_name)
         variable = nc[aux_coord_name]
         spans = _coord_dimnames(variable)
         aux_coord_attribs = Dict{String, Any}(variable.attrib)
+        # TODO: Look at how units are dealt with for the CF conventions
         units = pop!(aux_coord_attribs, "units", "")
         bounds_name = pop!(aux_coord_attribs, "bounds", nothing)
         # Aux coordinate cells can be polygons, so the vertex count is not fixed
-        bounds = _read_bounds(nc, aux_coord_name, bounds_name, spans)
+        bounds = _read_bounds(nc, aux_coord_name, units, bounds_name, spans)
         return AuxCoord(
             aux_coord_name,
             spans,
@@ -156,10 +158,13 @@ TODO: This entire docstring
 
 Read the bounds named by a coordinate's `bounds` attribute (CF 7.1), or warn and return
 nothing if they are missing or malformed.
+
+TODO: Justify why this function is not part of read_grid or in the grid constructor
 """
 function _read_bounds(
     nc,
     coord_name,
+    coord_units,
     bounds_name,
     coord_dims;
     nvertices = nothing,
@@ -188,6 +193,12 @@ function _read_bounds(
         @warn "Bounds $bounds_name of $coord_name have $file_nvertices vertices, but $nvertices are expected; skipping them"
         return nothing
     end
+
+    # CF §7.1: bounds share their coordinate's units
+    bounds_units = get(nc[bounds_name].attrib, "units", nothing)
+    if !isnothing(bounds_units) && bounds_units != coord_units
+        @warn "Bounds $bounds_name of $coord_name have units $(repr(bounds_units)), but $coord_name has units $(repr(coord_units)); using $(repr(coord_units))"
+    end
     return _coord_values(nc[bounds_name])
 end
 
@@ -208,20 +219,6 @@ function _coord_values(variable)
 end
 
 # TODO for read_grid, easiest first
-# Tidy-ups (no behaviour change)
-# 5. Factor the duplicated units/bounds/attributes extraction into one helper
-# Small behaviour changes
-# 6. The "not available" error lists the variables that do exist
-# 7. Accept any NCDatasets.AbstractNCDataset, e.g. multi-file datasets (NCCatalog)
-# 8. A variable named like its dim but not 1-D over it (legacy z(z, lat, lon)):
-#    warn and use a 1:n axis instead of letting Dim throw (D-7)
-# 9. Reject ragged DSG files (sample_dimension/instance_dimension) (IO-11)
-# Need a decision first
-# 10. Encoding attributes (_FillValue, scale_factor, ...) end up in attributes:
-#     drop them or keep them apart (CR-5)
-# 11. _FillValue makes values Union{Missing, T}, e.g. CALIPSO lat/lon: convert
-#     to NaN or keep missing
-# 12. Warn when bounds units disagree with the coordinate's (UN-4, units PR)
 # Hard
 # 13. Decode time to relative floats, not DateTime (DM-14), including time
 #     bounds and date(time): NCDatasets decodes bounds with the parent's
