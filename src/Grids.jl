@@ -112,12 +112,9 @@ function read_grid(nc::NCDatasets.AbstractDataset, short_name)
             nvertices = 2,
         )
 
-        # TODO: Need to handle the time dimension as a special case since it
-        # could be some Dates.DateTime
-
         return Dim(
             dim_name,
-            _coord_values(variable);
+            _coord_values(nc, dim_name, units);
             units,
             bounds,
             attributes = dim_attribs,
@@ -143,7 +140,7 @@ function read_grid(nc::NCDatasets.AbstractDataset, short_name)
         return AuxCoord(
             aux_coord_name,
             spans,
-            _coord_values(variable);
+            _coord_values(nc, aux_coord_name, units);
             units,
             bounds,
             attributes = aux_coord_attribs,
@@ -199,7 +196,7 @@ function _read_bounds(
     if !isnothing(bounds_units) && bounds_units != coord_units
         @warn "Bounds $bounds_name of $coord_name have units $(repr(bounds_units)), but $coord_name has units $(repr(coord_units)); using $(repr(coord_units))"
     end
-    return _coord_values(nc[bounds_name])
+    return _coord_values(nc, bounds_name, coord_units)
 end
 
 # TODO: Verify if _coord_dimnames and _coord_values work correctly for strings
@@ -209,20 +206,26 @@ function _coord_dimnames(variable)
     return eltype(variable) <: Char ? dims[2:end] : dims
 end
 
-function _coord_values(variable)
+# TODO: Add docstring here
+function _coord_values(nc, name, units)
+    # TODO: Do we need to use the start_date attribute here?
+    # Keep times relative to the reference date given the calendar system
+    variable =
+        NCDatasets.cfvariable(nc, name; units = nothing, calendar = nothing)
     values = Array(variable)
-    eltype(values) <: Char || return values
-    # CF pads strings with trailing NULs or spaces
-    return map(eachslice(values; dims = Tuple(2:ndims(values)))) do chars
-        String(rstrip(c -> c == '\0' || c == ' ', String(UInt8.(chars))))
+    if eltype(values) <: Char
+        # TODO: Check if this is correct
+        # CF pads strings with trailing NULs or spaces
+        return map(eachslice(values; dims = Tuple(2:ndims(values)))) do chars
+            String(rstrip(c -> c == '\0' || c == ' ', String(UInt8.(chars))))
+        end
     end
+    # Integer times cannot be shifted in place by a fraction of their unit
+    return occursin(" since ", units) ? float.(values) : values
 end
 
 # TODO for read_grid, easiest first
 # Hard
-# 13. Decode time to relative floats, not DateTime (DM-14), including time
-#     bounds and date(time): NCDatasets decodes bounds with the parent's
-#     units/calendar
 # 14. Reference date from time units, then date units, then start_date (IO-13)
 # 15. Aux discovery tiers 3-4, e.g. unlinked z_physical, without promoting data
 #     variables (IO-3, IO-4)
