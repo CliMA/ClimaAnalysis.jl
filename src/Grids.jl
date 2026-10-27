@@ -81,7 +81,7 @@ end
     read_grid(nc::NCDatasets.AbstractDataset, short_name)
 
 Create a `Grid` from the variable with the name `short_name` in the NetCDF
-dataset `nc`.
+dataset or multi-file NetCDF dataset `nc`.
 
 This function does not close `nc`.
 """
@@ -223,13 +223,6 @@ function _coord_values(nc, name, units)
     # Integer times cannot be shifted in place by a fraction of their unit
     return occursin(" since ", units) ? float.(values) : values
 end
-
-# TODO for read_grid, easiest first
-# Hard
-# 14. Reference date from time units, then date units, then start_date (IO-13)
-# 15. Aux discovery tiers 3-4, e.g. unlinked z_physical, without promoting data
-#     variables (IO-3, IO-4)
-
 
 function _is_valid_aux_coord(nc, aux_coord_name, dim_names)
     aux_coord_name in dim_names && return false
