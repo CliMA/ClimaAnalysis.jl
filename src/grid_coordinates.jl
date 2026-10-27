@@ -9,8 +9,8 @@ const PRESSURE_NAMES = ["pfull", "pressure_level"]
 """
     conventional_dim_name(dim_name::AbstractString)
 
-Return the type of dimension as a string from longitude, latitude, time, date, altitude, or
-pressure if possible or `dim_name` as a string otherwise.
+Return the type of dimension as a string from longitude, latitude, time, date,
+altitude, or pressure if possible or `dim_name` as a string otherwise.
 """
 function conventional_dim_name(dim_name::AbstractString)
     dim_name in LONGITUDE_NAMES && return "longitude"
@@ -22,9 +22,20 @@ function conventional_dim_name(dim_name::AbstractString)
     return dim_name
 end
 
+"""
+    AbstractCoordinate
+
+An object representing either a dimension coordinates or auxillary coordinates
+with metadata attached to it such as name, units, bounds, and attributes.
+"""
 abstract type AbstractCoordinate end
 
-# TODO: Maybe rename to DimCoord
+"""
+    Dim
+
+A dimension of 1D coordinates with metadata attached to it such as name, units,
+bounds, and attributes.
+"""
 struct Dim{A <: AbstractVector, B <: Union{Nothing, AbstractMatrix}} <:
        AbstractCoordinate
     name::String
@@ -34,6 +45,13 @@ struct Dim{A <: AbstractVector, B <: Union{Nothing, AbstractMatrix}} <:
     attributes::Dict{String, Any}
 end
 
+"""
+    AuxCoord
+
+A dimension of `N`-D auxillary coordinates with metadata attached to it such as
+name, spans, units, bounds, and attributes. Each auxillary coordinate must span
+`N` `Dim`ensions.
+"""
 struct AuxCoord{
     N,
     A <: AbstractArray{<:Any, N},
@@ -47,8 +65,24 @@ struct AuxCoord{
     attributes::Dict{String, Any}
 end
 
-# TODO: CHECK BELOW
-# Constructors
+"""
+    Dim(
+        name,
+        values::AbstractVector;
+        units = "",
+        bounds = nothing,
+        attributes = Dict{String, Any}(),
+    )
+
+Construct a `Dim`ension from its `name` and `values` with optional metadata of
+`units`, `bounds`, and `attributes`.
+
+The `values` must be one-dimensional. The `bounds`, if given, have size
+`(2, length(values))`, where `bounds[:, i]` are the start and end of the `i`th
+cell. An empty `units` means the dimension is dimensionless.
+
+Also, see [`AuxCoord`](@ref).
+"""
 function Dim(
     name,
     values::AbstractVector;
@@ -59,6 +93,7 @@ function Dim(
     name = String(name)
     isempty(name) && error("Dimension name cannot be empty")
     _check_bounds(name, values, bounds)
+    # For a dimension, the number of vertices for bounds must always be two
     isnothing(bounds) ||
         size(bounds, 1) == 2 ||
         error(
@@ -73,10 +108,26 @@ function Dim(
     )
 end
 
-Dim(name, values::AbstractArray; kwargs...) = error(
-    "Dimension $name must be 1-D, but its values are $(ndims(values))-D. Use AuxCoord instead",
-)
+"""
+    AuxCoord(
+        name,
+        spans,
+        values::AbstractArray;
+        units = "",
+        bounds = nothing,
+        attributes = Dict{String, Any}(),
+    )
 
+Construct a `AuxCoord` from its `name`, `spans`, and `values` with optional
+metadata of `units`, `bounds`, and `attributes`.
+
+The `spans` are the names of the dimensions that the auxiliary coordinate lies
+over, given as a single name or a collection of names. There is one name for
+each dimension of `values`, in the same order, with no repeats. The `bounds`, if
+given, have size `(nv, size(values)...)`, where `nv` is the number of vertices
+of each cell, so `bounds[:, I...]` are the vertices of the cell at
+`values[I...]`. An empty `units` means the coordinate is dimensionless.
+"""
 function AuxCoord(
     name,
     spans,
@@ -87,9 +138,7 @@ function AuxCoord(
 )
     name = String(name)
     isempty(name) && error("Auxiliary coordinate name cannot be empty")
-    spans =
-        spans isa Union{AbstractString, Symbol} ? (String(spans),) :
-        Tuple(String.(spans))
+    spans = spans isa AbstractString ? (String(spans),) : Tuple(String.(spans))
     isempty(spans) &&
         error("Auxiliary coordinates with no span are not supported")
 
@@ -110,52 +159,112 @@ function AuxCoord(
     )
 end
 
+"""
+    _check_bounds(name, values, bounds)
+
+If `bounds` is not `nothing`, check that it has size `(nv, size(values)...)`,
+where `nv` is the number of vertices of each cell.
+"""
 function _check_bounds(name, values, bounds)
-    # TODO: Add examples of what is mean for bounds to be > 2 dimensional
     isnothing(bounds) && return nothing
+    # The first dimension of bounds should represent the vertices
     (
         ndims(bounds) == ndims(values) + 1 &&
         size(bounds)[2:end] == size(values)
     ) || error(
-        "Bounds of $name must have size (nv, $(join(size(values), ", "))); got $(size(bounds))",
+        "Bounds of $name must have size (nv, $(join(size(values), ", "))). Got $(size(bounds))",
     )
     return nothing
 end
 
 # Coordinates
+"""
+    name(coord::AbstractCoordinate)
+
+Return the `name` of `coord`.
+"""
 function name(coord::AbstractCoordinate)
     return coord.name
 end
 
+"""
+    coord_values(coord::AbstractCoordinate)
+
+Return the values of `coord`.
+
+This is the stored array in `coord`, not a copy.
+"""
 function coord_values(coord::AbstractCoordinate)
     return coord.values
 end
 
+"""
+    spans(dim::Dim)
+
+Return the spans of `dim` which is a 1-tuple of the dimension name.
+"""
 function spans(dim::Dim)
     return (name(dim),)
 end
 
+"""
+    spans(aux_coord::AuxCoord)
+
+Return the spans of `aux_coord`, which are the names of the dimensions it lies
+over, in the same order as the dimensions of its values.
+"""
 function spans(aux_coord::AuxCoord)
     return aux_coord.spans
 end
 
+"""
+    units(coord::AbstractCoordinate)
+
+Return the units of `coord`.
+"""
 function units(coord::AbstractCoordinate)
     return coord.units[]
 end
 
+"""
+    bounds(coord::AbstractCoordinate)
+
+Return the bounds of `coord`.
+
+This is the stored array in `coord`, not a copy.
+"""
 function bounds(coord::AbstractCoordinate)
     return coord.bounds
 end
 
+"""
+    attributes(coord::AbstractCoordinate)
+
+Return the attributes of `coord`.
+
+This is the stored dictionary in `coord`, not a copy.
+"""
 function attributes(coord::AbstractCoordinate)
     return coord.attributes
 end
 
-# TODO: Could be aux coords if 1D?
+"""
+    isequispaced(dim::Dim)
+
+Return whether the values of `dim` is equispaced.
+"""
 function isequispaced(dim::Dim)
     return _isequispaced(coord_values(dim))
 end
 
+"""
+    Base.getindex(dim::Dim, ind::Union{AbstractVector, Colon})
+
+Return a subset of `dim` as selected by the indices `inds` as a `Dim`.
+
+!!! note "Integer indices"
+    Integer indices are not supported because that would remove the dimension.
+"""
 function Base.getindex(dim::Dim, ind::Union{AbstractVector, Colon})
     dim_bounds = bounds(dim)
     return Dim(
@@ -167,11 +276,24 @@ function Base.getindex(dim::Dim, ind::Union{AbstractVector, Colon})
     )
 end
 
-function Base.getindex(dim::Dim, ind::Integer)
+# Throw an informative error message instead of a MethodError
+function Base.getindex(dim::Dim, ::Integer)
     error("Indexing dimension $(name(dim)) with an integer is not allowed")
 end
 
-function Base.getindex(aux_coord::AuxCoord, inds...)
+"""
+    Base.getindex(
+        aux_coord::AuxCoord,
+        inds::Union{AbstractVector, Colon, Integer}...,
+    )
+
+Return a subset of `aux_coord` as selected by the indices `inds` as a
+`AuxCoord`.
+"""
+function Base.getindex(
+    aux_coord::AuxCoord,
+    inds::Union{AbstractVector, Colon, Integer}...,
+)
     aux_coord_spans = spans(aux_coord)
     length(inds) == length(aux_coord_spans) || error(
         "Auxiliary coordinate $(name(aux_coord)) spans $aux_coord_spans, but got $(length(inds)) indices",
@@ -192,4 +314,40 @@ function Base.getindex(aux_coord::AuxCoord, inds...)
         bounds = isnothing(aux_bounds) ? nothing : aux_bounds[:, inds...],
         attributes = deepcopy(attributes(aux_coord)),
     )
+end
+
+"""
+    Base.firstindex(dim::Dim)
+
+Return the first index of `dim`.
+"""
+function Base.firstindex(dim::Dim)
+    return firstindex(coord_values(dim))
+end
+
+"""
+    Base.lastindex(dim::Dim)
+
+Return the last index of `dim`.
+"""
+function Base.lastindex(dim::Dim)
+    return lastindex(coord_values(dim))
+end
+
+"""
+    Base.firstindex(aux_coord::AuxCoord, d)
+
+Return the first index along the `d`-th dimension of `aux_coord`.
+"""
+function Base.firstindex(aux_coord::AuxCoord, d)
+    firstindex(coord_values(aux_coord), d)
+end
+
+"""
+    Base.lastindex(aux_coord::AuxCoord, d)
+
+Return the last index along the `d`-th dimension of `aux_coord`.
+"""
+function Base.lastindex(aux_coord::AuxCoord, d)
+    lastindex(coord_values(aux_coord), d)
 end
