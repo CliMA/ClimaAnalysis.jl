@@ -503,10 +503,16 @@ function _calendar_date(cal, date)
     )
 end
 
-function Base.getindex(grid::Grid, inds...)
+function Base.getindex(
+    grid::Grid,
+    inds::Union{Integer, AbstractVector, Colon}...,
+)
     length(inds) == ndims(grid) || error(
         "Grid has $(ndims(grid)) dimensions $(dim_names(grid)), but got $(length(inds)) indices",
     )
+    for (dim, ind) in zip(grid.dims, inds)
+        ind isa Integer && checkbounds(coord_values(dim), ind)
+    end
     ind_of = Dict(zip(dim_names(grid), inds))
     new_dims = Tuple(
         dim[ind_of[name(dim)]] for
@@ -521,5 +527,16 @@ function Base.getindex(grid::Grid, inds...)
 end
 
 include("grid_selectors.jl")
+
+# TODO: Check if we actually need this
+
+# Support `begin` and `end` when indexing
+function Base.firstindex(::Grid, _)
+    return 1
+end
+
+function Base.lastindex(grid::Grid, d)
+    return size(grid)[d]
+end
 
 end

@@ -3,29 +3,7 @@
 
 An object that determines which indices are selected.
 
-`AbstractSelector`s have to provide one function, `get_index`
-
-The function has to have the signature
-`get_index(var, dim_name, idx_or_val, ::AbstractSelector)` and return a single index. You
-can assume that `dim_name` is in `ClimaAnalysis.dim_names(var)`.
-
-The function `get_index` is used by [`slice`](@ref) and [`window`](@ref). For instance, if
-you use `ClimaAnalysis.slice(var, time = 2)`, then `dim_name` is `time`, and `idx_or_val` is
-`2`.
-
-For example, to implement an `AbstractSelector` that always take the first index of the
-dimension regardless of the value or index passed in, you can write the following:
-
-```julia
-struct FirstIndex <: ClimaAnalysis.AbstractSelector end
-
-function ClimaAnalysis.get_index(var, dim_name, idx_or_val, ::FirstIndex)
-    return 1
-end
-
-# Get the first time slice of var. The parameter 10 does not do anything.
-ClimaAnalysis.slice(var, time = 10, by = FirstIndex())
-```
+TODO: Write docs for this for grid and dim
 """
 abstract type AbstractSelector end
 
@@ -57,8 +35,9 @@ If the index is out of bounds, then an error is thrown.
 """
 struct Index <: AbstractSelector end
 
-# Selection and structural indexing
-
+"""
+    TODO
+"""
 function get_index(grid::Grid, dim_name, value, ::NearestValue)
     dim_values = coord_values(dim(grid, dim_name))
     eltype(dim_values) <: AbstractString && error(
@@ -159,3 +138,9 @@ function window_indices(
         error("Right window value has to be larger than left one")
     return left_idx:right_idx
 end
+
+# TODO: Rewrite this so that it deal with Dim instead of the Grid
+# Future case might mean we deal with the Grid itself?
+# get_index(dim::Dim, value, ::NearestValue)
+# get_index(dim::Dim, value, ::MatchValue)
+# get_index(dim::Dim, idx, ::Index)
