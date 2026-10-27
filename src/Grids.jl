@@ -526,6 +526,37 @@ function Base.getindex(
     return Grid(new_dims...; aux_coords = new_aux_coords)
 end
 
+
+
+"""
+    Base.show(io::IO, grid::Grid)
+
+TODO: Write this and review it!
+"""
+function Base.show(io::IO, grid::Grid)
+    coords = (grid.dims..., grid.aux_coords...)
+    printstyled(io, "Coordinate attributes:\n", bold = true, color = :green)
+    for coord in coords
+        printstyled(io, "  $(name(coord)):\n", color = :light_green)
+        _print_attributes(io, _shown_attributes(coord), "    ")
+    end
+
+    name_width = maximum((length(name(coord)) for coord in coords); init = 0)
+    printstyled(io, "Dimensions:", bold = true, color = :green)
+    for dim in grid.dims
+        print(io, "\n")
+        _print_coord(io, dim, name_width)
+    end
+
+    isempty(grid.aux_coords) && return nothing
+    printstyled(io, "\nAuxiliary coordinates:", bold = true, color = :green)
+    for aux_coord in grid.aux_coords
+        print(io, "\n")
+        _print_coord(io, aux_coord, name_width)
+    end
+    return nothing
+end
+
 include("grid_selectors.jl")
 
 # TODO: Check if we actually need this
