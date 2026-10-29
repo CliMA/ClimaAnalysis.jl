@@ -38,19 +38,19 @@ struct Index <: AbstractSelector end
 """
     TODO
 """
-function get_index(grid::Grid, dim_name, value, ::NearestValue)
-    dim_values = coord_values(dim(grid, dim_name))
+function get_index(dim::Dim, value, ::NearestValue)
+    dim_values = coord_values(dim)
     eltype(dim_values) <: AbstractString && error(
-        "Cannot find the nearest value in $dim_name dimension because its values are labels. Use MatchValue() or Index() instead",
+        "Cannot find the nearest value in $(name(dim)) dimension because its values are labels. Use MatchValue() or Index() instead",
     )
     return nearest_index(dim_values, value)
 end
 
-function get_index(grid::Grid, dim_name, value, ::MatchValue)
-    dim_values = coord_values(dim(grid, dim_name))
+function get_index(dim::Dim, value, ::MatchValue)
+    dim_values = coord_values(dim)
     idx = findfirst(x -> _matches(x, value), dim_values)
     isnothing(idx) && error(
-        "Cannot find $value in $dim_name dimension with values $dim_values",
+        "Cannot find $value in $(name(dim)) dimension with values $dim_values",
     )
     return idx
 end
@@ -58,9 +58,9 @@ end
 _matches(x::Number, value::Number) = x ≈ value
 _matches(x, value) = isequal(x, value)
 
-function get_index(grid::Grid, dim_name, idx, ::Index)
-    idx ∉ eachindex(coord_values(dim(grid, dim_name))) &&
-        error("Attempt to access $dim_name dimension at index $idx")
+function get_index(dim::Dim, idx, ::Index)
+    idx ∉ eachindex(coord_values(dim)) &&
+        error("Attempt to access $(name(dim)) dimension at index $idx")
     return idx
 end
 
@@ -103,7 +103,7 @@ function _selector_indices(
         error("Dates are only supported with time dimension")
     val_is_date &&
         (indices_or_vals = _date_to_time.(Ref(grid), indices_or_vals))
-    return get_index.(Ref(grid), Ref(dim_name), indices_or_vals, Ref(by))
+    return get_index.(Ref(dim(grid, dim_name)), indices_or_vals, Ref(by))
 end
 
 function window_indices(
@@ -127,13 +127,14 @@ function window_indices(
     end
     left, right = _maybe_convert_to_time(left), _maybe_convert_to_time(right)
 
-    dim_values = coord_values(dim(grid, dim_name))
+    selected_dim = dim(grid, dim_name)
+    dim_values = coord_values(selected_dim)
     left_idx =
         isnothing(left) ? firstindex(dim_values) :
-        get_index(grid, dim_name, left, by)
+        get_index(selected_dim, left, by)
     right_idx =
         isnothing(right) ? lastindex(dim_values) :
-        get_index(grid, dim_name, right, by)
+        get_index(selected_dim, right, by)
     right_idx >= left_idx ||
         error("Right window value has to be larger than left one")
     return left_idx:right_idx
